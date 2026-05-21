@@ -1,14 +1,26 @@
-export type UserRole = 'student' | 'teacher' | 'school';
+export type UserRole = 'student' | 'teacher' | 'school_admin' | 'owner' | 'guardian';
 
-export type LearningMode = 'simple' | 'balanced' | 'exam';
+export type SchoolMembershipRole = 'owner' | 'admin' | 'teacher' | 'student' | 'guardian';
 
-export type LessonStatus = 'draft' | 'recording' | 'processing' | 'ready';
+export type MembershipStatus = 'active' | 'invited' | 'review' | 'suspended';
+
+export type LearningMode = 'simple' | 'balanced' | 'exam' | 'story' | 'catch_up';
+
+export type LessonStatus = 'draft' | 'recording' | 'uploaded' | 'transcribing' | 'review' | 'published' | 'failed';
+
+export type ProcessingStatus = 'queued' | 'running' | 'completed' | 'failed';
 
 export type ChainName = 'solana' | 'base' | 'bnb';
 
-export type MemberStatus = 'active' | 'invited' | 'review';
-
 export type CrewScope = 'school' | 'cross_school';
+
+export type CrewRole = 'owner' | 'moderator' | 'member';
+
+export type Surface = 'learning' | 'school_console';
+
+export type LearningTab = 'learn' | 'teach' | 'crews';
+
+export type ConsoleSection = 'overview' | 'setup' | 'people' | 'academics' | 'billing' | 'controls';
 
 export type StudentPreference = {
   language: string;
@@ -26,6 +38,22 @@ export type SchoolWorkspace = {
   subscriptionStatus: string;
   inviteCode: string;
   privacyRule: string;
+  activeTerm: string;
+  externalCrewsAllowed: boolean;
+};
+
+export type AcademicTerm = {
+  id: string;
+  name: string;
+  startsAt: string;
+  endsAt: string;
+  status: 'planned' | 'active' | 'closed';
+};
+
+export type Subject = {
+  id: string;
+  name: string;
+  department: string;
 };
 
 export type Classroom = {
@@ -43,10 +71,27 @@ export type Classroom = {
 export type SchoolMember = {
   id: string;
   name: string;
-  role: UserRole;
+  role: SchoolMembershipRole;
   className: string;
   language: string;
-  status: MemberStatus;
+  status: MembershipStatus;
+};
+
+export type SchoolInvite = {
+  id: string;
+  code: string;
+  role: SchoolMembershipRole;
+  className?: string;
+  expiresAt: string;
+  uses: number;
+};
+
+export type JoinRequest = {
+  id: string;
+  name: string;
+  requestedRole: SchoolMembershipRole;
+  className: string;
+  requestedAt: string;
 };
 
 export type Lesson = {
@@ -63,7 +108,7 @@ export type Lesson = {
 };
 
 export type LessonMode = {
-  id: LearningMode | 'story' | 'catch_up';
+  id: LearningMode;
   label: string;
   title: string;
   body: string;
@@ -79,6 +124,14 @@ export type PersonalizedLesson = {
   modes: LessonMode[];
 };
 
+export type ProcessingJob = {
+  id: string;
+  lessonTitle: string;
+  status: ProcessingStatus;
+  step: string;
+  provider: 'gemini';
+};
+
 export type LessonCrew = {
   id: string;
   name: string;
@@ -88,6 +141,7 @@ export type LessonCrew = {
   activeLesson: string;
   sharedItems: number;
   nextSession: string;
+  role: CrewRole;
 };
 
 export type SchoolPlan = {
@@ -95,4 +149,12 @@ export type SchoolPlan = {
   students: number;
   monthlyUsd: number;
   acceptedChains: ChainName[];
+};
+
+export type SchoolAnalytics = {
+  activeStudents: number;
+  weeklyLessons: number;
+  pendingApprovals: number;
+  averageCompletion: number;
+  atRiskStudents: number;
 };

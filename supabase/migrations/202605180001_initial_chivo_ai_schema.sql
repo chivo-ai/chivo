@@ -1,101 +1,321 @@
 create extension if not exists "pgcrypto";
 
-create type public.user_role as enum ('student', 'teacher', 'school_admin');
-create type public.lesson_status as enum ('draft', 'recording', 'processing', 'ready', 'failed');
-create type public.subscription_chain as enum ('solana', 'base', 'bnb');
+create type public.school_role as enum ('owner', 'admin', 'teacher', 'student', 'guardian');
+create type public.membership_status as enum ('active', 'invited', 'review', 'suspended');
+create type public.lesson_status as enum ('draft', 'recording', 'uploaded', 'transcribing', 'review', 'published', 'failed');
+create type public.processing_status as enum ('queued', 'running', 'completed', 'failed');
+create type public.learning_mode as enum ('simple', 'balanced', 'exam', 'story', 'catch_up');
+create type public.lesson_output_type as enum ('master', 'summary', 'quiz', 'flashcards', 'audio_script', 'translation');
 create type public.crew_scope as enum ('school', 'cross_school');
 create type public.crew_member_role as enum ('owner', 'moderator', 'member');
+create type public.subscription_chain as enum ('solana', 'base', 'bnb');
+create type public.payment_status as enum ('pending', 'confirmed', 'failed', 'refunded');
+
+create table public.profiles (
+  id uuid primary key references auth.users(id) on delete cascade,
+  full_name text not null,
+  avatar_url text,
+  preferred_language text not null default 'English',
+  learning_level text not null default 'balanced',
+  audio_enabled boolean not null default true,
+  locale text not null default 'en',
+  timezone text not null default 'Africa/Lagos',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
 
 create table public.schools (
   id uuid primary key default gen_random_uuid(),
   name text not null,
+  slug text not null unique,
   country text,
+  city text,
   subscription_status text not null default 'trial',
-  created_at timestamptz not null default now()
+  external_crews_allowed boolean not null default false,
+  created_by uuid references public.profiles(id) on delete set null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
 );
 
-create table public.profiles (
-  id uuid primary key references auth.users(id) on delete cascade,
-  school_id uuid references public.schools(id) on delete set null,
-  role public.user_role not null default 'student',
-  full_name text not null,
-  preferred_language text not null default 'English',
-  learning_level text not null default 'balanced',
-  audio_enabled boolean not null default true,
-  created_at timestamptz not null default now()
+create table public.school_memberships (
+  id uuid primary key default gen_random_uuid(),
+  school_id uuid not null references public.schools(id) on delete cascade,
+  profile_id uuid not null references public.profiles(id) on delete cascade,
+  role public.school_role not null,
+  status public.membership_status not null default 'review',
+  invited_by uuid references public.profiles(id) on delete set null,
+  approved_by uuid references public.profiles(id) on delete set null,
+  approved_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (school_id, profile_id)
+);
+
+create table public.academic_years (
+  id uuid primary key default gen_random_uuid(),
+  school_id uuid not null references public.schools(id) on delete cascade,
+  name text not null,
+  starts_at date not null,
+  ends_at date not null,
+  status text not null default 'planned',
+  created_at timestamptz not null default now(),
+  unique (school_id, name)
+);
+
+create table public.academic_terms (
+  id uuid primary key default gen_random_uuid(),
+  school_id uuid not null references public.schools(id) on delete cascade,
+  academic_year_id uuid not null references public.academic_years(id) on delete cascade,
+  name text not null,
+  starts_at date not null,
+  ends_at date not null,
+  status text not null default 'planned',
+  created_at timestamptz not null default now(),
+  unique (academic_year_id, name)
+);
+
+create table public.subjects (
+  id uuid primary key default gen_random_uuid(),
+  school_id uuid not null references public.schools(id) on delete cascade,
+  name text not null,
+  department text,
+  created_at timestamptz not null default now(),
+  unique (school_id, name)
 );
 
 create table public.classes (
   id uuid primary key default gen_random_uuid(),
   school_id uuid not null references public.schools(id) on delete cascade,
+  academic_term_id uuid references public.academic_terms(id) on delete set null,
   name text not null,
-  subject text,
   grade_level text,
   created_by uuid references public.profiles(id) on delete set null,
-  created_at timestamptz not null default now()
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (school_id, name, academic_term_id)
+);
+
+create table public.class_subjects (
+  id uuid primary key default gen_random_uuid(),
+  class_id uuid not null references public.classes(id) on delete cascade,
+  subject_id uuid not null references public.subjects(id) on delete cascade,
+  teacher_membership_id uuid references public.school_memberships(id) on delete set null,
+  created_at timestamptz not null default now(),
+  unique (class_id, subject_id)
 );
 
 create table public.class_memberships (
   id uuid primary key default gen_random_uuid(),
   class_id uuid not null references public.classes(id) on delete cascade,
-  profile_id uuid not null references public.profiles(id) on delete cascade,
-  role public.user_role not null,
+  school_membership_id uuid not null references public.school_memberships(id) on delete cascade,
+  role public.school_role not null,
+  status public.membership_status not null default 'active',
   created_at timestamptz not null default now(),
-  unique (class_id, profile_id)
+  unique (class_id, school_membership_id)
+);
+
+create table public.school_invites (
+  id uuid primary key default gen_random_uuid(),
+  school_id uuid not null references public.schools(id) on delete cascade,
+  class_id uuid references public.classes(id) on delete cascade,
+  code text not null unique,
+  role public.school_role not null,
+  status text not null default 'active',
+  max_uses integer,
+  use_count integer not null default 0,
+  expires_at timestamptz,
+  created_by uuid references public.profiles(id) on delete set null,
+  created_at timestamptz not null default now()
+);
+
+create table public.school_join_requests (
+  id uuid primary key default gen_random_uuid(),
+  school_id uuid not null references public.schools(id) on delete cascade,
+  class_id uuid references public.classes(id) on delete set null,
+  profile_id uuid not null references public.profiles(id) on delete cascade,
+  requested_role public.school_role not null default 'student',
+  status public.membership_status not null default 'review',
+  message text,
+  reviewed_by uuid references public.profiles(id) on delete set null,
+  reviewed_at timestamptz,
+  created_at timestamptz not null default now()
 );
 
 create table public.lessons (
   id uuid primary key default gen_random_uuid(),
   school_id uuid not null references public.schools(id) on delete cascade,
   class_id uuid not null references public.classes(id) on delete cascade,
-  teacher_id uuid references public.profiles(id) on delete set null,
+  subject_id uuid references public.subjects(id) on delete set null,
+  teacher_membership_id uuid references public.school_memberships(id) on delete set null,
   title text not null,
-  subject text,
   status public.lesson_status not null default 'draft',
-  audio_path text,
-  transcript text,
-  master_summary text,
   language text not null default 'English',
   duration_seconds integer,
   recorded_at timestamptz,
+  published_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table public.lesson_recordings (
+  id uuid primary key default gen_random_uuid(),
+  lesson_id uuid not null references public.lessons(id) on delete cascade,
+  uploaded_by uuid references public.profiles(id) on delete set null,
+  storage_path text not null,
+  mime_type text,
+  size_bytes bigint,
+  duration_seconds integer,
   created_at timestamptz not null default now()
+);
+
+create table public.lesson_transcripts (
+  id uuid primary key default gen_random_uuid(),
+  lesson_id uuid not null references public.lessons(id) on delete cascade,
+  provider text not null default 'gemini',
+  language text not null default 'English',
+  raw_text text,
+  cleaned_text text,
+  confidence numeric(5, 2),
+  created_at timestamptz not null default now(),
+  unique (lesson_id, provider, language)
+);
+
+create table public.ai_processing_jobs (
+  id uuid primary key default gen_random_uuid(),
+  school_id uuid not null references public.schools(id) on delete cascade,
+  lesson_id uuid references public.lessons(id) on delete cascade,
+  provider text not null default 'gemini',
+  job_type text not null,
+  status public.processing_status not null default 'queued',
+  input jsonb not null default '{}'::jsonb,
+  output jsonb not null default '{}'::jsonb,
+  error_message text,
+  started_at timestamptz,
+  completed_at timestamptz,
+  created_at timestamptz not null default now()
+);
+
+create table public.lesson_outputs (
+  id uuid primary key default gen_random_uuid(),
+  lesson_id uuid not null references public.lessons(id) on delete cascade,
+  output_type public.lesson_output_type not null,
+  language text not null default 'English',
+  learning_level text,
+  title text,
+  summary text,
+  key_points jsonb not null default '[]'::jsonb,
+  content jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now(),
+  unique (lesson_id, output_type, language, learning_level)
 );
 
 create table public.lesson_personalizations (
   id uuid primary key default gen_random_uuid(),
   lesson_id uuid not null references public.lessons(id) on delete cascade,
-  student_id uuid not null references public.profiles(id) on delete cascade,
+  student_membership_id uuid not null references public.school_memberships(id) on delete cascade,
+  output_id uuid references public.lesson_outputs(id) on delete set null,
   language text not null,
-  learning_level text not null,
+  learning_mode public.learning_mode not null default 'balanced',
   summary text not null,
-  quiz jsonb not null default '[]'::jsonb,
-  flashcards jsonb not null default '[]'::jsonb,
+  content jsonb not null default '{}'::jsonb,
   audio_path text,
   created_at timestamptz not null default now(),
-  unique (lesson_id, student_id, language, learning_level)
+  unique (lesson_id, student_membership_id, language, learning_mode)
 );
 
-create table public.subscription_payments (
+create table public.quizzes (
   id uuid primary key default gen_random_uuid(),
-  school_id uuid not null references public.schools(id) on delete cascade,
-  chain public.subscription_chain not null,
-  wallet_address text not null,
-  tx_hash text not null,
-  amount_usd numeric(12, 2) not null,
-  status text not null default 'pending',
-  paid_at timestamptz,
+  lesson_id uuid not null references public.lessons(id) on delete cascade,
+  title text not null,
+  learning_mode public.learning_mode not null default 'balanced',
+  created_at timestamptz not null default now()
+);
+
+create table public.quiz_questions (
+  id uuid primary key default gen_random_uuid(),
+  quiz_id uuid not null references public.quizzes(id) on delete cascade,
+  position integer not null,
+  prompt text not null,
+  options jsonb not null default '[]'::jsonb,
+  answer text,
+  explanation text,
   created_at timestamptz not null default now(),
-  unique (chain, tx_hash)
+  unique (quiz_id, position)
+);
+
+create table public.quiz_attempts (
+  id uuid primary key default gen_random_uuid(),
+  quiz_id uuid not null references public.quizzes(id) on delete cascade,
+  student_membership_id uuid not null references public.school_memberships(id) on delete cascade,
+  score numeric(5, 2),
+  answers jsonb not null default '[]'::jsonb,
+  completed_at timestamptz,
+  created_at timestamptz not null default now()
+);
+
+create table public.flashcards (
+  id uuid primary key default gen_random_uuid(),
+  lesson_id uuid not null references public.lessons(id) on delete cascade,
+  language text not null default 'English',
+  learning_level text,
+  front text not null,
+  back text not null,
+  created_at timestamptz not null default now()
+);
+
+create table public.student_topic_progress (
+  id uuid primary key default gen_random_uuid(),
+  student_membership_id uuid not null references public.school_memberships(id) on delete cascade,
+  subject_id uuid references public.subjects(id) on delete set null,
+  topic text not null,
+  mastery_score numeric(5, 2) not null default 0,
+  confidence_score numeric(5, 2) not null default 0,
+  last_practiced_at timestamptz,
+  updated_at timestamptz not null default now(),
+  unique (student_membership_id, subject_id, topic)
+);
+
+create table public.student_weak_areas (
+  id uuid primary key default gen_random_uuid(),
+  student_membership_id uuid not null references public.school_memberships(id) on delete cascade,
+  lesson_id uuid references public.lessons(id) on delete set null,
+  subject_id uuid references public.subjects(id) on delete set null,
+  topic text not null,
+  reason text,
+  status text not null default 'open',
+  created_at timestamptz not null default now(),
+  resolved_at timestamptz
+);
+
+create table public.guardian_links (
+  id uuid primary key default gen_random_uuid(),
+  guardian_membership_id uuid not null references public.school_memberships(id) on delete cascade,
+  student_membership_id uuid not null references public.school_memberships(id) on delete cascade,
+  status public.membership_status not null default 'review',
+  created_at timestamptz not null default now(),
+  unique (guardian_membership_id, student_membership_id)
 );
 
 create table public.lesson_crews (
   id uuid primary key default gen_random_uuid(),
   school_id uuid references public.schools(id) on delete set null,
-  owner_id uuid not null references public.profiles(id) on delete cascade,
+  owner_profile_id uuid not null references public.profiles(id) on delete cascade,
   name text not null,
   scope public.crew_scope not null default 'school',
   invite_code text not null unique,
   external_sharing_enabled boolean not null default false,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table public.crew_invites (
+  id uuid primary key default gen_random_uuid(),
+  crew_id uuid not null references public.lesson_crews(id) on delete cascade,
+  code text not null unique,
+  max_uses integer,
+  use_count integer not null default 0,
+  expires_at timestamptz,
+  created_by uuid references public.profiles(id) on delete set null,
   created_at timestamptz not null default now()
 );
 
@@ -103,8 +323,9 @@ create table public.crew_memberships (
   id uuid primary key default gen_random_uuid(),
   crew_id uuid not null references public.lesson_crews(id) on delete cascade,
   profile_id uuid not null references public.profiles(id) on delete cascade,
+  school_membership_id uuid references public.school_memberships(id) on delete set null,
   role public.crew_member_role not null default 'member',
-  status text not null default 'review',
+  status public.membership_status not null default 'review',
   created_at timestamptz not null default now(),
   unique (crew_id, profile_id)
 );
@@ -120,124 +341,681 @@ create table public.crew_resources (
   created_at timestamptz not null default now()
 );
 
-alter table public.schools enable row level security;
+create table public.crew_messages (
+  id uuid primary key default gen_random_uuid(),
+  crew_id uuid not null references public.lesson_crews(id) on delete cascade,
+  sender_profile_id uuid not null references public.profiles(id) on delete cascade,
+  resource_id uuid references public.crew_resources(id) on delete set null,
+  body text not null,
+  created_at timestamptz not null default now()
+);
+
+create table public.subscriptions (
+  id uuid primary key default gen_random_uuid(),
+  school_id uuid not null references public.schools(id) on delete cascade,
+  plan_name text not null,
+  status text not null default 'trial',
+  monthly_usd numeric(12, 2) not null default 0,
+  current_period_start timestamptz,
+  current_period_end timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (school_id)
+);
+
+create table public.payment_transactions (
+  id uuid primary key default gen_random_uuid(),
+  subscription_id uuid not null references public.subscriptions(id) on delete cascade,
+  chain public.subscription_chain not null,
+  wallet_address text not null,
+  tx_hash text not null,
+  amount_usd numeric(12, 2) not null,
+  status public.payment_status not null default 'pending',
+  paid_at timestamptz,
+  created_at timestamptz not null default now(),
+  unique (chain, tx_hash)
+);
+
+create table public.notifications (
+  id uuid primary key default gen_random_uuid(),
+  profile_id uuid not null references public.profiles(id) on delete cascade,
+  school_id uuid references public.schools(id) on delete cascade,
+  type text not null,
+  title text not null,
+  body text,
+  read_at timestamptz,
+  created_at timestamptz not null default now()
+);
+
+create table public.audit_logs (
+  id uuid primary key default gen_random_uuid(),
+  school_id uuid references public.schools(id) on delete cascade,
+  actor_profile_id uuid references public.profiles(id) on delete set null,
+  action text not null,
+  entity_type text not null,
+  entity_id uuid,
+  metadata jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now()
+);
+
+create index school_memberships_profile_id_idx on public.school_memberships(profile_id);
+create index class_memberships_school_membership_id_idx on public.class_memberships(school_membership_id);
+create index lessons_school_class_idx on public.lessons(school_id, class_id);
+create index lesson_personalizations_student_idx on public.lesson_personalizations(student_membership_id);
+create index crew_memberships_profile_id_idx on public.crew_memberships(profile_id);
+create index notifications_profile_read_idx on public.notifications(profile_id, read_at);
+
+create or replace function public.set_updated_at()
+returns trigger
+language plpgsql
+as $$
+begin
+  new.updated_at = now();
+  return new;
+end;
+$$;
+
+create trigger profiles_set_updated_at
+before update on public.profiles
+for each row execute function public.set_updated_at();
+
+create trigger schools_set_updated_at
+before update on public.schools
+for each row execute function public.set_updated_at();
+
+create trigger school_memberships_set_updated_at
+before update on public.school_memberships
+for each row execute function public.set_updated_at();
+
+create trigger classes_set_updated_at
+before update on public.classes
+for each row execute function public.set_updated_at();
+
+create trigger lessons_set_updated_at
+before update on public.lessons
+for each row execute function public.set_updated_at();
+
+create trigger lesson_crews_set_updated_at
+before update on public.lesson_crews
+for each row execute function public.set_updated_at();
+
+create trigger subscriptions_set_updated_at
+before update on public.subscriptions
+for each row execute function public.set_updated_at();
+
+create or replace function public.handle_new_user()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  insert into public.profiles (
+    id,
+    full_name,
+    preferred_language,
+    learning_level,
+    audio_enabled
+  )
+  values (
+    new.id,
+    coalesce(new.raw_user_meta_data ->> 'full_name', split_part(new.email, '@', 1), 'New user'),
+    coalesce(new.raw_user_meta_data ->> 'preferred_language', 'English'),
+    coalesce(new.raw_user_meta_data ->> 'learning_level', 'balanced'),
+    coalesce((new.raw_user_meta_data ->> 'audio_enabled')::boolean, true)
+  )
+  on conflict (id) do update
+  set
+    full_name = excluded.full_name,
+    preferred_language = excluded.preferred_language,
+    learning_level = excluded.learning_level,
+    audio_enabled = excluded.audio_enabled;
+
+  return new;
+end;
+$$;
+
+create trigger on_auth_user_created
+after insert on auth.users
+for each row execute function public.handle_new_user();
+
+create or replace function public.is_school_member(target_school_id uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1
+    from public.school_memberships sm
+    where sm.school_id = target_school_id
+      and sm.profile_id = auth.uid()
+      and sm.status = 'active'
+  );
+$$;
+
+create or replace function public.has_school_role(target_school_id uuid, allowed_roles public.school_role[])
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1
+    from public.school_memberships sm
+    where sm.school_id = target_school_id
+      and sm.profile_id = auth.uid()
+      and sm.status = 'active'
+      and sm.role = any(allowed_roles)
+  );
+$$;
+
+create or replace function public.is_class_member(target_class_id uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1
+    from public.class_memberships cm
+    join public.school_memberships sm on sm.id = cm.school_membership_id
+    where cm.class_id = target_class_id
+      and cm.status = 'active'
+      and sm.status = 'active'
+      and sm.profile_id = auth.uid()
+  );
+$$;
+
+create or replace function public.is_crew_member(target_crew_id uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1
+    from public.crew_memberships cm
+    where cm.crew_id = target_crew_id
+      and cm.profile_id = auth.uid()
+      and cm.status = 'active'
+  );
+$$;
+
 alter table public.profiles enable row level security;
+alter table public.schools enable row level security;
+alter table public.school_memberships enable row level security;
+alter table public.academic_years enable row level security;
+alter table public.academic_terms enable row level security;
+alter table public.subjects enable row level security;
 alter table public.classes enable row level security;
+alter table public.class_subjects enable row level security;
 alter table public.class_memberships enable row level security;
+alter table public.school_invites enable row level security;
+alter table public.school_join_requests enable row level security;
 alter table public.lessons enable row level security;
+alter table public.lesson_recordings enable row level security;
+alter table public.lesson_transcripts enable row level security;
+alter table public.ai_processing_jobs enable row level security;
+alter table public.lesson_outputs enable row level security;
 alter table public.lesson_personalizations enable row level security;
-alter table public.subscription_payments enable row level security;
+alter table public.quizzes enable row level security;
+alter table public.quiz_questions enable row level security;
+alter table public.quiz_attempts enable row level security;
+alter table public.flashcards enable row level security;
+alter table public.student_topic_progress enable row level security;
+alter table public.student_weak_areas enable row level security;
+alter table public.guardian_links enable row level security;
 alter table public.lesson_crews enable row level security;
+alter table public.crew_invites enable row level security;
 alter table public.crew_memberships enable row level security;
 alter table public.crew_resources enable row level security;
+alter table public.crew_messages enable row level security;
+alter table public.subscriptions enable row level security;
+alter table public.payment_transactions enable row level security;
+alter table public.notifications enable row level security;
+alter table public.audit_logs enable row level security;
 
-create policy "profiles can read their school profiles"
+create policy "profiles can read own and school profiles"
 on public.profiles for select
 using (
   id = auth.uid()
-  or school_id in (
-    select school_id from public.profiles where id = auth.uid()
+  or exists (
+    select 1
+    from public.school_memberships viewer
+    join public.school_memberships target on target.school_id = viewer.school_id
+    where viewer.profile_id = auth.uid()
+      and target.profile_id = profiles.id
+      and viewer.status = 'active'
+      and target.status = 'active'
   )
 );
 
-create policy "school members can read school classes"
+create policy "profiles can update self"
+on public.profiles for update
+using (id = auth.uid())
+with check (id = auth.uid());
+
+create policy "profiles can insert self"
+on public.profiles for insert
+with check (id = auth.uid());
+
+create policy "school members can read schools"
+on public.schools for select
+using (public.is_school_member(id));
+
+create policy "authenticated users can create schools"
+on public.schools for insert
+with check (created_by = auth.uid());
+
+create policy "school admins can update schools"
+on public.schools for update
+using (public.has_school_role(id, array['owner', 'admin']::public.school_role[]))
+with check (public.has_school_role(id, array['owner', 'admin']::public.school_role[]));
+
+create policy "school members can read memberships"
+on public.school_memberships for select
+using (public.is_school_member(school_id) or profile_id = auth.uid());
+
+create policy "school admins manage memberships"
+on public.school_memberships for all
+using (public.has_school_role(school_id, array['owner', 'admin']::public.school_role[]))
+with check (public.has_school_role(school_id, array['owner', 'admin']::public.school_role[]));
+
+create policy "school members read academic years"
+on public.academic_years for select
+using (public.is_school_member(school_id));
+
+create policy "school admins manage academic years"
+on public.academic_years for all
+using (public.has_school_role(school_id, array['owner', 'admin']::public.school_role[]))
+with check (public.has_school_role(school_id, array['owner', 'admin']::public.school_role[]));
+
+create policy "school members read academic terms"
+on public.academic_terms for select
+using (public.is_school_member(school_id));
+
+create policy "school admins manage academic terms"
+on public.academic_terms for all
+using (public.has_school_role(school_id, array['owner', 'admin']::public.school_role[]))
+with check (public.has_school_role(school_id, array['owner', 'admin']::public.school_role[]));
+
+create policy "school members read subjects"
+on public.subjects for select
+using (public.is_school_member(school_id));
+
+create policy "school admins manage subjects"
+on public.subjects for all
+using (public.has_school_role(school_id, array['owner', 'admin']::public.school_role[]))
+with check (public.has_school_role(school_id, array['owner', 'admin']::public.school_role[]));
+
+create policy "school members read classes"
 on public.classes for select
+using (public.is_school_member(school_id));
+
+create policy "school admins manage classes"
+on public.classes for all
+using (public.has_school_role(school_id, array['owner', 'admin']::public.school_role[]))
+with check (public.has_school_role(school_id, array['owner', 'admin']::public.school_role[]));
+
+create policy "school members read class subjects"
+on public.class_subjects for select
 using (
-  school_id in (
-    select school_id from public.profiles where id = auth.uid()
+  exists (
+    select 1
+    from public.classes c
+    where c.id = class_subjects.class_id
+      and public.is_school_member(c.school_id)
   )
 );
 
-create policy "class members can read lessons"
+create policy "school admins manage class subjects"
+on public.class_subjects for all
+using (
+  exists (
+    select 1
+    from public.classes c
+    where c.id = class_subjects.class_id
+      and public.has_school_role(c.school_id, array['owner', 'admin']::public.school_role[])
+  )
+)
+with check (
+  exists (
+    select 1
+    from public.classes c
+    where c.id = class_subjects.class_id
+      and public.has_school_role(c.school_id, array['owner', 'admin']::public.school_role[])
+  )
+);
+
+create policy "school members read class memberships"
+on public.class_memberships for select
+using (
+  exists (
+    select 1
+    from public.classes c
+    where c.id = class_memberships.class_id
+      and public.is_school_member(c.school_id)
+  )
+);
+
+create policy "school admins manage class memberships"
+on public.class_memberships for all
+using (
+  exists (
+    select 1
+    from public.classes c
+    where c.id = class_memberships.class_id
+      and public.has_school_role(c.school_id, array['owner', 'admin']::public.school_role[])
+  )
+)
+with check (
+  exists (
+    select 1
+    from public.classes c
+    where c.id = class_memberships.class_id
+      and public.has_school_role(c.school_id, array['owner', 'admin']::public.school_role[])
+  )
+);
+
+create policy "school admins manage invites"
+on public.school_invites for all
+using (public.has_school_role(school_id, array['owner', 'admin']::public.school_role[]))
+with check (public.has_school_role(school_id, array['owner', 'admin']::public.school_role[]));
+
+create policy "users read own join requests"
+on public.school_join_requests for select
+using (profile_id = auth.uid() or public.has_school_role(school_id, array['owner', 'admin']::public.school_role[]));
+
+create policy "users create own join requests"
+on public.school_join_requests for insert
+with check (profile_id = auth.uid());
+
+create policy "school admins update join requests"
+on public.school_join_requests for update
+using (public.has_school_role(school_id, array['owner', 'admin']::public.school_role[]))
+with check (public.has_school_role(school_id, array['owner', 'admin']::public.school_role[]));
+
+create policy "class members and staff read lessons"
 on public.lessons for select
 using (
-  class_id in (
-    select class_id from public.class_memberships where profile_id = auth.uid()
-  )
+  public.is_class_member(class_id)
+  or public.has_school_role(school_id, array['owner', 'admin', 'teacher']::public.school_role[])
 );
 
-create policy "teachers can create lessons"
+create policy "teachers create lessons"
 on public.lessons for insert
 with check (
-  teacher_id = auth.uid()
-  and class_id in (
-    select class_id
-    from public.class_memberships
-    where profile_id = auth.uid()
-    and role in ('teacher', 'school_admin')
-  )
+  public.has_school_role(school_id, array['owner', 'admin', 'teacher']::public.school_role[])
 );
 
-create policy "students can read their personalizations"
-on public.lesson_personalizations for select
-using (student_id = auth.uid());
+create policy "teachers update lessons"
+on public.lessons for update
+using (public.has_school_role(school_id, array['owner', 'admin', 'teacher']::public.school_role[]))
+with check (public.has_school_role(school_id, array['owner', 'admin', 'teacher']::public.school_role[]));
 
-create policy "school admins can read subscription payments"
-on public.subscription_payments for select
+create policy "school lesson readers read recordings"
+on public.lesson_recordings for select
 using (
-  school_id in (
-    select school_id
-    from public.profiles
-    where id = auth.uid()
-    and role = 'school_admin'
+  exists (
+    select 1 from public.lessons l
+    where l.id = lesson_recordings.lesson_id
+      and (
+        public.is_class_member(l.class_id)
+        or public.has_school_role(l.school_id, array['owner', 'admin', 'teacher']::public.school_role[])
+      )
   )
 );
 
-create policy "crew members can read their crews"
-on public.lesson_crews for select
-using (
-  id in (
-    select crew_id
-    from public.crew_memberships
-    where profile_id = auth.uid()
-    and status = 'active'
-  )
-);
-
-create policy "school members can create school crews"
-on public.lesson_crews for insert
+create policy "teachers add recordings"
+on public.lesson_recordings for insert
 with check (
-  owner_id = auth.uid()
-  and (
-    scope = 'cross_school'
-    or school_id in (
-      select school_id
-      from public.profiles
-      where id = auth.uid()
-    )
+  uploaded_by = auth.uid()
+  and exists (
+    select 1 from public.lessons l
+    where l.id = lesson_recordings.lesson_id
+      and public.has_school_role(l.school_id, array['owner', 'admin', 'teacher']::public.school_role[])
   )
 );
 
-create policy "users can read their crew memberships"
+create policy "school lesson readers read outputs"
+on public.lesson_transcripts for select
+using (
+  exists (
+    select 1 from public.lessons l
+    where l.id = lesson_transcripts.lesson_id
+      and public.has_school_role(l.school_id, array['owner', 'admin', 'teacher']::public.school_role[])
+  )
+);
+
+create policy "school staff read ai jobs"
+on public.ai_processing_jobs for select
+using (public.has_school_role(school_id, array['owner', 'admin', 'teacher']::public.school_role[]));
+
+create policy "class members read lesson outputs"
+on public.lesson_outputs for select
+using (
+  exists (
+    select 1 from public.lessons l
+    where l.id = lesson_outputs.lesson_id
+      and (
+        public.is_class_member(l.class_id)
+        or public.has_school_role(l.school_id, array['owner', 'admin', 'teacher']::public.school_role[])
+      )
+  )
+);
+
+create policy "students read own personalizations"
+on public.lesson_personalizations for select
+using (
+  exists (
+    select 1
+    from public.school_memberships sm
+    where sm.id = lesson_personalizations.student_membership_id
+      and sm.profile_id = auth.uid()
+      and sm.status = 'active'
+  )
+);
+
+create policy "school staff read personalizations"
+on public.lesson_personalizations for select
+using (
+  exists (
+    select 1
+    from public.lessons l
+    where l.id = lesson_personalizations.lesson_id
+      and public.has_school_role(l.school_id, array['owner', 'admin', 'teacher']::public.school_role[])
+  )
+);
+
+create policy "lesson readers read quizzes"
+on public.quizzes for select
+using (
+  exists (
+    select 1 from public.lessons l
+    where l.id = quizzes.lesson_id
+      and (public.is_class_member(l.class_id) or public.has_school_role(l.school_id, array['owner', 'admin', 'teacher']::public.school_role[]))
+  )
+);
+
+create policy "lesson readers read quiz questions"
+on public.quiz_questions for select
+using (
+  exists (
+    select 1
+    from public.quizzes q
+    join public.lessons l on l.id = q.lesson_id
+    where q.id = quiz_questions.quiz_id
+      and (public.is_class_member(l.class_id) or public.has_school_role(l.school_id, array['owner', 'admin', 'teacher']::public.school_role[]))
+  )
+);
+
+create policy "students manage own quiz attempts"
+on public.quiz_attempts for all
+using (
+  exists (
+    select 1 from public.school_memberships sm
+    where sm.id = quiz_attempts.student_membership_id
+      and sm.profile_id = auth.uid()
+  )
+)
+with check (
+  exists (
+    select 1 from public.school_memberships sm
+    where sm.id = quiz_attempts.student_membership_id
+      and sm.profile_id = auth.uid()
+  )
+);
+
+create policy "lesson readers read flashcards"
+on public.flashcards for select
+using (
+  exists (
+    select 1 from public.lessons l
+    where l.id = flashcards.lesson_id
+      and (public.is_class_member(l.class_id) or public.has_school_role(l.school_id, array['owner', 'admin', 'teacher']::public.school_role[]))
+  )
+);
+
+create policy "students read own progress"
+on public.student_topic_progress for select
+using (
+  exists (
+    select 1 from public.school_memberships sm
+    where sm.id = student_topic_progress.student_membership_id
+      and sm.profile_id = auth.uid()
+  )
+);
+
+create policy "staff read school progress"
+on public.student_topic_progress for select
+using (
+  exists (
+    select 1 from public.school_memberships sm
+    where sm.id = student_topic_progress.student_membership_id
+      and public.has_school_role(sm.school_id, array['owner', 'admin', 'teacher']::public.school_role[])
+  )
+);
+
+create policy "students and staff read weak areas"
+on public.student_weak_areas for select
+using (
+  exists (
+    select 1 from public.school_memberships sm
+    where sm.id = student_weak_areas.student_membership_id
+      and (sm.profile_id = auth.uid() or public.has_school_role(sm.school_id, array['owner', 'admin', 'teacher']::public.school_role[]))
+  )
+);
+
+create policy "guardians read own links"
+on public.guardian_links for select
+using (
+  exists (
+    select 1 from public.school_memberships sm
+    where sm.id in (guardian_links.guardian_membership_id, guardian_links.student_membership_id)
+      and sm.profile_id = auth.uid()
+  )
+);
+
+create policy "crew members read crews"
+on public.lesson_crews for select
+using (public.is_crew_member(id));
+
+create policy "users create crews"
+on public.lesson_crews for insert
+with check (owner_profile_id = auth.uid());
+
+create policy "crew owners update crews"
+on public.lesson_crews for update
+using (
+  exists (
+    select 1 from public.crew_memberships cm
+    where cm.crew_id = lesson_crews.id
+      and cm.profile_id = auth.uid()
+      and cm.status = 'active'
+      and cm.role in ('owner', 'moderator')
+  )
+);
+
+create policy "crew members read invites"
+on public.crew_invites for select
+using (public.is_crew_member(crew_id));
+
+create policy "crew moderators manage invites"
+on public.crew_invites for all
+using (
+  exists (
+    select 1 from public.crew_memberships cm
+    where cm.crew_id = crew_invites.crew_id
+      and cm.profile_id = auth.uid()
+      and cm.status = 'active'
+      and cm.role in ('owner', 'moderator')
+  )
+)
+with check (
+  exists (
+    select 1 from public.crew_memberships cm
+    where cm.crew_id = crew_invites.crew_id
+      and cm.profile_id = auth.uid()
+      and cm.status = 'active'
+      and cm.role in ('owner', 'moderator')
+  )
+);
+
+create policy "users read own crew memberships"
 on public.crew_memberships for select
+using (profile_id = auth.uid() or public.is_crew_member(crew_id));
+
+create policy "users request crew membership"
+on public.crew_memberships for insert
+with check (profile_id = auth.uid() and status in ('review', 'invited'));
+
+create policy "crew members read resources"
+on public.crew_resources for select
+using (public.is_crew_member(crew_id));
+
+create policy "crew members add resources"
+on public.crew_resources for insert
+with check (created_by = auth.uid() and public.is_crew_member(crew_id));
+
+create policy "crew members read messages"
+on public.crew_messages for select
+using (public.is_crew_member(crew_id));
+
+create policy "crew members send messages"
+on public.crew_messages for insert
+with check (sender_profile_id = auth.uid() and public.is_crew_member(crew_id));
+
+create policy "school admins read subscriptions"
+on public.subscriptions for select
+using (public.has_school_role(school_id, array['owner', 'admin']::public.school_role[]));
+
+create policy "school admins read payment transactions"
+on public.payment_transactions for select
+using (
+  exists (
+    select 1 from public.subscriptions s
+    where s.id = payment_transactions.subscription_id
+      and public.has_school_role(s.school_id, array['owner', 'admin']::public.school_role[])
+  )
+);
+
+create policy "users read own notifications"
+on public.notifications for select
 using (profile_id = auth.uid());
 
-create policy "users can request crew membership"
-on public.crew_memberships for insert
-with check (
-  profile_id = auth.uid()
-  and status in ('review', 'invited')
-);
+create policy "users update own notifications"
+on public.notifications for update
+using (profile_id = auth.uid())
+with check (profile_id = auth.uid());
 
-create policy "crew members can read resources"
-on public.crew_resources for select
+create policy "school admins read audit logs"
+on public.audit_logs for select
 using (
-  crew_id in (
-    select crew_id
-    from public.crew_memberships
-    where profile_id = auth.uid()
-    and status = 'active'
-  )
-);
-
-create policy "crew members can add resources"
-on public.crew_resources for insert
-with check (
-  created_by = auth.uid()
-  and crew_id in (
-    select crew_id
-    from public.crew_memberships
-    where profile_id = auth.uid()
-    and status = 'active'
-  )
+  school_id is not null
+  and public.has_school_role(school_id, array['owner', 'admin']::public.school_role[])
 );
