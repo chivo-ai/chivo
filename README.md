@@ -13,6 +13,8 @@ The app now starts with:
 5. School workspace creation through a Supabase Edge Function.
 6. School or class invite acceptance through a Supabase Edge Function.
 7. School memberships loaded from the database.
+8. School workspace entry for active memberships.
+9. Owner/admin setup for academic years, terms, subjects, classes, and invite codes.
 
 No learner, teacher, admin, or crew dashboard is shown before a real user session exists.
 
@@ -32,6 +34,11 @@ Database migration:
 - Lesson Crews, invites, memberships, resources, messages
 - subscriptions, payment transactions, notifications, audit logs
 
+If you already ran part of the migration manually and see an error like
+`type "school_role" already exists`, run `supabase/dev-reset.sql` first on that
+development database, then run the migration again. Do not run the reset script
+on a database that contains data you need to keep.
+
 Edge Functions:
 
 - `create-school`: creates a school, owner membership, trial subscription, and audit log.
@@ -47,12 +54,16 @@ EXPO_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 EXPO_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
 ```
 
-Server-side secrets belong in Supabase Edge Function secrets:
+Only `EXPO_PUBLIC_` values should be in the Expo app `.env`. Server-side secrets belong in Supabase Edge Function secrets:
 
 ```bash
 GEMINI_API_KEY=your-gemini-api-key
-SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+SERVICE_ROLE_KEY=your-service-role-key
 ```
+
+Supabase reserves the `SUPABASE_` prefix for platform-provided variables. The
+Edge Functions read `SERVICE_ROLE_KEY` first, with `SUPABASE_SERVICE_ROLE_KEY`
+kept only as a fallback for local/default environments.
 
 ## Run
 

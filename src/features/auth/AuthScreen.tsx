@@ -121,7 +121,7 @@ export function AuthScreen() {
                 <View style={styles.configNotice}>
                   <LockKeyhole size={18} color={colors.coral} />
                   <Text style={styles.configText}>
-                    Add Supabase keys in `.env` before accounts can be created.
+                    Account access is not available right now. Please try again later.
                   </Text>
                 </View>
               )}

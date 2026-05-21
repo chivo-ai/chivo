@@ -14,23 +14,29 @@ import { Building2, LogOut, QrCode, School, ShieldCheck, UserPlus } from 'lucide
 import { supabase } from '../../lib/supabase';
 import { acceptInvite, createSchool, signOut } from '../../services/auth';
 import { colors } from '../../theme/tokens';
+import { ActiveSchoolMembership, MembershipStatus, SchoolMembershipRole } from '../../types';
 
 type MembershipRow = {
   id: string;
+  school_id: string;
   role: string;
   status: string;
   schools?: {
+    id?: string;
     name?: string;
     city?: string | null;
     country?: string | null;
+    subscription_status?: string | null;
+    external_crews_allowed?: boolean | null;
   } | null;
 };
 
 type SchoolAccessScreenProps = {
   user: User;
+  onEnterSchool: (membership: ActiveSchoolMembership) => void;
 };
 
-export function SchoolAccessScreen({ user }: SchoolAccessScreenProps) {
+export function SchoolAccessScreen({ user, onEnterSchool }: SchoolAccessScreenProps) {
   const [memberships, setMemberships] = useState<MembershipRow[]>([]);
   const [loadingMemberships, setLoadingMemberships] = useState(true);
   const [schoolName, setSchoolName] = useState('');
@@ -47,9 +53,9 @@ export function SchoolAccessScreen({ user }: SchoolAccessScreenProps) {
     }
 
     setLoadingMemberships(true);
-    const { data, error: queryError } = await supabase
+    const { data, error: queryError } = await (supabase as any)
       .from('school_memberships')
-      .select('id, role, status, schools(name, city, country)')
+      .select('id, school_id, role, status, schools(id, name, city, country, subscription_status, external_crews_allowed)')
       .eq('profile_id', user.id)
       .order('created_at', { ascending: false });
 
@@ -77,12 +83,16 @@ export function SchoolAccessScreen({ user }: SchoolAccessScreenProps) {
 
     setSubmitting('create');
     try {
-      await createSchool({ name: schoolName, country, city });
+      const result = await createSchool({ name: schoolName, country, city });
       setSchoolName('');
       setCountry('');
       setCity('');
       setMessage('School workspace created.');
       await loadMemberships();
+      const membership = membershipFromCreateResult(result);
+      if (membership) {
+        onEnterSchool(membership);
+      }
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : 'Could not create school.');
     } finally {
@@ -229,9 +239,21 @@ export function SchoolAccessScreen({ user }: SchoolAccessScreenProps) {
                 <View style={styles.flexText}>
                   <Text style={styles.membershipName}>{membership.schools?.name ?? 'School workspace'}</Text>
                   <Text style={styles.meta}>
-                    {membership.role} · {membership.status}
+                    {membership.role} - {membership.status}
                   </Text>
                 </View>
+                {membership.status === 'active' ? (
+                  <Pressable
+                    onPress={() => onEnterSchool(mapMembershipRow(membership))}
+                    style={styles.enterButton}
+                  >
+                    <Text style={styles.enterButtonText}>Enter</Text>
+                  </Pressable>
+                ) : (
+                  <View style={styles.statusPill}>
+                    <Text style={styles.statusPillText}>{membership.status}</Text>
+                  </View>
+                )}
               </View>
             ))
           ) : (
@@ -271,6 +293,58 @@ function Field({
       />
     </View>
   );
+}
+
+function mapMembershipRow(row: MembershipRow): ActiveSchoolMembership {
+  return {
+    id: row.id,
+    schoolId: row.school_id,
+    role: row.role as SchoolMembershipRole,
+    status: row.status as MembershipStatus,
+    school: {
+      id: row.schools?.id ?? row.school_id,
+      name: row.schools?.name ?? 'School workspace',
+      city: row.schools?.city ?? null,
+      country: row.schools?.country ?? null,
+      subscriptionStatus: row.schools?.subscription_status ?? null,
+      externalCrewsAllowed: row.schools?.external_crews_allowed ?? null,
+    },
+  };
+}
+
+function membershipFromCreateResult(result: unknown): ActiveSchoolMembership | null {
+  const payload = result as {
+    school?: {
+      id?: string;
+      name?: string;
+      city?: string | null;
+      country?: string | null;
+    };
+    membership?: {
+      id?: string;
+      role?: string;
+      status?: string;
+    };
+  };
+
+  if (!payload.school?.id || !payload.membership?.id) {
+    return null;
+  }
+
+  return {
+    id: payload.membership.id,
+    schoolId: payload.school.id,
+    role: (payload.membership.role ?? 'owner') as SchoolMembershipRole,
+    status: (payload.membership.status ?? 'active') as MembershipStatus,
+    school: {
+      id: payload.school.id,
+      name: payload.school.name ?? 'School workspace',
+      city: payload.school.city ?? null,
+      country: payload.school.country ?? null,
+      subscriptionStatus: 'trial',
+      externalCrewsAllowed: false,
+    },
+  };
 }
 
 const styles = StyleSheet.create({
@@ -461,5 +535,32 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 20,
     fontWeight: '900',
+  },
+  enterButton: {
+    minHeight: 36,
+    borderRadius: 13,
+    paddingHorizontal: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.tealDark,
+  },
+  enterButtonText: {
+    color: '#ffffff',
+    fontSize: 13,
+    fontWeight: '900',
+  },
+  statusPill: {
+    minHeight: 32,
+    borderRadius: 16,
+    paddingHorizontal: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.softGold,
+  },
+  statusPillText: {
+    color: '#76510c',
+    fontSize: 12,
+    fontWeight: '900',
+    textTransform: 'capitalize',
   },
 });

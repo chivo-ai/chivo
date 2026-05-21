@@ -36,7 +36,7 @@ serve(async (request) => {
 
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+      getServiceRoleKey()
     );
 
     const {
@@ -189,4 +189,8 @@ function json(body: unknown, status = 200) {
       'Content-Type': 'application/json',
     },
   });
+}
+
+function getServiceRoleKey() {
+  return Deno.env.get('SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 }

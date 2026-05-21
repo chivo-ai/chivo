@@ -9,7 +9,7 @@
     "packageJson": {
       "dependencies": [
         "npm:@expo/metro-runtime@~6.1.2",
-        "npm:@react-native-async-storage/async-storage@^2.2.0",
+        "npm:@react-native-async-storage/async-storage@2.2.0",
         "npm:@supabase/supabase-js@^2.105.4",
         "npm:@types/react@19.1",
         "npm:expo-audio@~1.1.1",

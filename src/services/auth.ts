@@ -22,7 +22,7 @@ type CreateSchoolInput = {
 
 function client() {
   if (!supabase) {
-    throw new Error('Supabase is not configured. Add EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY.');
+    throw new Error('Account access is not available right now.');
   }
 
   return supabase;

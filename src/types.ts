@@ -158,3 +158,18 @@ export type SchoolAnalytics = {
   averageCompletion: number;
   atRiskStudents: number;
 };
+
+export type ActiveSchoolMembership = {
+  id: string;
+  schoolId: string;
+  role: SchoolMembershipRole;
+  status: MembershipStatus;
+  school: {
+    id: string;
+    name: string;
+    city: string | null;
+    country: string | null;
+    subscriptionStatus: string | null;
+    externalCrewsAllowed: boolean | null;
+  };
+};
