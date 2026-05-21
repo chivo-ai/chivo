@@ -1,7 +1,7 @@
 create extension if not exists "pgcrypto";
 
 create type public.school_role as enum ('owner', 'admin', 'teacher', 'student', 'guardian');
-create type public.membership_status as enum ('active', 'invited', 'review', 'suspended');
+create type public.membership_status as enum ('active', 'invited', 'review', 'declined', 'suspended');
 create type public.lesson_status as enum ('draft', 'recording', 'uploaded', 'transcribing', 'review', 'published', 'failed');
 create type public.processing_status as enum ('queued', 'running', 'completed', 'failed');
 create type public.learning_mode as enum ('simple', 'balanced', 'exam', 'story', 'catch_up');
@@ -400,6 +400,7 @@ create table public.audit_logs (
 
 create index school_memberships_profile_id_idx on public.school_memberships(profile_id);
 create index class_memberships_school_membership_id_idx on public.class_memberships(school_membership_id);
+create index school_join_requests_school_profile_status_idx on public.school_join_requests(school_id, profile_id, status);
 create index lessons_school_class_idx on public.lessons(school_id, class_id);
 create index lesson_personalizations_student_idx on public.lesson_personalizations(student_membership_id);
 create index crew_memberships_profile_id_idx on public.crew_memberships(profile_id);
@@ -592,6 +593,12 @@ using (
       and target.profile_id = profiles.id
       and viewer.status = 'active'
       and target.status = 'active'
+  )
+  or exists (
+    select 1
+    from public.school_join_requests request
+    where request.profile_id = profiles.id
+      and public.has_school_role(request.school_id, array['owner', 'admin']::public.school_role[])
   )
 );
 

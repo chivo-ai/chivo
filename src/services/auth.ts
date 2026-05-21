@@ -20,6 +20,12 @@ type CreateSchoolInput = {
   city: string;
 };
 
+type RequestSchoolAccessInput = {
+  schoolCode: string;
+  requestedRole: string;
+  message: string;
+};
+
 function client() {
   if (!supabase) {
     throw new Error('Account access is not available right now.');
@@ -89,6 +95,22 @@ export async function createSchool(input: CreateSchoolInput) {
 export async function acceptInvite(code: string) {
   const { data, error } = await client().functions.invoke('accept-invite', {
     body: { code: code.trim().toUpperCase() },
+  });
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+}
+
+export async function requestSchoolAccess(input: RequestSchoolAccessInput) {
+  const { data, error } = await client().functions.invoke('request-school-access', {
+    body: {
+      schoolCode: input.schoolCode.trim(),
+      requestedRole: input.requestedRole,
+      message: input.message.trim(),
+    },
   });
 
   if (error) {

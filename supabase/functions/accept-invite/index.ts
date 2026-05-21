@@ -14,6 +14,15 @@ type InviteRow = {
   max_uses: number | null;
   use_count: number;
   expires_at: string | null;
+  schools?: {
+    id: string;
+    name: string;
+    slug: string;
+    city: string | null;
+    country: string | null;
+    subscription_status: string | null;
+    external_crews_allowed: boolean | null;
+  } | null;
 };
 
 const corsHeaders = {
@@ -57,7 +66,7 @@ serve(async (request) => {
 
     const { data: invite, error: inviteError } = await supabase
       .from('school_invites')
-      .select('id, school_id, class_id, role, status, max_uses, use_count, expires_at')
+      .select('id, school_id, class_id, role, status, max_uses, use_count, expires_at, schools(id, name, slug, city, country, subscription_status, external_crews_allowed)')
       .eq('code', code)
       .single<InviteRow>();
 
@@ -131,7 +140,7 @@ serve(async (request) => {
       metadata: { code, role: invite.role, class_id: invite.class_id },
     });
 
-    return json({ membership, classId: invite.class_id });
+    return json({ membership: { ...membership, school_id: invite.school_id }, school: invite.schools, classId: invite.class_id });
   } catch (error) {
     return json({ error: error instanceof Error ? error.message : 'Unknown error' }, 500);
   }

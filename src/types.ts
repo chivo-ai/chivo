@@ -2,7 +2,7 @@ export type UserRole = 'student' | 'teacher' | 'school_admin' | 'owner' | 'guard
 
 export type SchoolMembershipRole = 'owner' | 'admin' | 'teacher' | 'student' | 'guardian';
 
-export type MembershipStatus = 'active' | 'invited' | 'review' | 'suspended';
+export type MembershipStatus = 'active' | 'invited' | 'review' | 'declined' | 'suspended';
 
 export type LearningMode = 'simple' | 'balanced' | 'exam' | 'story' | 'catch_up';
 
@@ -167,6 +167,7 @@ export type ActiveSchoolMembership = {
   school: {
     id: string;
     name: string;
+    slug?: string | null;
     city: string | null;
     country: string | null;
     subscriptionStatus: string | null;

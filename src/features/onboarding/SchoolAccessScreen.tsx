@@ -12,7 +12,7 @@ import {
 import { Building2, LogOut, QrCode, School, ShieldCheck, UserPlus } from 'lucide-react-native';
 
 import { supabase } from '../../lib/supabase';
-import { acceptInvite, createSchool, signOut } from '../../services/auth';
+import { acceptInvite, createSchool, requestSchoolAccess, signOut } from '../../services/auth';
 import { colors } from '../../theme/tokens';
 import { ActiveSchoolMembership, MembershipStatus, SchoolMembershipRole } from '../../types';
 
@@ -24,6 +24,7 @@ type MembershipRow = {
   schools?: {
     id?: string;
     name?: string;
+    slug?: string | null;
     city?: string | null;
     country?: string | null;
     subscription_status?: string | null;
@@ -43,7 +44,10 @@ export function SchoolAccessScreen({ user, onEnterSchool }: SchoolAccessScreenPr
   const [country, setCountry] = useState('');
   const [city, setCity] = useState('');
   const [inviteCode, setInviteCode] = useState('');
-  const [submitting, setSubmitting] = useState<'create' | 'join' | 'sign_out' | null>(null);
+  const [requestSchoolCode, setRequestSchoolCode] = useState('');
+  const [requestRole, setRequestRole] = useState<SchoolMembershipRole>('student');
+  const [requestMessage, setRequestMessage] = useState('');
+  const [submitting, setSubmitting] = useState<'create' | 'join' | 'request' | 'sign_out' | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
@@ -55,7 +59,7 @@ export function SchoolAccessScreen({ user, onEnterSchool }: SchoolAccessScreenPr
     setLoadingMemberships(true);
     const { data, error: queryError } = await (supabase as any)
       .from('school_memberships')
-      .select('id, school_id, role, status, schools(id, name, city, country, subscription_status, external_crews_allowed)')
+      .select('id, school_id, role, status, schools(id, name, slug, city, country, subscription_status, external_crews_allowed)')
       .eq('profile_id', user.id)
       .order('created_at', { ascending: false });
 
@@ -111,12 +115,43 @@ export function SchoolAccessScreen({ user, onEnterSchool }: SchoolAccessScreenPr
 
     setSubmitting('join');
     try {
-      await acceptInvite(inviteCode);
+      const result = await acceptInvite(inviteCode);
       setInviteCode('');
       setMessage('School access added.');
       await loadMemberships();
+      const membership = membershipFromInviteResult(result);
+      if (membership) {
+        onEnterSchool(membership);
+      }
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : 'Could not use that code.');
+    } finally {
+      setSubmitting(null);
+    }
+  }
+
+  async function handleRequestAccess() {
+    setError(null);
+    setMessage(null);
+
+    if (!requestSchoolCode.trim()) {
+      setError('School code is required.');
+      return;
+    }
+
+    setSubmitting('request');
+    try {
+      await requestSchoolAccess({
+        schoolCode: requestSchoolCode,
+        requestedRole: requestRole,
+        message: requestMessage,
+      });
+      setRequestSchoolCode('');
+      setRequestMessage('');
+      setMessage('Request sent to the school.');
+      await loadMemberships();
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : 'Could not send request.');
     } finally {
       setSubmitting(null);
     }
@@ -220,6 +255,56 @@ export function SchoolAccessScreen({ user, onEnterSchool }: SchoolAccessScreenPr
               )}
             </Pressable>
           </View>
+
+          <View style={styles.card}>
+            <View style={styles.cardHeader}>
+              <UserPlus size={22} color={colors.coral} />
+              <Text style={styles.cardTitle}>Request access</Text>
+            </View>
+            <Text style={styles.cardBody}>
+              Use the school code from an admin when you do not have an invite code yet.
+            </Text>
+            <Field
+              label="School code"
+              value={requestSchoolCode}
+              onChangeText={(value) => setRequestSchoolCode(value.toLowerCase())}
+              placeholder="bestcity-academy"
+              autoCapitalize="none"
+            />
+            <View style={styles.pillRow}>
+              {(['student', 'teacher', 'guardian'] as SchoolMembershipRole[]).map((role) => (
+                <Pressable
+                  key={role}
+                  onPress={() => setRequestRole(role)}
+                  style={[styles.choicePill, requestRole === role && styles.choicePillActive]}
+                >
+                  <Text style={[styles.choicePillText, requestRole === role && styles.choicePillTextActive]}>
+                    {formatRole(role)}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+            <Field
+              label="Message"
+              value={requestMessage}
+              onChangeText={setRequestMessage}
+              placeholder="Your class, child name, or staff note"
+            />
+            <Pressable
+              disabled={submitting === 'request'}
+              onPress={handleRequestAccess}
+              style={[styles.secondaryButton, submitting === 'request' && styles.buttonDisabled]}
+            >
+              {submitting === 'request' ? (
+                <ActivityIndicator color={colors.tealDark} />
+              ) : (
+                <>
+                  <UserPlus size={18} color={colors.tealDark} />
+                  <Text style={styles.secondaryButtonText}>Send request</Text>
+                </>
+              )}
+            </Pressable>
+          </View>
         </View>
 
         <View style={styles.card}>
@@ -239,7 +324,7 @@ export function SchoolAccessScreen({ user, onEnterSchool }: SchoolAccessScreenPr
                 <View style={styles.flexText}>
                   <Text style={styles.membershipName}>{membership.schools?.name ?? 'School workspace'}</Text>
                   <Text style={styles.meta}>
-                    {membership.role} - {membership.status}
+                    {formatRole(membership.role)} - {formatRole(membership.status)}
                   </Text>
                 </View>
                 {membership.status === 'active' ? (
@@ -304,6 +389,7 @@ function mapMembershipRow(row: MembershipRow): ActiveSchoolMembership {
     school: {
       id: row.schools?.id ?? row.school_id,
       name: row.schools?.name ?? 'School workspace',
+      slug: row.schools?.slug ?? null,
       city: row.schools?.city ?? null,
       country: row.schools?.country ?? null,
       subscriptionStatus: row.schools?.subscription_status ?? null,
@@ -317,6 +403,7 @@ function membershipFromCreateResult(result: unknown): ActiveSchoolMembership | n
     school?: {
       id?: string;
       name?: string;
+      slug?: string | null;
       city?: string | null;
       country?: string | null;
     };
@@ -339,12 +426,62 @@ function membershipFromCreateResult(result: unknown): ActiveSchoolMembership | n
     school: {
       id: payload.school.id,
       name: payload.school.name ?? 'School workspace',
+      slug: payload.school.slug ?? null,
       city: payload.school.city ?? null,
       country: payload.school.country ?? null,
       subscriptionStatus: 'trial',
       externalCrewsAllowed: false,
     },
   };
+}
+
+function membershipFromInviteResult(result: unknown): ActiveSchoolMembership | null {
+  const payload = result as {
+    school?: {
+      id?: string;
+      name?: string;
+      slug?: string | null;
+      city?: string | null;
+      country?: string | null;
+      subscription_status?: string | null;
+      external_crews_allowed?: boolean | null;
+    };
+    membership?: {
+      id?: string;
+      role?: string;
+      status?: string;
+      school_id?: string;
+    };
+  };
+
+  const schoolId = payload.school?.id ?? payload.membership?.school_id;
+
+  if (!schoolId || !payload.membership?.id) {
+    return null;
+  }
+
+  return {
+    id: payload.membership.id,
+    schoolId,
+    role: (payload.membership.role ?? 'student') as SchoolMembershipRole,
+    status: (payload.membership.status ?? 'active') as MembershipStatus,
+    school: {
+      id: schoolId,
+      name: payload.school?.name ?? 'School workspace',
+      slug: payload.school?.slug ?? null,
+      city: payload.school?.city ?? null,
+      country: payload.school?.country ?? null,
+      subscriptionStatus: payload.school?.subscription_status ?? null,
+      externalCrewsAllowed: payload.school?.external_crews_allowed ?? null,
+    },
+  };
+}
+
+function formatRole(value: string) {
+  return value
+    .split('_')
+    .map((part) => part.slice(0, 1).toUpperCase() + part.slice(1))
+    .join(' ');
 }
 
 const styles = StyleSheet.create({
@@ -389,7 +526,6 @@ const styles = StyleSheet.create({
     color: colors.muted,
     fontSize: 13,
     lineHeight: 19,
-    textTransform: 'capitalize',
   },
   signOutButton: {
     minHeight: 40,
@@ -427,6 +563,33 @@ const styles = StyleSheet.create({
   },
   grid: {
     gap: 16,
+  },
+  pillRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  choicePill: {
+    minHeight: 36,
+    borderRadius: 18,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.softTeal,
+    borderWidth: 1,
+    borderColor: '#d4e8df',
+  },
+  choicePillActive: {
+    backgroundColor: colors.tealDark,
+    borderColor: colors.tealDark,
+  },
+  choicePillText: {
+    color: colors.tealDark,
+    fontSize: 13,
+    fontWeight: '900',
+  },
+  choicePillTextActive: {
+    color: '#ffffff',
   },
   card: {
     borderRadius: 22,

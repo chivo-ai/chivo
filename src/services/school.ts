@@ -1,5 +1,5 @@
 import { supabase } from '../lib/supabase';
-import { SchoolMembershipRole } from '../types';
+import { MembershipStatus, SchoolMembershipRole } from '../types';
 
 export type AcademicYearRow = {
   id: string;
@@ -31,6 +31,33 @@ export type ClassRow = {
   grade_level: string | null;
 };
 
+export type SchoolMemberRow = {
+  id: string;
+  profile_id: string;
+  role: SchoolMembershipRole;
+  status: MembershipStatus;
+  created_at: string;
+  profiles?: {
+    full_name?: string;
+    preferred_language?: string;
+  } | null;
+};
+
+export type ClassMembershipRow = {
+  id: string;
+  class_id: string;
+  school_membership_id: string;
+  role: SchoolMembershipRole;
+  status: MembershipStatus;
+};
+
+export type ClassSubjectRow = {
+  id: string;
+  class_id: string;
+  subject_id: string;
+  teacher_membership_id: string | null;
+};
+
 export type InviteRow = {
   id: string;
   class_id: string | null;
@@ -44,13 +71,17 @@ export type InviteRow = {
 
 export type JoinRequestRow = {
   id: string;
+  profile_id: string;
   class_id: string | null;
   requested_role: SchoolMembershipRole;
-  status: string;
+  status: MembershipStatus;
   message: string | null;
   created_at: string;
   profiles?: {
     full_name?: string;
+  } | null;
+  classes?: {
+    name?: string;
   } | null;
 };
 
@@ -59,6 +90,9 @@ export type SchoolSetupState = {
   academicTerms: AcademicTermRow[];
   subjects: SubjectRow[];
   classes: ClassRow[];
+  members: SchoolMemberRow[];
+  classMemberships: ClassMembershipRow[];
+  classSubjects: ClassSubjectRow[];
   invites: InviteRow[];
   joinRequests: JoinRequestRow[];
 };
@@ -94,6 +128,18 @@ type CreateInviteInput = {
   maxUses: string;
 };
 
+type AssignMemberToClassInput = {
+  classId: string;
+  schoolMembershipId: string;
+  role: SchoolMembershipRole;
+};
+
+type CreateClassSubjectInput = {
+  classId: string;
+  subjectId: string;
+  teacherMembershipId: string | null;
+};
+
 function client() {
   if (!supabase) {
     throw new Error('School access is not available right now.');
@@ -102,15 +148,18 @@ function client() {
   return supabase;
 }
 
-export async function fetchSchoolSetupState(schoolId: string): Promise<SchoolSetupState> {
+export async function fetchSchoolSetupState(
+  schoolId: string,
+  includeAdminRecords = false
+): Promise<SchoolSetupState> {
   const db = client() as any;
   const [
     academicYears,
     academicTerms,
     subjects,
     classes,
-    invites,
-    joinRequests,
+    members,
+    adminRecords,
   ] = await Promise.all([
     db
       .from('academic_years')
@@ -133,24 +182,43 @@ export async function fetchSchoolSetupState(schoolId: string): Promise<SchoolSet
       .eq('school_id', schoolId)
       .order('name', { ascending: true }),
     db
-      .from('school_invites')
-      .select('id, class_id, code, role, status, max_uses, use_count, expires_at')
+      .from('school_memberships')
+      .select('id, profile_id, role, status, created_at, profiles!school_memberships_profile_id_fkey(full_name, preferred_language)')
       .eq('school_id', schoolId)
       .order('created_at', { ascending: false }),
-    db
-      .from('school_join_requests')
-      .select('id, class_id, requested_role, status, message, created_at, profiles(full_name)')
-      .eq('school_id', schoolId)
-      .order('created_at', { ascending: false }),
+    includeAdminRecords ? fetchAdminRecords(db, schoolId) : Promise.resolve({
+      invites: { data: [], error: null },
+      joinRequests: { data: [], error: null },
+    }),
   ]);
+
+  const classIds = ((classes.data ?? []) as ClassRow[]).map((schoolClass) => schoolClass.id);
+  const [classMemberships, classSubjects] = classIds.length
+    ? await Promise.all([
+        db
+          .from('class_memberships')
+          .select('id, class_id, school_membership_id, role, status')
+          .in('class_id', classIds),
+        db
+          .from('class_subjects')
+          .select('id, class_id, subject_id, teacher_membership_id')
+          .in('class_id', classIds),
+      ])
+    : [
+        { data: [], error: null },
+        { data: [], error: null },
+      ];
 
   const error = [
     academicYears.error,
     academicTerms.error,
     subjects.error,
     classes.error,
-    invites.error,
-    joinRequests.error,
+    members.error,
+    classMemberships.error,
+    classSubjects.error,
+    adminRecords.invites.error,
+    adminRecords.joinRequests.error,
   ].find(Boolean);
 
   if (error) {
@@ -162,9 +230,29 @@ export async function fetchSchoolSetupState(schoolId: string): Promise<SchoolSet
     academicTerms: (academicTerms.data ?? []) as AcademicTermRow[],
     subjects: (subjects.data ?? []) as SubjectRow[],
     classes: (classes.data ?? []) as ClassRow[],
-    invites: (invites.data ?? []) as InviteRow[],
-    joinRequests: (joinRequests.data ?? []) as JoinRequestRow[],
+    members: (members.data ?? []) as SchoolMemberRow[],
+    classMemberships: (classMemberships.data ?? []) as ClassMembershipRow[],
+    classSubjects: (classSubjects.data ?? []) as ClassSubjectRow[],
+    invites: (adminRecords.invites.data ?? []) as InviteRow[],
+    joinRequests: (adminRecords.joinRequests.data ?? []) as JoinRequestRow[],
   };
+}
+
+async function fetchAdminRecords(db: any, schoolId: string) {
+  const [invites, joinRequests] = await Promise.all([
+    db
+      .from('school_invites')
+      .select('id, class_id, code, role, status, max_uses, use_count, expires_at')
+      .eq('school_id', schoolId)
+      .order('created_at', { ascending: false }),
+    db
+      .from('school_join_requests')
+      .select('id, profile_id, class_id, requested_role, status, message, created_at, profiles!school_join_requests_profile_id_fkey(full_name), classes(name)')
+      .eq('school_id', schoolId)
+      .order('created_at', { ascending: false }),
+  ]);
+
+  return { invites, joinRequests };
 }
 
 export async function createAcademicYear(input: CreateAcademicYearInput) {
@@ -269,6 +357,104 @@ export async function createSchoolInvite(input: CreateInviteInput) {
   }
 
   throw new Error('Could not generate a unique invite code. Try again.');
+}
+
+export async function assignMemberToClass(input: AssignMemberToClassInput) {
+  requireFields([
+    ['Class', input.classId],
+    ['Member', input.schoolMembershipId],
+  ]);
+
+  const { error } = await (client() as any).from('class_memberships').upsert(
+    {
+      class_id: input.classId,
+      school_membership_id: input.schoolMembershipId,
+      role: input.role,
+      status: 'active',
+    },
+    { onConflict: 'class_id,school_membership_id' }
+  );
+
+  if (error) {
+    throw error;
+  }
+}
+
+export async function removeMemberFromClass(classMembershipId: string) {
+  requireFields([['Class membership', classMembershipId]]);
+
+  const { error } = await (client() as any)
+    .from('class_memberships')
+    .delete()
+    .eq('id', classMembershipId);
+
+  if (error) {
+    throw error;
+  }
+}
+
+export async function createClassSubject(input: CreateClassSubjectInput) {
+  requireFields([
+    ['Class', input.classId],
+    ['Subject', input.subjectId],
+  ]);
+
+  const { error } = await (client() as any).from('class_subjects').upsert(
+    {
+      class_id: input.classId,
+      subject_id: input.subjectId,
+      teacher_membership_id: input.teacherMembershipId,
+    },
+    { onConflict: 'class_id,subject_id' }
+  );
+
+  if (error) {
+    throw error;
+  }
+}
+
+export async function removeClassSubject(classSubjectId: string) {
+  requireFields([['Class subject', classSubjectId]]);
+
+  const { error } = await (client() as any)
+    .from('class_subjects')
+    .delete()
+    .eq('id', classSubjectId);
+
+  if (error) {
+    throw error;
+  }
+}
+
+export async function updateSchoolMemberStatus(
+  membershipId: string,
+  status: Extract<MembershipStatus, 'active' | 'suspended'>
+) {
+  requireFields([['Member', membershipId]]);
+
+  const { error } = await (client() as any)
+    .from('school_memberships')
+    .update({ status })
+    .eq('id', membershipId);
+
+  if (error) {
+    throw error;
+  }
+}
+
+export async function reviewJoinRequest(
+  requestId: string,
+  decision: 'approve' | 'decline'
+) {
+  const { data, error } = await client().functions.invoke('review-join-request', {
+    body: { requestId, decision },
+  });
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
 }
 
 async function getCurrentUserId() {
