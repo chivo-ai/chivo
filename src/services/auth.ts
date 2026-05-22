@@ -18,6 +18,9 @@ type CreateSchoolInput = {
   name: string;
   country: string;
   city: string;
+  logoUrl: string;
+  bannerUrl: string;
+  stickerKey: string;
 };
 
 type RequestSchoolAccessInput = {
@@ -82,11 +85,14 @@ export async function createSchool(input: CreateSchoolInput) {
       name: input.name.trim(),
       country: input.country.trim(),
       city: input.city.trim(),
+      logoUrl: input.logoUrl.trim(),
+      bannerUrl: input.bannerUrl.trim(),
+      stickerKey: input.stickerKey.trim(),
     },
   });
 
   if (error) {
-    throw error;
+    await throwFunctionError(error, 'Could not create school.');
   }
 
   return data;
@@ -98,7 +104,7 @@ export async function acceptInvite(code: string) {
   });
 
   if (error) {
-    throw error;
+    await throwFunctionError(error, 'Could not use that code.');
   }
 
   return data;
@@ -114,8 +120,34 @@ export async function requestSchoolAccess(input: RequestSchoolAccessInput) {
   });
 
   if (error) {
-    throw error;
+    await throwFunctionError(error, 'Could not send request.');
   }
 
   return data;
+}
+
+async function throwFunctionError(error: unknown, fallback: string): Promise<never> {
+  const context = (error as { context?: { json?: () => Promise<unknown>; text?: () => Promise<string> } }).context;
+
+  if (context?.json) {
+    try {
+      const body = await context.json();
+      if (body && typeof body === 'object' && 'error' in body) {
+        const message = String((body as { error?: unknown }).error ?? '').trim();
+        if (message) {
+          throw new Error(message);
+        }
+      }
+    } catch (caught) {
+      if (caught instanceof Error && caught.message) {
+        throw caught;
+      }
+    }
+  }
+
+  if (error instanceof Error && error.message && !error.message.includes('non-2xx')) {
+    throw error;
+  }
+
+  throw new Error(fallback);
 }

@@ -1,30 +1,108 @@
 # Chivo AI
 
-Chivo AI is a school-first learning platform. The current build is focused on the first production slice: real accounts and real school access.
+Chivo AI is a school-first learning platform for turning real lessons into summaries, quizzes, flashcards, audio study, progress insight, and study crews while keeping each school workspace private.
 
-## Current Slice
+## Work Groups
 
-The app now starts with:
+We are building the product in three full groups. Each group includes UI, Supabase logic, Edge Functions where needed, and light checks before moving on.
 
-1. Supabase-backed sign in.
-2. Supabase-backed account creation.
-3. Automatic profile creation from Auth metadata.
-4. Signed-in school access screen.
-5. School workspace creation through a Supabase Edge Function.
-6. School or class invite acceptance through a Supabase Edge Function.
-7. School memberships loaded from the database.
-8. School workspace entry for active memberships.
-9. Owner/admin setup for academic years, terms, subjects, classes, and invite codes.
+### Group 1: Account, School, and Admin Setup
 
-No learner, teacher, admin, or crew dashboard is shown before a real user session exists.
+Status: ready for admin-flow testing.
+
+Scope:
+
+- account creation and sign in
+- personal account home after login
+- school creation
+- school logo, banner, and sticker identity
+- school joining by invite code
+- school access requests
+- school profile editing
+- school workspace entry
+- school overview
+- academic year, term, subject, class, and class-subject setup
+- invite codes
+- member management
+- class access assignment
+- join request approval
+- role-aware school views
+
+Completed in this group so far:
+
+- signed-in home hub for schools, pending access, crews, and account entry
+- standalone personal account screen
+- personal profile editing with direct image upload and sticker identity
+- responsive app navigation with a hover sidebar on web and floating bottom navigation on mobile
+- school cards and workspace headers showing logo/banner/sticker identity
+- Supabase Storage bucket for school, class, crew, and profile media
+- grouped school workspace with Overview, Setup, People, Invites, and Requests
+- guided onboarding checklist for school admins
+- real school creation, invite redemption, access requests, and request review
+- academic setup, class setup, subject assignment, member assignment, and invite code creation
+- clearer join/request errors when a user enters an invite code in the school-code flow
+
+Group 1 can now be tested as a real school admin flow. Further polish can happen after testing reveals what feels slow or unclear.
+
+### Group 2: Lessons, Gemini AI, and Student Learning
+
+Status: in progress.
+
+Scope:
+
+- teacher lesson recording/upload
+- lesson storage
+- Gemini transcription and generation
+- teacher review and publish flow
+- student lesson view
+- summaries, quizzes, flashcards, and audio study
+- personalization by language and learning mode
+- progress and weak-area tracking
+
+Completed in this group so far:
+
+- Lessons section inside each school workspace
+- teacher/admin lesson creation from transcript text
+- class and subject selection for lessons
+- Gemini study-pack processing through `process-lesson`
+- generated master summary stored in `lesson_outputs`
+- generated quiz stored in `quizzes` and `quiz_questions`
+- generated flashcards stored in `flashcards`
+- teacher publish action
+- students only see published lessons in the app
+- function-level staff permission check before Gemini processing
+
+Current focus:
+
+- testing teacher lesson creation, AI processing, publishing, and student viewing against Supabase
+- adding audio recording/upload after the transcript-based lesson pipeline is proven
+
+Group 2 is done when a teacher can publish a lesson and a student can learn from it end to end.
+
+### Group 3: Crews, Payments, and Experience Layer
+
+Status: not started.
+
+Scope:
+
+- lesson crews
+- school and cross-school crew rules
+- crew resources and messages
+- guardian experience
+- notifications
+- subscriptions and crypto payment tracking
+- audit visibility
+- final mobile and web polish
+
+Group 3 is done when the product feels connected, memorable, and ready for broader school rollout.
 
 ## Backend Pieces
 
-Database migration:
+Database migration includes:
 
-- `profiles`
-- `schools`
-- `school_memberships`
+- profiles
+- schools
+- school memberships
 - academic years and terms
 - subjects and classes
 - school invites and join requests
@@ -33,17 +111,23 @@ Database migration:
 - guardian links
 - Lesson Crews, invites, memberships, resources, messages
 - subscriptions, payment transactions, notifications, audit logs
+- `chivo-media` storage bucket for public logo, banner, class, crew, and profile images
 
-If you already ran part of the migration manually and see an error like
-`type "school_role" already exists`, run `supabase/dev-reset.sql` first on that
-development database, then run the migration again. Do not run the reset script
-on a database that contains data you need to keep.
+If you already ran part of the migration manually and see an error like `type "school_role" already exists`, run `supabase/dev-reset.sql` only on an early development database, then run the migration again. Do not run the reset script on a database that contains data you need to keep.
+
+If your existing early database already has the older Group 1 schema, run `supabase/group1-upgrade.sql`.
+
+For a database that already has Chivo tables or enum types, use `supabase/group1-upgrade.sql` for this media/profile upgrade instead of running the full initial migration again.
+
+For the first Group 2 lesson workflow on an existing early database, run `supabase/group2-upgrade.sql`.
 
 Edge Functions:
 
 - `create-school`: creates a school, owner membership, trial subscription, and audit log.
 - `accept-invite`: redeems a school/class code and creates school/class membership.
-- `process-lesson`: existing Gemini lesson processing function.
+- `request-school-access`: sends a request to join a school by school code.
+- `review-join-request`: lets a school owner/admin approve or decline a request.
+- `process-lesson`: Gemini lesson processing foundation.
 
 ## Environment
 
@@ -61,9 +145,7 @@ GEMINI_API_KEY=your-gemini-api-key
 SERVICE_ROLE_KEY=your-service-role-key
 ```
 
-Supabase reserves the `SUPABASE_` prefix for platform-provided variables. The
-Edge Functions read `SERVICE_ROLE_KEY` first, with `SUPABASE_SERVICE_ROLE_KEY`
-kept only as a fallback for local/default environments.
+Supabase reserves the `SUPABASE_` prefix for platform-provided variables. The Edge Functions read `SERVICE_ROLE_KEY` first, with `SUPABASE_SERVICE_ROLE_KEY` kept only as a fallback for local/default environments.
 
 ## Run
 
@@ -71,15 +153,3 @@ kept only as a fallback for local/default environments.
 npm install
 npm run web
 ```
-
-## Next Production Slice
-
-After auth and school access are verified against a live Supabase project, the next slice should be school admin setup:
-
-- create academic year and term
-- create subjects
-- create classes
-- generate class invite codes
-- approve join requests
-
-That should come before rebuilding learner and teacher dashboards.

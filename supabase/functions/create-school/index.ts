@@ -5,6 +5,9 @@ type CreateSchoolRequest = {
   name: string;
   country?: string;
   city?: string;
+  logoUrl?: string;
+  bannerUrl?: string;
+  stickerKey?: string;
 };
 
 const corsHeaders = {
@@ -63,9 +66,12 @@ serve(async (request) => {
         slug,
         country: body.country?.trim() || null,
         city: body.city?.trim() || null,
+        logo_url: cleanUrl(body.logoUrl),
+        banner_url: cleanUrl(body.bannerUrl),
+        sticker_key: cleanSticker(body.stickerKey),
         created_by: user.id,
       })
-      .select('id, name, slug, city, country')
+      .select('id, name, slug, city, country, logo_url, banner_url, sticker_key, subscription_status, external_crews_allowed')
       .single();
 
     if (schoolError) {
@@ -137,6 +143,20 @@ function slugify(value: string) {
     .replace(/(^-|-$)/g, '');
 
   return slug || `school-${crypto.randomUUID().slice(0, 8)}`;
+}
+
+function cleanUrl(value?: string) {
+  const trimmed = value?.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  return /^https?:\/\//i.test(trimmed) ? trimmed : null;
+}
+
+function cleanSticker(value?: string) {
+  const trimmed = value?.trim().toLowerCase();
+  return trimmed || null;
 }
 
 function getServiceRoleKey() {

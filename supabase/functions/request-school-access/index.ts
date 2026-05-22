@@ -36,7 +36,8 @@ serve(async (request) => {
     }
 
     const body = (await request.json()) as RequestSchoolAccessBody;
-    const schoolCode = normalizeSchoolCode(body.schoolCode);
+    const rawSchoolCode = body.schoolCode?.trim() ?? '';
+    const schoolCode = normalizeSchoolCode(rawSchoolCode);
     const requestedRole = body.requestedRole ?? 'student';
 
     if (!schoolCode) {
@@ -45,6 +46,20 @@ serve(async (request) => {
 
     if (!['student', 'teacher', 'guardian'].includes(requestedRole)) {
       return json({ error: 'Choose student, teacher, or guardian access' }, 400);
+    }
+
+    const { data: matchingInvite, error: inviteError } = await supabase
+      .from('school_invites')
+      .select('id')
+      .eq('code', rawSchoolCode.toUpperCase())
+      .maybeSingle();
+
+    if (inviteError) {
+      throw inviteError;
+    }
+
+    if (matchingInvite) {
+      return json({ error: 'That is an invite code. Open Join and use the code there.' }, 400);
     }
 
     const { data: school, error: schoolError } = await supabase
@@ -58,7 +73,7 @@ serve(async (request) => {
     }
 
     if (!school) {
-      return json({ error: 'School code was not found' }, 404);
+      return json({ error: 'School code was not found. Use the school code from the school profile, or use Join if you have an invite code.' }, 404);
     }
 
     await supabase.from('profiles').upsert({

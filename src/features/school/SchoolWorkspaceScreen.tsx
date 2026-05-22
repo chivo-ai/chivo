@@ -1,6 +1,7 @@
 import { ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  Image,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -15,6 +16,7 @@ import {
   CalendarDays,
   ClipboardList,
   GraduationCap,
+  Home,
   LogOut,
   QrCode,
   ShieldCheck,
@@ -22,6 +24,9 @@ import {
   Users,
 } from 'lucide-react-native';
 
+import { AppNavigation, AppNavItem } from '../../components/AppNavigation';
+import { ImageUploadButton } from '../../components/ImageUploadButton';
+import { LessonWorkspace } from '../lessons/LessonWorkspace';
 import { supabase } from '../../lib/supabase';
 import { signOut } from '../../services/auth';
 import {
@@ -45,6 +50,7 @@ import {
   removeClassSubject,
   removeMemberFromClass,
   reviewJoinRequest,
+  updateSchoolDetails,
   updateSchoolMemberStatus,
 } from '../../services/school';
 import { colors } from '../../theme/tokens';
@@ -63,6 +69,8 @@ type WorkspaceCounts = {
   pendingRequests: number;
   lessons: number;
 };
+
+type WorkspaceSection = 'overview' | 'lessons' | 'setup' | 'people' | 'invites' | 'requests';
 
 const emptyCounts: WorkspaceCounts = {
   activeMembers: 0,
@@ -86,6 +94,21 @@ const emptySetup: SchoolSetupState = {
 };
 
 const inviteRoles: SchoolMembershipRole[] = ['student', 'teacher', 'admin'];
+const stickerPack = [
+  { key: 'spark', label: 'Spark', accent: colors.gold },
+  { key: 'orbit', label: 'Orbit', accent: colors.blue },
+  { key: 'leaf', label: 'Leaf', accent: colors.teal },
+  { key: 'coral', label: 'Coral', accent: colors.coral },
+];
+
+const adminSections: Array<{ id: WorkspaceSection; label: string }> = [
+  { id: 'overview', label: 'Overview' },
+  { id: 'lessons', label: 'Lessons' },
+  { id: 'setup', label: 'Setup' },
+  { id: 'people', label: 'People' },
+  { id: 'invites', label: 'Invites' },
+  { id: 'requests', label: 'Requests' },
+];
 
 export function SchoolWorkspaceScreen({ membership, onSwitchSchool }: SchoolWorkspaceScreenProps) {
   const [counts, setCounts] = useState<WorkspaceCounts>(emptyCounts);
@@ -96,6 +119,15 @@ export function SchoolWorkspaceScreen({ membership, onSwitchSchool }: SchoolWork
   const [saving, setSaving] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [activeSection, setActiveSection] = useState<WorkspaceSection>('overview');
+  const [schoolDetails, setSchoolDetails] = useState({
+    name: membership.school.name,
+    country: membership.school.country ?? '',
+    city: membership.school.city ?? '',
+    logoUrl: membership.school.logoUrl ?? '',
+    bannerUrl: membership.school.bannerUrl ?? '',
+    stickerKey: membership.school.stickerKey ?? 'spark',
+  });
 
   const [yearName, setYearName] = useState('');
   const [yearStart, setYearStart] = useState('');
@@ -112,6 +144,9 @@ export function SchoolWorkspaceScreen({ membership, onSwitchSchool }: SchoolWork
 
   const [className, setClassName] = useState('');
   const [gradeLevel, setGradeLevel] = useState('');
+  const [classLogoUrl, setClassLogoUrl] = useState('');
+  const [classBannerUrl, setClassBannerUrl] = useState('');
+  const [classStickerKey, setClassStickerKey] = useState('orbit');
 
   const [inviteClassId, setInviteClassId] = useState<string | null>(null);
   const [inviteRole, setInviteRole] = useState<SchoolMembershipRole>('student');
@@ -124,6 +159,54 @@ export function SchoolWorkspaceScreen({ membership, onSwitchSchool }: SchoolWork
   const [selectedTeacherId, setSelectedTeacherId] = useState<string | null>(null);
 
   const isAdmin = membership.role === 'owner' || membership.role === 'admin';
+  const navItems: AppNavItem<WorkspaceSection>[] = [
+    {
+      id: 'overview',
+      label: 'Overview',
+      description: 'School readiness',
+      group: 'School',
+      icon: <Home size={19} color={activeSection === 'overview' ? colors.tealDark : '#dce7e1'} />,
+    },
+    {
+      id: 'lessons',
+      label: 'Lessons',
+      description: 'Create and learn',
+      group: 'Learning',
+      icon: <BookOpen size={19} color={activeSection === 'lessons' ? colors.tealDark : '#dce7e1'} />,
+    },
+    {
+      id: 'setup',
+      label: 'Setup',
+      description: 'Years, terms, classes',
+      group: 'Admin',
+      visible: isAdmin,
+      icon: <ClipboardList size={19} color={activeSection === 'setup' ? colors.tealDark : '#dce7e1'} />,
+    },
+    {
+      id: 'people',
+      label: 'People',
+      description: 'Members and classes',
+      group: 'Admin',
+      visible: isAdmin,
+      icon: <Users size={19} color={activeSection === 'people' ? colors.tealDark : '#dce7e1'} />,
+    },
+    {
+      id: 'invites',
+      label: 'Invites',
+      description: 'School access codes',
+      group: 'Access',
+      visible: isAdmin,
+      icon: <QrCode size={19} color={activeSection === 'invites' ? colors.tealDark : '#dce7e1'} />,
+    },
+    {
+      id: 'requests',
+      label: 'Requests',
+      description: 'Approve access',
+      group: 'Access',
+      visible: isAdmin,
+      icon: <UserPlus size={19} color={activeSection === 'requests' ? colors.tealDark : '#dce7e1'} />,
+    },
+  ];
 
   const selectedYear = useMemo(
     () => setup.academicYears.find((year) => year.id === selectedYearId) ?? setup.academicYears[0],
@@ -211,7 +294,7 @@ export function SchoolWorkspaceScreen({ membership, onSwitchSchool }: SchoolWork
   async function save(action: string, work: () => Promise<void>, successMessage: string | (() => string)) {
     setSaving(action);
     setError(null);
-      setMessage(null);
+    setMessage(null);
     try {
       await work();
       setMessage(typeof successMessage === 'function' ? successMessage() : successMessage);
@@ -285,11 +368,38 @@ export function SchoolWorkspaceScreen({ membership, onSwitchSchool }: SchoolWork
           academicTermId: selectedTerm?.id ?? null,
           name: className,
           gradeLevel,
+          logoUrl: classLogoUrl,
+          bannerUrl: classBannerUrl,
+          stickerKey: classStickerKey,
         });
         setClassName('');
         setGradeLevel('');
+        setClassLogoUrl('');
+        setClassBannerUrl('');
+        setClassStickerKey('orbit');
       },
       'Class added.'
+    );
+  }
+
+  async function handleUpdateSchoolDetails() {
+    await save(
+      'school-details',
+      async () => {
+        const updated = await updateSchoolDetails({
+          schoolId: membership.schoolId,
+          ...schoolDetails,
+        });
+        setSchoolDetails({
+          name: updated.name ?? schoolDetails.name,
+          country: updated.country ?? '',
+          city: updated.city ?? '',
+          logoUrl: updated.logo_url ?? '',
+          bannerUrl: updated.banner_url ?? '',
+          stickerKey: updated.sticker_key ?? 'spark',
+        });
+      },
+      'School profile updated.'
     );
   }
 
@@ -379,6 +489,13 @@ export function SchoolWorkspaceScreen({ membership, onSwitchSchool }: SchoolWork
   }
 
   return (
+    <AppNavigation
+      title={schoolDetails.name}
+      subtitle={`${formatRole(membership.role)} access`}
+      items={navItems}
+      activeId={activeSection}
+      onSelect={setActiveSection}
+    >
     <ScrollView
       contentContainerStyle={styles.scrollContent}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
@@ -389,9 +506,9 @@ export function SchoolWorkspaceScreen({ membership, onSwitchSchool }: SchoolWork
             <ArrowLeft size={20} color={colors.tealDark} />
           </Pressable>
           <View style={styles.flexText}>
-            <Text style={styles.title}>{membership.school.name}</Text>
+            <Text style={styles.title}>{schoolDetails.name}</Text>
             <Text style={styles.meta}>
-              {formatRole(membership.role)} access - {membership.school.slug ?? membership.school.city ?? 'Location not set'}
+              {formatRole(membership.role)} access - {membership.school.slug ?? schoolDetails.city ?? 'Location not set'}
             </Text>
           </View>
           <Pressable onPress={handleSignOut} style={styles.signOutButton}>
@@ -407,14 +524,13 @@ export function SchoolWorkspaceScreen({ membership, onSwitchSchool }: SchoolWork
         </View>
 
         <View style={styles.heroPanel}>
+          <BannerStrip imageUrl={schoolDetails.bannerUrl} stickerKey={schoolDetails.stickerKey} />
           <View style={styles.heroHeader}>
-            <View style={styles.heroIcon}>
-              <ShieldCheck size={26} color="#ffffff" />
-            </View>
+            <IdentityMark imageUrl={schoolDetails.logoUrl} stickerKey={schoolDetails.stickerKey} label={schoolDetails.name} size="large" />
             <View style={styles.flexText}>
-              <Text style={styles.heroTitle}>School workspace</Text>
+            <Text style={styles.heroTitle}>{schoolDetails.name}</Text>
               <Text style={styles.heroBody}>
-                Manage the school structure, class access, and invitation codes from one place.
+                Set up the school once, then manage people, classes, and access from clear sections.
               </Text>
             </View>
           </View>
@@ -440,77 +556,115 @@ export function SchoolWorkspaceScreen({ membership, onSwitchSchool }: SchoolWork
             </View>
 
             {isAdmin ? (
-              <AdminSetup
-                setup={setup}
-                selectedYearId={selectedYear?.id ?? null}
-                selectedTermId={selectedTerm?.id ?? null}
-                inviteClassId={inviteClassId}
-                inviteRole={inviteRole}
-                selectedMemberId={selectedMemberId}
-                selectedMemberClassId={selectedMemberClassId}
-                selectedSubjectClassId={selectedSubjectClassId}
-                selectedSubjectId={selectedSubjectId}
-                selectedTeacherId={selectedTeacherId}
-                values={{
-                  yearName,
-                  yearStart,
-                  yearEnd,
-                  termName,
-                  termStart,
-                  termEnd,
-                  subjectName,
-                  subjectDepartment,
-                  className,
-                  gradeLevel,
-                  inviteMaxUses,
-                }}
-                saving={saving}
-                onSelectYear={setSelectedYearId}
-                onSelectTerm={setSelectedTermId}
-                onSelectInviteClass={setInviteClassId}
-                onSelectInviteRole={setInviteRole}
-                onSelectMember={setSelectedMemberId}
-                onSelectMemberClass={setSelectedMemberClassId}
-                onSelectSubjectClass={setSelectedSubjectClassId}
-                onSelectSubject={setSelectedSubjectId}
-                onSelectTeacher={setSelectedTeacherId}
-                onChange={{
-                  setYearName,
-                  setYearStart,
-                  setYearEnd,
-                  setTermName,
-                  setTermStart,
-                  setTermEnd,
-                  setSubjectName,
-                  setSubjectDepartment,
-                  setClassName,
-                  setGradeLevel,
-                  setInviteMaxUses,
-                }}
-                onCreateYear={handleCreateAcademicYear}
-                onCreateTerm={handleCreateAcademicTerm}
-                onCreateSubject={handleCreateSubject}
-                onCreateClass={handleCreateClass}
-                onCreateInvite={handleCreateInvite}
-                onAssignMemberToClass={handleAssignMemberToClass}
-                onRemoveMemberFromClass={handleRemoveMemberFromClass}
-                onCreateClassSubject={handleCreateClassSubject}
-                onRemoveClassSubject={handleRemoveClassSubject}
-                onReviewJoinRequest={handleReviewJoinRequest}
-                onUpdateMemberStatus={handleUpdateMemberStatus}
-              />
+              <>
+                {activeSection === 'lessons' ? (
+                  <LessonWorkspace membership={membership} setup={setup} onLessonsChanged={loadWorkspace} />
+                ) : (
+                  <AdminSetup
+                    section={activeSection}
+                    setup={setup}
+                    counts={counts}
+                    schoolId={membership.schoolId}
+                    schoolCode={membership.school.slug ?? null}
+                    schoolDetails={schoolDetails}
+                    selectedYearId={selectedYear?.id ?? null}
+                    selectedTermId={selectedTerm?.id ?? null}
+                    inviteClassId={inviteClassId}
+                    inviteRole={inviteRole}
+                    selectedMemberId={selectedMemberId}
+                    selectedMemberClassId={selectedMemberClassId}
+                    selectedSubjectClassId={selectedSubjectClassId}
+                    selectedSubjectId={selectedSubjectId}
+                    selectedTeacherId={selectedTeacherId}
+                    values={{
+                      yearName,
+                      yearStart,
+                      yearEnd,
+                      termName,
+                      termStart,
+                      termEnd,
+                      subjectName,
+                      subjectDepartment,
+                      className,
+                      gradeLevel,
+                      classLogoUrl,
+                      classBannerUrl,
+                      classStickerKey,
+                      inviteMaxUses,
+                    }}
+                    saving={saving}
+                    onSelectYear={setSelectedYearId}
+                    onSelectTerm={setSelectedTermId}
+                    onSelectInviteClass={setInviteClassId}
+                    onSelectInviteRole={setInviteRole}
+                    onSelectMember={setSelectedMemberId}
+                    onSelectMemberClass={setSelectedMemberClassId}
+                    onSelectSubjectClass={setSelectedSubjectClassId}
+                    onSelectSubject={setSelectedSubjectId}
+                    onSelectTeacher={setSelectedTeacherId}
+                    onChange={{
+                      setYearName,
+                      setYearStart,
+                      setYearEnd,
+                      setTermName,
+                      setTermStart,
+                      setTermEnd,
+                      setSubjectName,
+                      setSubjectDepartment,
+                      setClassName,
+                      setGradeLevel,
+                      setClassLogoUrl,
+                      setClassBannerUrl,
+                      setClassStickerKey,
+                      setSchoolDetails,
+                      setInviteMaxUses,
+                    }}
+                    onCreateYear={handleCreateAcademicYear}
+                    onCreateTerm={handleCreateAcademicTerm}
+                    onCreateSubject={handleCreateSubject}
+                    onCreateClass={handleCreateClass}
+                    onUpdateSchoolDetails={handleUpdateSchoolDetails}
+                    onCreateInvite={handleCreateInvite}
+                    onAssignMemberToClass={handleAssignMemberToClass}
+                    onRemoveMemberFromClass={handleRemoveMemberFromClass}
+                    onCreateClassSubject={handleCreateClassSubject}
+                    onRemoveClassSubject={handleRemoveClassSubject}
+                    onReviewJoinRequest={handleReviewJoinRequest}
+                    onUpdateMemberStatus={handleUpdateMemberStatus}
+                    onSelectSection={setActiveSection}
+                    onError={setError}
+                  />
+                )}
+              </>
             ) : (
-              <MemberWorkspace setup={setup} membership={membership} />
+              activeSection === 'lessons' ? (
+                <LessonWorkspace membership={membership} setup={setup} onLessonsChanged={loadWorkspace} />
+              ) : (
+                <MemberWorkspace setup={setup} membership={membership} />
+              )
             )}
           </>
         )}
       </View>
     </ScrollView>
+    </AppNavigation>
   );
 }
 
 type AdminSetupProps = {
+  section: WorkspaceSection;
   setup: SchoolSetupState;
+  counts: WorkspaceCounts;
+  schoolId: string;
+  schoolCode: string | null;
+  schoolDetails: {
+    name: string;
+    country: string;
+    city: string;
+    logoUrl: string;
+    bannerUrl: string;
+    stickerKey: string;
+  };
   selectedYearId: string | null;
   selectedTermId: string | null;
   inviteClassId: string | null;
@@ -531,6 +685,9 @@ type AdminSetupProps = {
     subjectDepartment: string;
     className: string;
     gradeLevel: string;
+    classLogoUrl: string;
+    classBannerUrl: string;
+    classStickerKey: string;
     inviteMaxUses: string;
   };
   saving: string | null;
@@ -554,12 +711,17 @@ type AdminSetupProps = {
     setSubjectDepartment: (value: string) => void;
     setClassName: (value: string) => void;
     setGradeLevel: (value: string) => void;
+    setClassLogoUrl: (value: string) => void;
+    setClassBannerUrl: (value: string) => void;
+    setClassStickerKey: (value: string) => void;
+    setSchoolDetails: (value: AdminSetupProps['schoolDetails']) => void;
     setInviteMaxUses: (value: string) => void;
   };
   onCreateYear: () => void;
   onCreateTerm: () => void;
   onCreateSubject: () => void;
   onCreateClass: () => void;
+  onUpdateSchoolDetails: () => void;
   onCreateInvite: () => void;
   onAssignMemberToClass: () => void;
   onRemoveMemberFromClass: (classMembershipId: string) => void;
@@ -567,6 +729,8 @@ type AdminSetupProps = {
   onRemoveClassSubject: (classSubjectId: string) => void;
   onReviewJoinRequest: (requestId: string, decision: 'approve' | 'decline') => void;
   onUpdateMemberStatus: (member: SchoolMemberRow, status: 'active' | 'suspended') => void;
+  onSelectSection: (section: WorkspaceSection) => void;
+  onError: (message: string) => void;
 };
 
 function MemberWorkspace({
@@ -614,8 +778,236 @@ function MemberWorkspace({
   );
 }
 
+function WorkspaceNav({
+  activeSection,
+  onSelect,
+}: {
+  activeSection: WorkspaceSection;
+  onSelect: (section: WorkspaceSection) => void;
+}) {
+  return (
+    <View style={styles.navRow}>
+      {adminSections.map((section) => (
+        <Pressable
+          key={section.id}
+          onPress={() => onSelect(section.id)}
+          style={[styles.navPill, activeSection === section.id && styles.navPillActive]}
+        >
+          <Text style={[styles.navPillText, activeSection === section.id && styles.navPillTextActive]}>
+            {section.label}
+          </Text>
+        </Pressable>
+      ))}
+    </View>
+  );
+}
+
+function OverviewTile({ label, value }: { label: string; value: string }) {
+  return (
+    <View style={styles.overviewTile}>
+      <Text style={styles.overviewValue}>{value}</Text>
+      <Text style={styles.overviewLabel}>{label}</Text>
+    </View>
+  );
+}
+
+function SchoolIdentityEditor({
+  values,
+  saving,
+  onChange,
+  onSave,
+  schoolId,
+  onError,
+}: {
+  values: AdminSetupProps['schoolDetails'];
+  saving: boolean;
+  onChange: (value: AdminSetupProps['schoolDetails']) => void;
+  onSave: () => void;
+  schoolId: string;
+  onError: (message: string) => void;
+}) {
+  return (
+    <View style={styles.identityEditor}>
+      <BannerStrip imageUrl={values.bannerUrl} stickerKey={values.stickerKey} />
+      <View style={styles.identityEditorBody}>
+        <IdentityMark imageUrl={values.logoUrl} stickerKey={values.stickerKey} label={values.name} size="large" />
+        <View style={styles.flexText}>
+          <Field label="School name" value={values.name} onChangeText={(name) => onChange({ ...values, name })} placeholder="School name" />
+          <View style={styles.formRow}>
+            <Field label="Country" value={values.country} onChangeText={(country) => onChange({ ...values, country })} placeholder="Nigeria" />
+            <Field label="City" value={values.city} onChangeText={(city) => onChange({ ...values, city })} placeholder="Lagos" />
+          </View>
+        </View>
+      </View>
+      <View style={styles.formRowPadded}>
+        <ImageUploadButton
+          label={values.logoUrl ? 'Replace logo' : 'Upload logo'}
+          pathPrefix={`schools/${schoolId}/logo`}
+          onUploaded={(logoUrl) => onChange({ ...values, logoUrl })}
+          onError={onError}
+        />
+        <ImageUploadButton
+          label={values.bannerUrl ? 'Replace banner' : 'Upload banner'}
+          pathPrefix={`schools/${schoolId}/banner`}
+          onUploaded={(bannerUrl) => onChange({ ...values, bannerUrl })}
+          onError={onError}
+        />
+      </View>
+      <StickerPicker selectedKey={values.stickerKey} onSelect={(stickerKey) => onChange({ ...values, stickerKey })} />
+      <SubmitButton label="Save school profile" loading={saving} onPress={onSave} />
+    </View>
+  );
+}
+
+function IdentityMark({
+  imageUrl,
+  stickerKey,
+  label,
+  size,
+}: {
+  imageUrl?: string | null;
+  stickerKey?: string | null;
+  label: string;
+  size: 'small' | 'large';
+}) {
+  const sticker = stickerPack.find((item) => item.key === stickerKey) ?? stickerPack[0];
+  const initials = label
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join('') || 'CH';
+
+  return (
+    <View style={[styles.identityMark, size === 'large' && styles.identityMarkLarge, { backgroundColor: sticker.accent }]}>
+      {imageUrl ? (
+        <Image source={{ uri: imageUrl }} style={styles.identityImage} resizeMode="cover" />
+      ) : (
+        <Text style={styles.identityInitials}>{initials}</Text>
+      )}
+    </View>
+  );
+}
+
+function BannerStrip({ imageUrl, stickerKey }: { imageUrl?: string | null; stickerKey?: string | null }) {
+  const sticker = stickerPack.find((item) => item.key === stickerKey) ?? stickerPack[0];
+
+  return (
+    <View style={[styles.bannerStrip, { backgroundColor: sticker.accent }]}>
+      {imageUrl ? <Image source={{ uri: imageUrl }} style={styles.bannerImage} resizeMode="cover" /> : null}
+    </View>
+  );
+}
+
+function StickerPicker({ selectedKey, onSelect }: { selectedKey: string; onSelect: (key: string) => void }) {
+  return (
+    <View style={styles.stickerRow}>
+      {stickerPack.map((sticker) => (
+        <Pressable
+          key={sticker.key}
+          onPress={() => onSelect(sticker.key)}
+          style={[
+            styles.stickerChoice,
+            { borderColor: selectedKey === sticker.key ? sticker.accent : colors.line },
+          ]}
+        >
+          <View style={[styles.stickerSwatch, { backgroundColor: sticker.accent }]} />
+          <Text style={styles.stickerText}>{sticker.label}</Text>
+        </Pressable>
+      ))}
+    </View>
+  );
+}
+
+function getSetupChecklist(setup: SchoolSetupState) {
+  return [
+    {
+      id: 'year',
+      done: setup.academicYears.length > 0,
+      title: 'Academic year',
+      body: 'Create the school year that terms and classes will use.',
+      actionLabel: 'Open setup',
+      section: 'setup' as WorkspaceSection,
+    },
+    {
+      id: 'term',
+      done: setup.academicTerms.length > 0,
+      title: 'Term',
+      body: 'Add at least one term so classes can sit in a real calendar.',
+      actionLabel: 'Open setup',
+      section: 'setup' as WorkspaceSection,
+    },
+    {
+      id: 'subjects',
+      done: setup.subjects.length > 0,
+      title: 'Subjects',
+      body: 'Add subjects before lessons and class teaching assignments begin.',
+      actionLabel: 'Open setup',
+      section: 'setup' as WorkspaceSection,
+    },
+    {
+      id: 'classes',
+      done: setup.classes.length > 0,
+      title: 'Classes',
+      body: 'Create classes for students, teachers, lessons, and invite codes.',
+      actionLabel: 'Open setup',
+      section: 'setup' as WorkspaceSection,
+    },
+    {
+      id: 'invites',
+      done: setup.invites.some((invite) => invite.status === 'active'),
+      title: 'Invite codes',
+      body: 'Create invite codes for students, teachers, or admins.',
+      actionLabel: 'Open invites',
+      section: 'invites' as WorkspaceSection,
+    },
+    {
+      id: 'people',
+      done: setup.members.filter((member) => member.status === 'active').length > 1,
+      title: 'People',
+      body: 'Add or approve people, then place them in their classes.',
+      actionLabel: 'Open people',
+      section: 'people' as WorkspaceSection,
+    },
+  ];
+}
+
+function ChecklistRow({
+  done,
+  title,
+  body,
+  actionLabel,
+  onAction,
+}: {
+  done: boolean;
+  title: string;
+  body: string;
+  actionLabel: string;
+  onAction: () => void;
+}) {
+  return (
+    <View style={[styles.checklistRow, done && styles.checklistRowDone]}>
+      <View style={[styles.checkDot, done && styles.checkDotDone]}>
+        <Text style={[styles.checkDotText, done && styles.checkDotTextDone]}>{done ? 'OK' : ''}</Text>
+      </View>
+      <View style={styles.flexText}>
+        <Text style={styles.recordTitle}>{title}</Text>
+        <Text style={styles.recordMeta}>{body}</Text>
+      </View>
+      <Pressable onPress={onAction} style={[styles.actionButton, styles.actionButtonMuted]}>
+        <Text style={styles.actionButtonTextMuted}>{done ? 'Review' : actionLabel}</Text>
+      </Pressable>
+    </View>
+  );
+}
+
 function AdminSetup({
+  section,
   setup,
+  counts,
+  schoolId,
+  schoolCode,
+  schoolDetails,
   selectedYearId,
   selectedTermId,
   inviteClassId,
@@ -641,6 +1033,7 @@ function AdminSetup({
   onCreateTerm,
   onCreateSubject,
   onCreateClass,
+  onUpdateSchoolDetails,
   onCreateInvite,
   onAssignMemberToClass,
   onRemoveMemberFromClass,
@@ -648,10 +1041,61 @@ function AdminSetup({
   onRemoveClassSubject,
   onReviewJoinRequest,
   onUpdateMemberStatus,
+  onSelectSection,
+  onError,
 }: AdminSetupProps) {
+  if (section === 'overview') {
+    const checklist = getSetupChecklist(setup);
+
+    return (
+      <View style={styles.setupGrid}>
+        <View style={styles.card}>
+          <SectionTitle icon={<ShieldCheck size={22} color={colors.teal} />} title="School overview" />
+          <Text style={styles.cardBody}>
+            Your school space is active. Use Setup for academic structure, People for member access,
+            Invites for codes, and Requests for approvals.
+          </Text>
+          <SchoolIdentityEditor
+            values={schoolDetails}
+            saving={saving === 'school-details'}
+            onChange={onChange.setSchoolDetails}
+            onSave={onUpdateSchoolDetails}
+            schoolId={schoolId}
+            onError={onError}
+          />
+          <View style={styles.overviewGrid}>
+            <OverviewTile label="School code" value={schoolCode ?? 'Not set'} />
+            <OverviewTile label="Classes" value={String(counts.classes)} />
+            <OverviewTile label="Subjects" value={String(counts.subjects)} />
+            <OverviewTile label="Pending requests" value={String(counts.pendingRequests)} />
+          </View>
+        </View>
+
+        <View style={styles.card}>
+          <SectionTitle icon={<ClipboardList size={22} color={colors.gold} />} title="Onboarding checklist" />
+          <Text style={styles.cardBody}>
+            Complete these items to make this school ready for teachers and students.
+          </Text>
+          <View style={styles.checklist}>
+            {checklist.map((item) => (
+              <ChecklistRow
+                key={item.id}
+                done={item.done}
+                title={item.title}
+                body={item.body}
+                actionLabel={item.actionLabel}
+                onAction={() => onSelectSection(item.section)}
+              />
+            ))}
+          </View>
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.setupGrid}>
-      <View style={styles.card}>
+      {section === 'setup' ? <View style={styles.card}>
         <SectionTitle icon={<CalendarDays size={22} color={colors.teal} />} title="Academic year" />
         <Field label="Name" value={values.yearName} onChangeText={onChange.setYearName} placeholder="2026 Academic Year" />
         <View style={styles.formRow}>
@@ -672,9 +1116,9 @@ function AdminSetup({
             />
           )}
         />
-      </View>
+      </View> : null}
 
-      <View style={styles.card}>
+      {section === 'setup' ? <View style={styles.card}>
         <SectionTitle icon={<ClipboardList size={22} color={colors.blue} />} title="Term" />
         <Text style={styles.helperText}>
           {selectedYearId ? 'Terms are attached to the selected academic year.' : 'Add an academic year before adding terms.'}
@@ -698,28 +1142,50 @@ function AdminSetup({
             />
           )}
         />
-      </View>
+      </View> : null}
 
-      <View style={styles.card}>
+      {section === 'setup' ? <View style={styles.card}>
         <SectionTitle icon={<GraduationCap size={22} color={colors.gold} />} title="Subjects" />
         <Field label="Subject" value={values.subjectName} onChangeText={onChange.setSubjectName} placeholder="Basic Science" />
         <Field label="Department" value={values.subjectDepartment} onChangeText={onChange.setSubjectDepartment} placeholder="Science" />
         <SubmitButton label="Add subject" loading={saving === 'subject'} onPress={onCreateSubject} />
         <SubjectList subjects={setup.subjects} />
-      </View>
+      </View> : null}
 
-      <View style={styles.card}>
+      {section === 'setup' ? <View style={styles.card}>
         <SectionTitle icon={<BookOpen size={22} color={colors.blue} />} title="Classes" />
         <Text style={styles.helperText}>
           {selectedTermId ? 'New classes will use the selected term.' : 'Select or create a term for term-based class tracking.'}
         </Text>
         <Field label="Class name" value={values.className} onChangeText={onChange.setClassName} placeholder="JSS 2 Blue" />
         <Field label="Grade level" value={values.gradeLevel} onChangeText={onChange.setGradeLevel} placeholder="Junior secondary" />
+        <View style={styles.identityPreview}>
+          <IdentityMark imageUrl={values.classLogoUrl} stickerKey={values.classStickerKey} label={values.className || 'Class'} size="small" />
+          <View style={styles.flexText}>
+            <Text style={styles.recordTitle}>{values.className || 'Class identity'}</Text>
+            <Text style={styles.recordMeta}>Give each class a visual marker for students and teachers.</Text>
+          </View>
+        </View>
+        <View style={styles.formRow}>
+          <ImageUploadButton
+            label={values.classLogoUrl ? 'Replace class logo' : 'Upload class logo'}
+            pathPrefix={`schools/${schoolId}/class-logo`}
+            onUploaded={onChange.setClassLogoUrl}
+            onError={onError}
+          />
+          <ImageUploadButton
+            label={values.classBannerUrl ? 'Replace class banner' : 'Upload class banner'}
+            pathPrefix={`schools/${schoolId}/class-banner`}
+            onUploaded={onChange.setClassBannerUrl}
+            onError={onError}
+          />
+        </View>
+        <StickerPicker selectedKey={values.classStickerKey} onSelect={onChange.setClassStickerKey} />
         <SubmitButton label="Add class" loading={saving === 'class'} onPress={onCreateClass} />
         <ClassList classes={setup.classes} terms={setup.academicTerms} selectedClassId={inviteClassId} onSelectClass={onSelectInviteClass} />
-      </View>
+      </View> : null}
 
-      <View style={styles.card}>
+      {section === 'setup' ? <View style={styles.card}>
         <SectionTitle icon={<ClipboardList size={22} color={colors.gold} />} title="Class subjects" />
         <Text style={styles.helperText}>Attach subjects to a class and choose the teacher responsible.</Text>
         <PickerRow
@@ -757,9 +1223,9 @@ function AdminSetup({
           saving={saving}
           onRemove={onRemoveClassSubject}
         />
-      </View>
+      </View> : null}
 
-      <View style={styles.card}>
+      {section === 'people' ? <View style={styles.card}>
         <SectionTitle icon={<Users size={22} color={colors.teal} />} title="People" />
         <Text style={styles.helperText}>Select a member, then give access to one or more classes.</Text>
         <MemberList
@@ -785,9 +1251,9 @@ function AdminSetup({
           onPress={onAssignMemberToClass}
           disabled={!selectedMemberId || !selectedMemberClassId}
         />
-      </View>
+      </View> : null}
 
-      <View style={styles.card}>
+      {section === 'invites' ? <View style={styles.card}>
         <SectionTitle icon={<QrCode size={22} color={colors.teal} />} title="Invite codes" />
         <Text style={styles.helperText}>Choose a role and optional class before creating a code.</Text>
         <View style={styles.pillRow}>
@@ -814,16 +1280,16 @@ function AdminSetup({
         <Field label="Max uses" value={values.inviteMaxUses} onChangeText={onChange.setInviteMaxUses} placeholder="Leave blank for no limit" keyboardType="number-pad" />
         <SubmitButton label="Create invite code" loading={saving === 'invite'} onPress={onCreateInvite} />
         <InviteList invites={setup.invites} classes={setup.classes} />
-      </View>
+      </View> : null}
 
-      <View style={styles.card}>
+      {section === 'requests' ? <View style={styles.card}>
         <SectionTitle icon={<Users size={22} color={colors.coral} />} title="Join requests" />
         <JoinRequestList
           requests={setup.joinRequests}
           saving={saving}
           onReview={onReviewJoinRequest}
         />
-      </View>
+      </View> : null}
     </View>
   );
 }
@@ -1355,14 +1821,15 @@ const styles = StyleSheet.create({
     fontWeight: '900',
   },
   heroPanel: {
+    overflow: 'hidden',
     borderRadius: 24,
-    padding: 20,
     gap: 12,
     backgroundColor: colors.cream,
     borderWidth: 1,
     borderColor: '#e2dccd',
   },
   heroHeader: {
+    padding: 20,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 14,
@@ -1432,6 +1899,179 @@ const styles = StyleSheet.create({
   setupGrid: {
     gap: 16,
   },
+  navRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    padding: 6,
+    borderRadius: 18,
+    backgroundColor: '#eef2ee',
+  },
+  navPill: {
+    minHeight: 38,
+    borderRadius: 13,
+    paddingHorizontal: 13,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  navPillActive: {
+    backgroundColor: colors.tealDark,
+  },
+  navPillText: {
+    color: colors.muted,
+    fontSize: 13,
+    fontWeight: '900',
+  },
+  navPillTextActive: {
+    color: '#ffffff',
+  },
+  overviewGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  identityEditor: {
+    overflow: 'hidden',
+    borderRadius: 20,
+    gap: 12,
+    paddingBottom: 14,
+    backgroundColor: '#f7faf7',
+    borderWidth: 1,
+    borderColor: '#e1e9e3',
+  },
+  identityEditorBody: {
+    paddingHorizontal: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+  },
+  identityPreview: {
+    minHeight: 70,
+    borderRadius: 18,
+    padding: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: '#f7faf7',
+    borderWidth: 1,
+    borderColor: '#e1e9e3',
+  },
+  identityMark: {
+    overflow: 'hidden',
+    width: 46,
+    height: 46,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  identityMarkLarge: {
+    width: 64,
+    height: 64,
+    borderRadius: 22,
+  },
+  identityImage: {
+    width: '100%',
+    height: '100%',
+  },
+  identityInitials: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '900',
+  },
+  bannerStrip: {
+    height: 84,
+  },
+  bannerImage: {
+    width: '100%',
+    height: '100%',
+  },
+  stickerRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    paddingHorizontal: 14,
+  },
+  stickerChoice: {
+    minHeight: 36,
+    borderRadius: 18,
+    paddingHorizontal: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    backgroundColor: '#ffffff',
+    borderWidth: 2,
+  },
+  stickerSwatch: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+  },
+  stickerText: {
+    color: colors.ink,
+    fontSize: 12,
+    fontWeight: '900',
+  },
+  overviewTile: {
+    minWidth: 150,
+    flex: 1,
+    borderRadius: 16,
+    padding: 14,
+    backgroundColor: '#f7faf7',
+    borderWidth: 1,
+    borderColor: '#e1e9e3',
+  },
+  overviewValue: {
+    color: colors.ink,
+    fontSize: 18,
+    lineHeight: 24,
+    fontWeight: '900',
+  },
+  overviewLabel: {
+    color: colors.muted,
+    fontSize: 12,
+    lineHeight: 18,
+    fontWeight: '800',
+  },
+  checklist: {
+    gap: 10,
+  },
+  checklistRow: {
+    minHeight: 66,
+    borderRadius: 16,
+    padding: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: '#f7faf7',
+    borderWidth: 1,
+    borderColor: '#e1e9e3',
+  },
+  checklistRowDone: {
+    backgroundColor: colors.softTeal,
+    borderColor: '#d4e8df',
+  },
+  checkDot: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: colors.line,
+  },
+  checkDotDone: {
+    backgroundColor: colors.tealDark,
+    borderColor: colors.tealDark,
+  },
+  checkDotText: {
+    color: colors.muted,
+    fontSize: 11,
+    fontWeight: '900',
+  },
+  checkDotTextDone: {
+    color: '#ffffff',
+  },
   card: {
     borderRadius: 22,
     padding: 18,
@@ -1486,6 +2126,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 10,
+  },
+  formRowPadded: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    paddingHorizontal: 14,
   },
   submitButton: {
     minHeight: 48,

@@ -14,6 +14,7 @@
         "npm:@types/react@19.1",
         "npm:expo-audio@~1.1.1",
         "npm:expo-constants@~18.0.13",
+        "npm:expo-image-picker@~17.0.11",
         "npm:expo-linear-gradient@~15.0.8",
         "npm:expo-linking@~8.0.12",
         "npm:expo-router@~6.0.23",

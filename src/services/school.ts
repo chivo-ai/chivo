@@ -29,6 +29,9 @@ export type ClassRow = {
   academic_term_id: string | null;
   name: string;
   grade_level: string | null;
+  logo_url?: string | null;
+  banner_url?: string | null;
+  sticker_key?: string | null;
 };
 
 export type SchoolMemberRow = {
@@ -119,6 +122,19 @@ type CreateClassInput = {
   academicTermId: string | null;
   name: string;
   gradeLevel: string;
+  logoUrl?: string;
+  bannerUrl?: string;
+  stickerKey?: string;
+};
+
+type UpdateSchoolDetailsInput = {
+  schoolId: string;
+  name: string;
+  country: string;
+  city: string;
+  logoUrl: string;
+  bannerUrl: string;
+  stickerKey: string;
 };
 
 type CreateInviteInput = {
@@ -178,7 +194,7 @@ export async function fetchSchoolSetupState(
       .order('name', { ascending: true }),
     db
       .from('classes')
-      .select('id, academic_term_id, name, grade_level')
+      .select('id, academic_term_id, name, grade_level, logo_url, banner_url, sticker_key')
       .eq('school_id', schoolId)
       .order('name', { ascending: true }),
     db
@@ -320,12 +336,41 @@ export async function createClass(input: CreateClassInput) {
     academic_term_id: input.academicTermId,
     name: input.name.trim(),
     grade_level: input.gradeLevel.trim() || null,
+    logo_url: cleanUrl(input.logoUrl),
+    banner_url: cleanUrl(input.bannerUrl),
+    sticker_key: input.stickerKey?.trim() || null,
     created_by: createdBy,
   });
 
   if (error) {
     throw error;
   }
+}
+
+export async function updateSchoolDetails(input: UpdateSchoolDetailsInput) {
+  requireFields([
+    ['School name', input.name],
+  ]);
+
+  const { data, error } = await (client() as any)
+    .from('schools')
+    .update({
+      name: input.name.trim(),
+      country: input.country.trim() || null,
+      city: input.city.trim() || null,
+      logo_url: cleanUrl(input.logoUrl),
+      banner_url: cleanUrl(input.bannerUrl),
+      sticker_key: input.stickerKey.trim() || null,
+    })
+    .eq('id', input.schoolId)
+    .select('id, name, slug, city, country, logo_url, banner_url, sticker_key, subscription_status, external_crews_allowed')
+    .single();
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
 }
 
 export async function createSchoolInvite(input: CreateInviteInput) {
@@ -480,6 +525,15 @@ function requireFields(fields: Array<[string, string | null | undefined]>) {
   if (missing) {
     throw new Error(`${missing[0]} is required.`);
   }
+}
+
+function cleanUrl(value?: string) {
+  const trimmed = value?.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  return /^https?:\/\//i.test(trimmed) ? trimmed : null;
 }
 
 function generateInviteCode(role: SchoolMembershipRole) {

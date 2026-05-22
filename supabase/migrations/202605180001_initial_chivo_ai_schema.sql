@@ -1,20 +1,60 @@
 create extension if not exists "pgcrypto";
 
-create type public.school_role as enum ('owner', 'admin', 'teacher', 'student', 'guardian');
-create type public.membership_status as enum ('active', 'invited', 'review', 'declined', 'suspended');
-create type public.lesson_status as enum ('draft', 'recording', 'uploaded', 'transcribing', 'review', 'published', 'failed');
-create type public.processing_status as enum ('queued', 'running', 'completed', 'failed');
-create type public.learning_mode as enum ('simple', 'balanced', 'exam', 'story', 'catch_up');
-create type public.lesson_output_type as enum ('master', 'summary', 'quiz', 'flashcards', 'audio_script', 'translation');
-create type public.crew_scope as enum ('school', 'cross_school');
-create type public.crew_member_role as enum ('owner', 'moderator', 'member');
-create type public.subscription_chain as enum ('solana', 'base', 'bnb');
-create type public.payment_status as enum ('pending', 'confirmed', 'failed', 'refunded');
+do $$ begin
+  create type public.school_role as enum ('owner', 'admin', 'teacher', 'student', 'guardian');
+exception when duplicate_object then null;
+end $$;
+
+do $$ begin
+  create type public.membership_status as enum ('active', 'invited', 'review', 'declined', 'suspended');
+exception when duplicate_object then null;
+end $$;
+
+do $$ begin
+  create type public.lesson_status as enum ('draft', 'recording', 'uploaded', 'transcribing', 'review', 'published', 'failed');
+exception when duplicate_object then null;
+end $$;
+
+do $$ begin
+  create type public.processing_status as enum ('queued', 'running', 'completed', 'failed');
+exception when duplicate_object then null;
+end $$;
+
+do $$ begin
+  create type public.learning_mode as enum ('simple', 'balanced', 'exam', 'story', 'catch_up');
+exception when duplicate_object then null;
+end $$;
+
+do $$ begin
+  create type public.lesson_output_type as enum ('master', 'summary', 'quiz', 'flashcards', 'audio_script', 'translation');
+exception when duplicate_object then null;
+end $$;
+
+do $$ begin
+  create type public.crew_scope as enum ('school', 'cross_school');
+exception when duplicate_object then null;
+end $$;
+
+do $$ begin
+  create type public.crew_member_role as enum ('owner', 'moderator', 'member');
+exception when duplicate_object then null;
+end $$;
+
+do $$ begin
+  create type public.subscription_chain as enum ('solana', 'base', 'bnb');
+exception when duplicate_object then null;
+end $$;
+
+do $$ begin
+  create type public.payment_status as enum ('pending', 'confirmed', 'failed', 'refunded');
+exception when duplicate_object then null;
+end $$;
 
 create table public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   full_name text not null,
   avatar_url text,
+  sticker_key text,
   preferred_language text not null default 'English',
   learning_level text not null default 'balanced',
   audio_enabled boolean not null default true,
@@ -30,6 +70,9 @@ create table public.schools (
   slug text not null unique,
   country text,
   city text,
+  logo_url text,
+  banner_url text,
+  sticker_key text,
   subscription_status text not null default 'trial',
   external_crews_allowed boolean not null default false,
   created_by uuid references public.profiles(id) on delete set null,
@@ -89,6 +132,9 @@ create table public.classes (
   academic_term_id uuid references public.academic_terms(id) on delete set null,
   name text not null,
   grade_level text,
+  logo_url text,
+  banner_url text,
+  sticker_key text,
   created_by uuid references public.profiles(id) on delete set null,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
@@ -301,6 +347,9 @@ create table public.lesson_crews (
   school_id uuid references public.schools(id) on delete set null,
   owner_profile_id uuid not null references public.profiles(id) on delete cascade,
   name text not null,
+  logo_url text,
+  banner_url text,
+  sticker_key text,
   scope public.crew_scope not null default 'school',
   invite_code text not null unique,
   external_sharing_enabled boolean not null default false,
@@ -547,6 +596,70 @@ as $$
   );
 $$;
 
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values (
+  'chivo-media',
+  'chivo-media',
+  true,
+  5242880,
+  array['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+)
+on conflict (id) do update
+set
+  public = excluded.public,
+  file_size_limit = excluded.file_size_limit,
+  allowed_mime_types = excluded.allowed_mime_types;
+
+drop policy if exists "public reads chivo media" on storage.objects;
+drop policy if exists "authenticated users upload chivo media" on storage.objects;
+drop policy if exists "authenticated users update chivo media" on storage.objects;
+drop policy if exists "authenticated users delete chivo media" on storage.objects;
+
+create policy "public reads chivo media"
+on storage.objects for select
+using (bucket_id = 'chivo-media');
+
+create policy "authenticated users upload chivo media"
+on storage.objects for insert
+with check (
+  bucket_id = 'chivo-media'
+  and auth.role() = 'authenticated'
+  and (
+    ((storage.foldername(name))[1] in ('profiles', 'drafts') and (storage.foldername(name))[2] = auth.uid()::text)
+    or (storage.foldername(name))[1] in ('schools', 'classes', 'crews')
+  )
+);
+
+create policy "authenticated users update chivo media"
+on storage.objects for update
+using (
+  bucket_id = 'chivo-media'
+  and auth.role() = 'authenticated'
+  and (
+    ((storage.foldername(name))[1] in ('profiles', 'drafts') and (storage.foldername(name))[2] = auth.uid()::text)
+    or (storage.foldername(name))[1] in ('schools', 'classes', 'crews')
+  )
+)
+with check (
+  bucket_id = 'chivo-media'
+  and auth.role() = 'authenticated'
+  and (
+    ((storage.foldername(name))[1] in ('profiles', 'drafts') and (storage.foldername(name))[2] = auth.uid()::text)
+    or (storage.foldername(name))[1] in ('schools', 'classes', 'crews')
+  )
+);
+
+create policy "authenticated users delete chivo media"
+on storage.objects for delete
+using (
+  bucket_id = 'chivo-media'
+  and auth.role() = 'authenticated'
+  and (
+    ((storage.foldername(name))[1] in ('profiles', 'drafts') and (storage.foldername(name))[2] = auth.uid()::text)
+    or (storage.foldername(name))[1] in ('schools', 'classes', 'crews')
+  )
+);
+
 alter table public.profiles enable row level security;
 alter table public.schools enable row level security;
 alter table public.school_memberships enable row level security;
@@ -792,6 +905,16 @@ with check (
 create policy "school lesson readers read outputs"
 on public.lesson_transcripts for select
 using (
+  exists (
+    select 1 from public.lessons l
+    where l.id = lesson_transcripts.lesson_id
+      and public.has_school_role(l.school_id, array['owner', 'admin', 'teacher']::public.school_role[])
+  )
+);
+
+create policy "teachers add lesson transcripts"
+on public.lesson_transcripts for insert
+with check (
   exists (
     select 1 from public.lessons l
     where l.id = lesson_transcripts.lesson_id

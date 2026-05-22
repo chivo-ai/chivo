@@ -20,6 +20,9 @@ type InviteRow = {
     slug: string;
     city: string | null;
     country: string | null;
+    logo_url: string | null;
+    banner_url: string | null;
+    sticker_key: string | null;
     subscription_status: string | null;
     external_crews_allowed: boolean | null;
   } | null;
@@ -66,7 +69,7 @@ serve(async (request) => {
 
     const { data: invite, error: inviteError } = await supabase
       .from('school_invites')
-      .select('id, school_id, class_id, role, status, max_uses, use_count, expires_at, schools(id, name, slug, city, country, subscription_status, external_crews_allowed)')
+      .select('id, school_id, class_id, role, status, max_uses, use_count, expires_at, schools(id, name, slug, city, country, logo_url, banner_url, sticker_key, subscription_status, external_crews_allowed)')
       .eq('code', code)
       .single<InviteRow>();
 

@@ -170,6 +170,9 @@ export type ActiveSchoolMembership = {
     slug?: string | null;
     city: string | null;
     country: string | null;
+    logoUrl?: string | null;
+    bannerUrl?: string | null;
+    stickerKey?: string | null;
     subscriptionStatus: string | null;
     externalCrewsAllowed: boolean | null;
   };
