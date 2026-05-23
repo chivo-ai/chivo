@@ -16,6 +16,7 @@ type SignInInput = {
 
 type CreateSchoolInput = {
   name: string;
+  username?: string;
   country: string;
   city: string;
   logoUrl: string;
@@ -97,6 +98,7 @@ export async function createSchool(input: CreateSchoolInput) {
   const { data, error } = await client().functions.invoke('create-school', {
     body: {
       name: input.name.trim(),
+      username: input.username?.trim(),
       country: input.country.trim(),
       city: input.city.trim(),
       logoUrl: input.logoUrl.trim(),

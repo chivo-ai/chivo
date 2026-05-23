@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Text } from 'react-native';
 
 import { RequestSchoolScreen } from '../../src/features/onboarding/screens/RequestSchoolScreen';
-import { RouteScreen } from '../../src/features/shell/RouteScreen';
+import { RouteScreen } from '../../src/features/app/RouteScreen';
 import { requestSchoolAccess } from '../../src/services/auth';
 import { SchoolMembershipRole } from '../../src/types';
 

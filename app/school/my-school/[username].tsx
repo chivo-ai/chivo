@@ -2,24 +2,26 @@ import { Redirect, router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 
 import { SchoolWorkspaceScreen } from '../../../src/features/school/SchoolWorkspaceScreen';
-import { BootScreen } from '../../../src/features/shell/BootScreen';
-import { useAppSession } from '../../../src/features/shell/AppSessionProvider';
+import { BootScreen } from '../../../src/features/app/BootScreen';
+import { useAppSession } from '../../../src/features/app/AppSessionProvider';
 
 export default function MySchoolRoute() {
-  const { id } = useLocalSearchParams<{ id: string }>();
-  const { loading, activeMembership, openMembershipBySchoolId, setActiveMembership } = useAppSession();
-  const [opening, setOpening] = useState(Boolean(id));
+  const { username } = useLocalSearchParams<{ username: string }>();
+  const schoolUsername = Array.isArray(username) ? username[0] : username;
+  const { loading, activeMembership, openMembershipBySchoolUsername, setActiveMembership } = useAppSession();
+  const [opening, setOpening] = useState(Boolean(schoolUsername));
   const [notFound, setNotFound] = useState(false);
 
   useEffect(() => {
-    if (!id || activeMembership?.schoolId === id) {
+    if (!schoolUsername || activeMembership?.school.slug === schoolUsername) {
       setOpening(false);
       return;
     }
 
     let alive = true;
     setOpening(true);
-    openMembershipBySchoolId(id)
+    setNotFound(false);
+    openMembershipBySchoolUsername(schoolUsername)
       .then((membership) => {
         if (alive && !membership) {
           setNotFound(true);
@@ -34,7 +36,7 @@ export default function MySchoolRoute() {
     return () => {
       alive = false;
     };
-  }, [activeMembership?.schoolId, id, openMembershipBySchoolId]);
+  }, [activeMembership?.school.slug, openMembershipBySchoolUsername, schoolUsername]);
 
   if (loading || opening) {
     return <BootScreen />;

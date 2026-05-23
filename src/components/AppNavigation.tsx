@@ -12,8 +12,8 @@ import { Grid3X3, Menu, X } from 'lucide-react-native';
 
 import { colors } from '../theme/tokens';
 
-export type AppNavItem<T extends string> = {
-  id: T;
+export type AppNavItem = {
+  id: string;
   label: string;
   description?: string;
   icon: ReactNode;
@@ -21,34 +21,35 @@ export type AppNavItem<T extends string> = {
   visible?: boolean;
 };
 
-type AppNavigationProps<T extends string> = {
+type AppNavigationProps = {
   title: string;
   subtitle: string;
-  items: AppNavItem<T>[];
-  activeId: T;
-  onSelect: (id: T) => void;
+  items: AppNavItem[];
+  activeId: string;
+  onSelect: (id: string) => void;
   children: ReactNode;
 };
 
 const WEB_BREAKPOINT = 860;
 
-export function AppNavigation<T extends string>({
+export function AppNavigation({
   title,
   subtitle,
   items,
   activeId,
   onSelect,
   children,
-}: AppNavigationProps<T>) {
+}: AppNavigationProps) {
   const { width } = useWindowDimensions();
   const [expanded, setExpanded] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
   const visibleItems = useMemo(() => items.filter((item) => item.visible !== false), [items]);
   const primaryMobileItems = visibleItems.slice(0, 4);
+  const hasOverflowItems = visibleItems.length > primaryMobileItems.length;
   const isWebShell = Platform.OS === 'web' && width >= WEB_BREAKPOINT;
 
-  function select(id: T) {
+  function select(id: string) {
     onSelect(id);
     setMenuOpen(false);
   }
@@ -123,10 +124,12 @@ export function AppNavigation<T extends string>({
             </Text>
           </Pressable>
         ))}
-        <Pressable onPress={() => setMenuOpen(true)} style={styles.bottomItem}>
-          <Grid3X3 size={20} color="#dce7e1" />
-          <Text style={styles.bottomLabel}>More</Text>
-        </Pressable>
+        {hasOverflowItems ? (
+          <Pressable onPress={() => setMenuOpen(true)} style={styles.bottomItem}>
+            <Grid3X3 size={20} color="#dce7e1" />
+            <Text style={styles.bottomLabel}>More</Text>
+          </Pressable>
+        ) : null}
       </View>
 
       <Modal visible={menuOpen} transparent animationType="fade" onRequestClose={() => setMenuOpen(false)}>
@@ -173,7 +176,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.canvas,
   },
   sidebarSlot: {
-    width: 72,
+    width: 56,
     minHeight: '100%',
     zIndex: 20,
   },
@@ -182,33 +185,33 @@ const styles = StyleSheet.create({
     left: 0,
     top: 0,
     bottom: 0,
-    width: 72,
-    paddingHorizontal: 10,
-    paddingTop: 16,
+    width: 56,
+    paddingHorizontal: 8,
+    paddingTop: 12,
     paddingBottom: 16,
-    gap: 16,
+    gap: 14,
     backgroundColor: '#101916',
     borderRightWidth: 1,
     borderRightColor: '#20352f',
     overflow: 'hidden',
   },
   sidebarSurfaceExpanded: {
-    width: 238,
+    width: 244,
     shadowColor: '#000000',
     shadowOpacity: 0.2,
     shadowRadius: 16,
     shadowOffset: { width: 8, height: 0 },
   },
   sidebarBrand: {
-    minHeight: 48,
+    minHeight: 44,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
   },
   brandBadge: {
-    width: 42,
-    height: 42,
-    borderRadius: 14,
+    width: 38,
+    height: 38,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.tealDark,
@@ -235,7 +238,7 @@ const styles = StyleSheet.create({
     lineHeight: 16,
   },
   sidebarItems: {
-    gap: 6,
+    gap: 7,
   },
   groupLabel: {
     color: colors.gold,
@@ -246,12 +249,12 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   sidebarItem: {
-    minHeight: 46,
-    borderRadius: 13,
-    paddingHorizontal: 11,
+    minHeight: 40,
+    borderRadius: 10,
+    paddingHorizontal: 8,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 11,
+    gap: 12,
   },
   sidebarItemActive: {
     backgroundColor: colors.softTeal,
@@ -259,7 +262,7 @@ const styles = StyleSheet.create({
     borderColor: colors.teal,
   },
   navIcon: {
-    width: 24,
+    width: 22,
     alignItems: 'center',
     justifyContent: 'center',
   },

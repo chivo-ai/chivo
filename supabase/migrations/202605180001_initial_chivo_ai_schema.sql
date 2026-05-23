@@ -131,6 +131,7 @@ create table public.classes (
   school_id uuid not null references public.schools(id) on delete cascade,
   academic_term_id uuid references public.academic_terms(id) on delete set null,
   name text not null,
+  username text not null,
   grade_level text,
   logo_url text,
   banner_url text,
@@ -138,6 +139,7 @@ create table public.classes (
   created_by uuid references public.profiles(id) on delete set null,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
+  unique (school_id, username),
   unique (school_id, name, academic_term_id)
 );
 

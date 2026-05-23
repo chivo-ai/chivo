@@ -1,7 +1,7 @@
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 
-import { AppSessionProvider } from '../src/features/shell/AppSessionProvider';
+import { AppSessionProvider } from '../src/features/app/AppSessionProvider';
 
 export default function RootLayout() {
   return (

@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react';
 import { Text } from 'react-native';
 
 import { AccessAccountScreen } from '../../src/features/onboarding/screens/AccessAccountScreen';
-import { RouteScreen } from '../../src/features/shell/RouteScreen';
-import { useAppSession } from '../../src/features/shell/AppSessionProvider';
+import { RouteScreen } from '../../src/features/app/RouteScreen';
+import { useAppSession } from '../../src/features/app/AppSessionProvider';
 import { supabase } from '../../src/lib/supabase';
 
 export default function AccountRoute() {

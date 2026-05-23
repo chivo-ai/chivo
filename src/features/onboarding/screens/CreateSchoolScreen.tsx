@@ -20,6 +20,7 @@ type CreateSchoolScreenProps = {
   submitting: AccessSubmitting;
   onChange: {
     setSchoolName: (value: string) => void;
+    setSchoolUsername: (value: string) => void;
     setCountry: (value: string) => void;
     setCity: (value: string) => void;
     setSchoolLogoUrl: (value: string) => void;
@@ -48,6 +49,7 @@ export function CreateSchoolScreen({
 
       <Card>
         <Field label="School name" value={values.schoolName} onChangeText={onChange.setSchoolName} placeholder="BestCity Academy" />
+        <Field label="School username" value={values.schoolUsername} onChangeText={onChange.setSchoolUsername} placeholder="bestcity-academy" autoCapitalize="none" />
         <View style={styles.formRow}>
           <View style={styles.fieldFlex}>
             <Field label="Country" value={values.country} onChangeText={onChange.setCountry} placeholder="Nigeria" />

@@ -790,7 +790,7 @@ export function LessonWorkspace({
                   schoolClass={schoolClass}
                   subjectCount={subjectsForClass(setup.classSubjects, setup.subjects, schoolClass.id).length}
                   lessonCount={lessons.filter((lesson) => lesson.class_id === schoolClass.id).length}
-                  onEnter={() => router.push(`/school/class/${schoolClass.id}` as never)}
+                  onEnter={() => router.push(`/school/class/${schoolClass.username}` as never)}
                 />
               ))}
             </View>

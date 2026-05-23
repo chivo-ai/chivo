@@ -17,6 +17,7 @@ type AppSessionContextValue = {
   setActiveMembership: (membership: ActiveSchoolMembership | null) => Promise<void>;
   openMembershipById: (membershipId: string) => Promise<ActiveSchoolMembership | null>;
   openMembershipBySchoolId: (schoolId: string) => Promise<ActiveSchoolMembership | null>;
+  openMembershipBySchoolUsername: (username: string) => Promise<ActiveSchoolMembership | null>;
 };
 
 const AppSessionContext = createContext<AppSessionContextValue | null>(null);
@@ -88,6 +89,15 @@ export function AppSessionProvider({ children }: { children: ReactNode }) {
     return membership;
   }, [setActiveMembership]);
 
+  const openMembershipBySchoolUsername = useCallback(async (username: string) => {
+    const membership = await fetchActiveMembershipBySchoolUsername(username);
+    if (membership) {
+      await setActiveMembership(membership);
+    }
+
+    return membership;
+  }, [setActiveMembership]);
+
   const value = useMemo(
     () => ({
       configured,
@@ -97,8 +107,9 @@ export function AppSessionProvider({ children }: { children: ReactNode }) {
       setActiveMembership,
       openMembershipById,
       openMembershipBySchoolId,
+      openMembershipBySchoolUsername,
     }),
-    [activeMembership, configured, loading, openMembershipById, openMembershipBySchoolId, restoring, setActiveMembership, user]
+    [activeMembership, configured, loading, openMembershipById, openMembershipBySchoolId, openMembershipBySchoolUsername, restoring, setActiveMembership, user]
   );
 
   return <AppSessionContext.Provider value={value}>{children}</AppSessionContext.Provider>;
@@ -155,4 +166,27 @@ async function fetchActiveMembershipBySchoolId(schoolId: string) {
   }
 
   return mapMembershipRow(data as MembershipRow);
+}
+
+async function fetchActiveMembershipBySchoolUsername(username: string) {
+  if (!supabase) {
+    return null;
+  }
+
+  const cleanUsername = username.trim().toLowerCase();
+  if (!cleanUsername) {
+    return null;
+  }
+
+  const { data: school, error: schoolError } = await (supabase as any)
+    .from('schools')
+    .select('id')
+    .eq('slug', cleanUsername)
+    .maybeSingle();
+
+  if (schoolError || !school?.id) {
+    return null;
+  }
+
+  return fetchActiveMembershipBySchoolId(school.id);
 }

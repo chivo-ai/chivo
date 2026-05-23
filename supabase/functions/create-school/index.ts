@@ -3,6 +3,7 @@ import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-
 
 type CreateSchoolRequest = {
   name: string;
+  username?: string;
   country?: string;
   city?: string;
   logoUrl?: string;
@@ -49,7 +50,7 @@ serve(async (request) => {
       return json({ error: 'School name is required' }, 400);
     }
 
-    const slug = await createUniqueSlug(supabase, name);
+    const slug = await createUniqueSlug(supabase, body.username?.trim() || name, Boolean(body.username?.trim()));
 
     await supabase.from('profiles').upsert({
       id: user.id,
@@ -117,8 +118,8 @@ serve(async (request) => {
   }
 });
 
-async function createUniqueSlug(supabase: SupabaseClient, name: string) {
-  const base = slugify(name);
+async function createUniqueSlug(supabase: SupabaseClient, value: string, explicit: boolean) {
+  const base = slugify(value);
 
   for (let attempt = 0; attempt < 20; attempt += 1) {
     const slug = attempt === 0 ? base : `${base}-${attempt + 1}`;
@@ -130,6 +131,10 @@ async function createUniqueSlug(supabase: SupabaseClient, name: string) {
 
     if (!data) {
       return slug;
+    }
+
+    if (explicit) {
+      throw new Error('Another school already uses that username.');
     }
   }
 

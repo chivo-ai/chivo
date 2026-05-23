@@ -4,13 +4,14 @@ import { Text } from 'react-native';
 
 import { CreateSchoolScreen } from '../../src/features/onboarding/screens/CreateSchoolScreen';
 import { membershipFromCreateResult } from '../../src/features/onboarding/accessTypes';
-import { RouteScreen } from '../../src/features/shell/RouteScreen';
-import { useAppSession } from '../../src/features/shell/AppSessionProvider';
+import { RouteScreen } from '../../src/features/app/RouteScreen';
+import { useAppSession } from '../../src/features/app/AppSessionProvider';
 import { createSchool } from '../../src/services/auth';
 
 export default function CreateSchoolRoute() {
   const { user, setActiveMembership } = useAppSession();
   const [schoolName, setSchoolName] = useState('');
+  const [schoolUsername, setSchoolUsername] = useState('');
   const [country, setCountry] = useState('');
   const [city, setCity] = useState('');
   const [schoolLogoUrl, setSchoolLogoUrl] = useState('');
@@ -31,6 +32,7 @@ export default function CreateSchoolRoute() {
     try {
       const result = await createSchool({
         name: schoolName,
+        username: schoolUsername,
         country,
         city,
         logoUrl: schoolLogoUrl,
@@ -40,7 +42,7 @@ export default function CreateSchoolRoute() {
       const membership = membershipFromCreateResult(result);
       if (membership) {
         await setActiveMembership(membership);
-        router.replace('/admin');
+        router.replace(`/school/my-school/${membership.school.slug}` as never);
       } else {
         router.replace('/home');
       }
@@ -60,9 +62,9 @@ export default function CreateSchoolRoute() {
       {error ? <Text>{error}</Text> : null}
       <CreateSchoolScreen
         userId={user.id}
-        values={{ schoolName, country, city, schoolLogoUrl, schoolBannerUrl, schoolStickerKey }}
+        values={{ schoolName, schoolUsername, country, city, schoolLogoUrl, schoolBannerUrl, schoolStickerKey }}
         submitting={submitting}
-        onChange={{ setSchoolName, setCountry, setCity, setSchoolLogoUrl, setSchoolBannerUrl, setSchoolStickerKey }}
+        onChange={{ setSchoolName, setSchoolUsername, setCountry, setCity, setSchoolLogoUrl, setSchoolBannerUrl, setSchoolStickerKey }}
         onCreate={handleCreate}
         onError={setError}
       />

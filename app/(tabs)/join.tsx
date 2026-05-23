@@ -4,8 +4,8 @@ import { Text } from 'react-native';
 
 import { JoinSchoolScreen } from '../../src/features/onboarding/screens/JoinSchoolScreen';
 import { membershipFromInviteResult } from '../../src/features/onboarding/accessTypes';
-import { RouteScreen } from '../../src/features/shell/RouteScreen';
-import { useAppSession } from '../../src/features/shell/AppSessionProvider';
+import { RouteScreen } from '../../src/features/app/RouteScreen';
+import { useAppSession } from '../../src/features/app/AppSessionProvider';
 import { acceptInvite } from '../../src/services/auth';
 
 export default function JoinSchoolRoute() {

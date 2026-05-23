@@ -28,6 +28,7 @@ export type ClassRow = {
   id: string;
   academic_term_id: string | null;
   name: string;
+  username: string;
   grade_level: string | null;
   logo_url?: string | null;
   banner_url?: string | null;
@@ -121,6 +122,7 @@ type CreateClassInput = {
   schoolId: string;
   academicTermId: string | null;
   name: string;
+  username?: string;
   gradeLevel: string;
   logoUrl?: string;
   bannerUrl?: string;
@@ -130,11 +132,17 @@ type CreateClassInput = {
 type UpdateSchoolDetailsInput = {
   schoolId: string;
   name: string;
+  username: string;
   country: string;
   city: string;
   logoUrl: string;
   bannerUrl: string;
   stickerKey: string;
+};
+
+type UpdateClassUsernameInput = {
+  classId: string;
+  username: string;
 };
 
 type CreateInviteInput = {
@@ -202,7 +210,7 @@ export async function fetchSchoolSetupState(
       .order('name', { ascending: true }),
     db
       .from('classes')
-      .select('id, academic_term_id, name, grade_level, logo_url, banner_url, sticker_key')
+      .select('id, academic_term_id, name, username, grade_level, logo_url, banner_url, sticker_key')
       .eq('school_id', schoolId)
       .order('name', { ascending: true }),
     db
@@ -348,11 +356,13 @@ export async function createSubject(input: CreateSubjectInput) {
 export async function createClass(input: CreateClassInput) {
   requireFields([['Class name', input.name]]);
   const createdBy = await getCurrentUserId();
+  const username = cleanUsername(input.username || input.name);
 
   const { error } = await (client() as any).from('classes').insert({
     school_id: input.schoolId,
     academic_term_id: input.academicTermId,
     name: input.name.trim(),
+    username,
     grade_level: input.gradeLevel.trim() || null,
     logo_url: cleanUrl(input.logoUrl),
     banner_url: cleanUrl(input.bannerUrl),
@@ -361,6 +371,9 @@ export async function createClass(input: CreateClassInput) {
   });
 
   if (error) {
+    if (error.code === '23505') {
+      throw new Error('A class in this school already uses that username.');
+    }
     throw error;
   }
 }
@@ -374,6 +387,7 @@ export async function updateSchoolDetails(input: UpdateSchoolDetailsInput) {
     .from('schools')
     .update({
       name: input.name.trim(),
+      slug: cleanUsername(input.username),
       country: input.country.trim() || null,
       city: input.city.trim() || null,
       logo_url: cleanUrl(input.logoUrl),
@@ -385,10 +399,32 @@ export async function updateSchoolDetails(input: UpdateSchoolDetailsInput) {
     .single();
 
   if (error) {
+    if (error.code === '23505') {
+      throw new Error('Another school already uses that username.');
+    }
     throw error;
   }
 
   return data;
+}
+
+export async function updateClassUsername(input: UpdateClassUsernameInput) {
+  requireFields([
+    ['Class', input.classId],
+    ['Class username', input.username],
+  ]);
+
+  const { error } = await (client() as any)
+    .from('classes')
+    .update({ username: cleanUsername(input.username) })
+    .eq('id', input.classId);
+
+  if (error) {
+    if (error.code === '23505') {
+      throw new Error('A class in this school already uses that username.');
+    }
+    throw error;
+  }
 }
 
 export async function createSchoolInvite(input: CreateInviteInput) {
@@ -613,6 +649,20 @@ function cleanUrl(value?: string) {
   }
 
   return /^https?:\/\//i.test(trimmed) ? trimmed : null;
+}
+
+export function cleanUsername(value: string) {
+  const username = value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '');
+
+  if (!username) {
+    throw new Error('Username is required.');
+  }
+
+  return username;
 }
 
 function generateInviteCode(role: SchoolMembershipRole) {

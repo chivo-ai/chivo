@@ -23,6 +23,7 @@ export type MembershipRow = {
 
 export type AccessSchoolValues = {
   schoolName: string;
+  schoolUsername: string;
   country: string;
   city: string;
   schoolLogoUrl: string;

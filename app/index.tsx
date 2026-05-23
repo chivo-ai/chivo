@@ -1,7 +1,7 @@
 import { Redirect } from 'expo-router';
 
-import { BootScreen } from '../src/features/shell/BootScreen';
-import { useAppSession } from '../src/features/shell/AppSessionProvider';
+import { BootScreen } from '../src/features/app/BootScreen';
+import { useAppSession } from '../src/features/app/AppSessionProvider';
 
 export default function IndexRoute() {
   const { configured, loading, user } = useAppSession();

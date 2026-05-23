@@ -3,9 +3,9 @@ import { useCallback, useEffect, useState } from 'react';
 import { Text } from 'react-native';
 
 import { LessonsRouteScreen } from '../../src/features/lessons';
-import { BootScreen } from '../../src/features/shell/BootScreen';
-import { RouteScreen } from '../../src/features/shell/RouteScreen';
-import { useAppSession } from '../../src/features/shell/AppSessionProvider';
+import { BootScreen } from '../../src/features/app/BootScreen';
+import { RouteScreen } from '../../src/features/app/RouteScreen';
+import { useAppSession } from '../../src/features/app/AppSessionProvider';
 import { SchoolSetupState, fetchSchoolSetupState } from '../../src/services/school';
 import { colors } from '../../src/theme/tokens';
 

@@ -52,6 +52,7 @@ import {
   removeClassSubject,
   removeMemberFromClass,
   reviewJoinRequest,
+  updateClassUsername,
   updateSchoolDetails,
   updateSchoolMemberStatus,
 } from '../../services/school';
@@ -176,6 +177,7 @@ export function SchoolWorkspaceScreen({ membership, onSwitchSchool, initialSurfa
   const [adminSection, setAdminSection] = useState<AdminSection>('overview');
   const [schoolDetails, setSchoolDetails] = useState({
     name: membership.school.name,
+    username: membership.school.slug ?? '',
     country: membership.school.country ?? '',
     city: membership.school.city ?? '',
     logoUrl: membership.school.logoUrl ?? '',
@@ -197,6 +199,7 @@ export function SchoolWorkspaceScreen({ membership, onSwitchSchool, initialSurfa
   const [subjectDepartment, setSubjectDepartment] = useState('');
 
   const [className, setClassName] = useState('');
+  const [classUsername, setClassUsername] = useState('');
   const [gradeLevel, setGradeLevel] = useState('');
   const [classLogoUrl, setClassLogoUrl] = useState('');
   const [classBannerUrl, setClassBannerUrl] = useState('');
@@ -212,7 +215,7 @@ export function SchoolWorkspaceScreen({ membership, onSwitchSchool, initialSurfa
   const [selectedSubjectId, setSelectedSubjectId] = useState<string | null>(null);
   const [selectedTeacherId, setSelectedTeacherId] = useState<string | null>(null);
 
-  const navItems: AppNavItem<WorkspaceSurface>[] = [
+  const navItems: AppNavItem[] = [
     {
       id: 'learn',
       label: 'Learn',
@@ -428,12 +431,14 @@ export function SchoolWorkspaceScreen({ membership, onSwitchSchool, initialSurfa
           schoolId: membership.schoolId,
           academicTermId: selectedTerm?.id ?? null,
           name: className,
+          username: classUsername,
           gradeLevel,
           logoUrl: classLogoUrl,
           bannerUrl: classBannerUrl,
           stickerKey: classStickerKey,
         });
         setClassName('');
+        setClassUsername('');
         setGradeLevel('');
         setClassLogoUrl('');
         setClassBannerUrl('');
@@ -453,6 +458,7 @@ export function SchoolWorkspaceScreen({ membership, onSwitchSchool, initialSurfa
         });
         setSchoolDetails({
           name: updated.name ?? schoolDetails.name,
+          username: updated.slug ?? schoolDetails.username,
           country: updated.country ?? '',
           city: updated.city ?? '',
           logoUrl: updated.logo_url ?? '',
@@ -461,6 +467,16 @@ export function SchoolWorkspaceScreen({ membership, onSwitchSchool, initialSurfa
         });
       },
       'School profile updated.'
+    );
+  }
+
+  async function handleUpdateClassUsername(classId: string, username: string) {
+    await save(
+      `class-username-${classId}`,
+      async () => {
+        await updateClassUsername({ classId, username });
+      },
+      'Class username updated.'
     );
   }
 
@@ -564,7 +580,7 @@ export function SchoolWorkspaceScreen({ membership, onSwitchSchool, initialSurfa
       subtitle={`${formatRole(membership.role)} access`}
       items={navItems}
       activeId={activeSurface}
-      onSelect={handleSelectSurface}
+      onSelect={(id) => handleSelectSurface(id as WorkspaceSurface)}
     >
     <ScrollView
       contentContainerStyle={styles.scrollContent}
@@ -578,7 +594,7 @@ export function SchoolWorkspaceScreen({ membership, onSwitchSchool, initialSurfa
           <View style={styles.flexText}>
             <Text style={styles.title}>{schoolDetails.name}</Text>
             <Text style={styles.meta}>
-              {formatRole(membership.role)} access - {membership.school.slug ?? schoolDetails.city ?? 'Location not set'}
+              {formatRole(membership.role)} access - {schoolDetails.username || schoolDetails.city || 'Location not set'}
             </Text>
           </View>
           <Pressable onPress={handleSignOut} style={styles.signOutButton}>
@@ -639,7 +655,7 @@ export function SchoolWorkspaceScreen({ membership, onSwitchSchool, initialSurfa
                     setup={setup}
                     counts={counts}
                     schoolId={membership.schoolId}
-                    schoolCode={membership.school.slug ?? null}
+                    schoolCode={schoolDetails.username || null}
                     schoolDetails={schoolDetails}
                     selectedYearId={selectedYear?.id ?? null}
                     selectedTermId={selectedTerm?.id ?? null}
@@ -660,6 +676,7 @@ export function SchoolWorkspaceScreen({ membership, onSwitchSchool, initialSurfa
                       subjectName,
                       subjectDepartment,
                       className,
+                      classUsername,
                       gradeLevel,
                       classLogoUrl,
                       classBannerUrl,
@@ -686,6 +703,7 @@ export function SchoolWorkspaceScreen({ membership, onSwitchSchool, initialSurfa
                       setSubjectName,
                       setSubjectDepartment,
                       setClassName,
+                      setClassUsername,
                       setGradeLevel,
                       setClassLogoUrl,
                       setClassBannerUrl,
@@ -697,6 +715,7 @@ export function SchoolWorkspaceScreen({ membership, onSwitchSchool, initialSurfa
                     onCreateTerm={handleCreateAcademicTerm}
                     onCreateSubject={handleCreateSubject}
                     onCreateClass={handleCreateClass}
+                    onUpdateClassUsername={handleUpdateClassUsername}
                     onUpdateSchoolDetails={handleUpdateSchoolDetails}
                     onCreateInvite={handleCreateInvite}
                     onAssignMemberToClass={handleAssignMemberToClass}
@@ -727,6 +746,7 @@ type AdminSetupProps = {
   schoolCode: string | null;
   schoolDetails: {
     name: string;
+    username: string;
     country: string;
     city: string;
     logoUrl: string;
@@ -752,6 +772,7 @@ type AdminSetupProps = {
     subjectName: string;
     subjectDepartment: string;
     className: string;
+    classUsername: string;
     gradeLevel: string;
     classLogoUrl: string;
     classBannerUrl: string;
@@ -778,6 +799,7 @@ type AdminSetupProps = {
     setSubjectName: (value: string) => void;
     setSubjectDepartment: (value: string) => void;
     setClassName: (value: string) => void;
+    setClassUsername: (value: string) => void;
     setGradeLevel: (value: string) => void;
     setClassLogoUrl: (value: string) => void;
     setClassBannerUrl: (value: string) => void;
@@ -789,6 +811,7 @@ type AdminSetupProps = {
   onCreateTerm: () => void;
   onCreateSubject: () => void;
   onCreateClass: () => void;
+  onUpdateClassUsername: (classId: string, username: string) => void;
   onUpdateSchoolDetails: () => void;
   onCreateInvite: () => void;
   onAssignMemberToClass: () => void;
@@ -962,6 +985,7 @@ function SchoolIdentityEditor({
         <IdentityMark imageUrl={values.logoUrl} stickerKey={values.stickerKey} label={values.name} size="large" />
         <View style={styles.flexText}>
           <Field label="School name" value={values.name} onChangeText={(name) => onChange({ ...values, name })} placeholder="School name" />
+          <Field label="School username" value={values.username} onChangeText={(username) => onChange({ ...values, username })} placeholder="bestcity-academy" />
           <View style={styles.formRow}>
             <Field label="Country" value={values.country} onChangeText={(country) => onChange({ ...values, country })} placeholder="Nigeria" />
             <Field label="City" value={values.city} onChangeText={(city) => onChange({ ...values, city })} placeholder="Lagos" />
@@ -1162,6 +1186,7 @@ function AdminSetup({
   onCreateTerm,
   onCreateSubject,
   onCreateClass,
+  onUpdateClassUsername,
   onUpdateSchoolDetails,
   onCreateInvite,
   onAssignMemberToClass,
@@ -1303,7 +1328,8 @@ function AdminSetup({
         <Text style={styles.helperText}>
           {selectedTermId ? 'New classes will use the selected term.' : 'Select or create a term for term-based class tracking.'}
         </Text>
-        <Field label="Class name" value={values.className} onChangeText={onChange.setClassName} placeholder="JSS 2 Blue" />
+          <Field label="Class name" value={values.className} onChangeText={onChange.setClassName} placeholder="JSS 2 Blue" />
+        <Field label="Class username" value={values.classUsername} onChangeText={onChange.setClassUsername} placeholder="jss-2-blue" />
         <Field label="Grade level" value={values.gradeLevel} onChangeText={onChange.setGradeLevel} placeholder="Junior secondary" />
         <View style={styles.identityPreview}>
           <IdentityMark imageUrl={values.classLogoUrl} stickerKey={values.classStickerKey} label={values.className || 'Class'} size="small" />
@@ -1328,7 +1354,14 @@ function AdminSetup({
         </View>
         <StickerPicker selectedKey={values.classStickerKey} onSelect={onChange.setClassStickerKey} />
         <SubmitButton label="Add class" loading={saving === 'class'} onPress={onCreateClass} />
-        <ClassList classes={setup.classes} terms={setup.academicTerms} selectedClassId={inviteClassId} onSelectClass={onSelectInviteClass} />
+        <ClassList
+          classes={setup.classes}
+          terms={setup.academicTerms}
+          selectedClassId={inviteClassId}
+          saving={saving}
+          onSelectClass={onSelectInviteClass}
+          onUpdateUsername={onUpdateClassUsername}
+        />
       </View> : null}
 
       {section === 'classes' ? <View style={styles.card}>
@@ -1591,13 +1624,31 @@ function ClassList({
   classes,
   terms,
   selectedClassId,
+  saving,
   onSelectClass,
+  onUpdateUsername,
 }: {
   classes: ClassRow[];
   terms: AcademicTermRow[];
   selectedClassId: string | null;
+  saving: string | null;
   onSelectClass: (id: string) => void;
+  onUpdateUsername: (classId: string, username: string) => void;
 }) {
+  const [draftUsernames, setDraftUsernames] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    setDraftUsernames((current) => {
+      const next = { ...current };
+      classes.forEach((schoolClass) => {
+        if (!(schoolClass.id in next)) {
+          next[schoolClass.id] = schoolClass.username ?? '';
+        }
+      });
+      return next;
+    });
+  }, [classes]);
+
   return (
     <RecordList
       emptyText="No classes yet."
@@ -1605,13 +1656,37 @@ function ClassList({
       renderItem={(schoolClass) => {
         const term = terms.find((item) => item.id === schoolClass.academic_term_id);
         return (
-          <SelectableRow
+          <SelectableRowShell
             key={schoolClass.id}
             selected={schoolClass.id === selectedClassId}
-            title={schoolClass.name}
-            meta={`${schoolClass.grade_level ?? 'Grade not set'}${term ? ` - ${term.name}` : ''}`}
             onPress={() => onSelectClass(schoolClass.id)}
-          />
+          >
+            <View style={styles.flexText}>
+              <Text style={styles.recordTitle}>{schoolClass.name}</Text>
+              <Text style={styles.recordMeta}>
+                {schoolClass.grade_level ?? 'Grade not set'}{term ? ` - ${term.name}` : ''}
+              </Text>
+              <View style={styles.inlineEditRow}>
+                <TextInput
+                  value={draftUsernames[schoolClass.id] ?? schoolClass.username ?? ''}
+                  onChangeText={(username) =>
+                    setDraftUsernames((current) => ({ ...current, [schoolClass.id]: username }))
+                  }
+                  placeholder="class-username"
+                  placeholderTextColor="#8b9691"
+                  autoCapitalize="none"
+                  style={styles.inlineInput}
+                />
+                <ActionButton
+                  label="Save"
+                  tone="muted"
+                  loading={saving === `class-username-${schoolClass.id}`}
+                  onPress={() => onUpdateUsername(schoolClass.id, draftUsernames[schoolClass.id] ?? schoolClass.username)}
+                />
+              </View>
+            </View>
+            {schoolClass.id === selectedClassId ? <Text style={styles.selectedText}>Selected</Text> : null}
+          </SelectableRowShell>
         );
       }}
     />
@@ -2402,6 +2477,25 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: 6,
     marginTop: 8,
+  },
+  inlineEditRow: {
+    marginTop: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  inlineInput: {
+    minHeight: 38,
+    minWidth: 150,
+    flex: 1,
+    borderRadius: 13,
+    paddingHorizontal: 10,
+    color: colors.ink,
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: colors.line,
+    fontSize: 13,
+    fontWeight: '800',
   },
   memberClassPill: {
     minHeight: 28,

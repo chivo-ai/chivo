@@ -2,10 +2,10 @@ import { Redirect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { Text } from 'react-native';
 
-import { SchoolClassRouteScreen } from '../../../src/features/school/class/[id]';
-import { BootScreen } from '../../../src/features/shell/BootScreen';
-import { RouteScreen } from '../../../src/features/shell/RouteScreen';
-import { useAppSession } from '../../../src/features/shell/AppSessionProvider';
+import { SchoolClassRouteScreen } from '../../../src/features/school/class/ClassRouteScreen';
+import { BootScreen } from '../../../src/features/app/BootScreen';
+import { RouteScreen } from '../../../src/features/app/RouteScreen';
+import { useAppSession } from '../../../src/features/app/AppSessionProvider';
 import { SchoolSetupState, fetchSchoolSetupState } from '../../../src/services/school';
 import { colors } from '../../../src/theme/tokens';
 
@@ -22,8 +22,8 @@ const emptySetup: SchoolSetupState = {
 };
 
 export default function ClassRoute() {
-  const { id } = useLocalSearchParams<{ id: string }>();
-  const classId = Array.isArray(id) ? id[0] : id;
+  const { username } = useLocalSearchParams<{ username: string }>();
+  const classUsername = Array.isArray(username) ? username[0] : username;
   const { loading, activeMembership } = useAppSession();
   const [setup, setSetup] = useState<SchoolSetupState>(emptySetup);
   const [loadingSetup, setLoadingSetup] = useState(true);
@@ -60,15 +60,21 @@ export default function ClassRoute() {
     return <BootScreen text="Opening class" />;
   }
 
-  if (!activeMembership || !classId) {
+  if (!activeMembership || !classUsername) {
     return <Redirect href="/home" />;
+  }
+
+  const schoolClass = setup.classes.find((item) => item.username === classUsername);
+
+  if (!schoolClass) {
+    return <Redirect href="/school/class" />;
   }
 
   return (
     <RouteScreen>
       {error ? <Text style={{ color: colors.coral, fontWeight: '900' }}>{error}</Text> : null}
       <SchoolClassRouteScreen
-        classId={classId}
+        classId={schoolClass.id}
         membership={activeMembership}
         setup={setup}
         mode={isStaff ? 'teach' : 'learn'}

@@ -48,7 +48,8 @@ Completed in this group so far:
 - Expo Router entry with `(auth)` and `(tabs)` route groups
 - real access routes for `/home`, `/account`, `/create`, `/join`, `/request`, and `/crews`
 - real workspace routes for `/learn`, `/teach`, and `/admin` on mobile and web
-- real school routes for `/school/my-school/[id]` and `/school/class/[id]`
+- real school routes for `/school/my-school`, `/school/my-school/[username]`, `/school/class`, and `/school/class/[username]`
+- school and class username editing for clean public routes
 - learner class request cards after entering a school
 - teacher roster panel for class members and class access
 
@@ -150,6 +151,8 @@ For native/mobile lesson audio on an existing early database, run `supabase/grou
 For quiz progress and teacher attempt insight on an existing early database, run `supabase/group4-progress-upgrade.sql`.
 
 For learner class requests and teacher class roster management on an existing early database, run `supabase/group5-class-flow-upgrade.sql`.
+
+For username-based school and class routes on an existing early database, run `supabase/group6-usernames-upgrade.sql`.
 
 Edge Functions:
 
