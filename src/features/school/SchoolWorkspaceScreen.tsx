@@ -16,7 +16,6 @@ import {
   CalendarDays,
   ClipboardList,
   GraduationCap,
-  Home,
   LogOut,
   QrCode,
   ShieldCheck,
@@ -70,7 +69,8 @@ type WorkspaceCounts = {
   lessons: number;
 };
 
-type WorkspaceSection = 'overview' | 'lessons' | 'setup' | 'people' | 'invites' | 'requests';
+type WorkspaceSurface = 'learn' | 'teach' | 'admin';
+type AdminSection = 'overview' | 'profile' | 'academic' | 'classes' | 'subjects' | 'people' | 'invites' | 'requests';
 
 const emptyCounts: WorkspaceCounts = {
   activeMembers: 0,
@@ -101,10 +101,12 @@ const stickerPack = [
   { key: 'coral', label: 'Coral', accent: colors.coral },
 ];
 
-const adminSections: Array<{ id: WorkspaceSection; label: string }> = [
+const adminSections: Array<{ id: AdminSection; label: string }> = [
   { id: 'overview', label: 'Overview' },
-  { id: 'lessons', label: 'Lessons' },
-  { id: 'setup', label: 'Setup' },
+  { id: 'profile', label: 'Profile' },
+  { id: 'academic', label: 'Academic' },
+  { id: 'classes', label: 'Classes' },
+  { id: 'subjects', label: 'Subjects' },
   { id: 'people', label: 'People' },
   { id: 'invites', label: 'Invites' },
   { id: 'requests', label: 'Requests' },
@@ -119,7 +121,10 @@ export function SchoolWorkspaceScreen({ membership, onSwitchSchool }: SchoolWork
   const [saving, setSaving] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
-  const [activeSection, setActiveSection] = useState<WorkspaceSection>('overview');
+  const isAdmin = membership.role === 'owner' || membership.role === 'admin';
+  const canTeach = ['owner', 'admin', 'teacher'].includes(membership.role);
+  const [activeSurface, setActiveSurface] = useState<WorkspaceSurface>(canTeach ? 'teach' : 'learn');
+  const [adminSection, setAdminSection] = useState<AdminSection>('overview');
   const [schoolDetails, setSchoolDetails] = useState({
     name: membership.school.name,
     country: membership.school.country ?? '',
@@ -158,53 +163,29 @@ export function SchoolWorkspaceScreen({ membership, onSwitchSchool }: SchoolWork
   const [selectedSubjectId, setSelectedSubjectId] = useState<string | null>(null);
   const [selectedTeacherId, setSelectedTeacherId] = useState<string | null>(null);
 
-  const isAdmin = membership.role === 'owner' || membership.role === 'admin';
-  const navItems: AppNavItem<WorkspaceSection>[] = [
+  const navItems: AppNavItem<WorkspaceSurface>[] = [
     {
-      id: 'overview',
-      label: 'Overview',
-      description: 'School readiness',
+      id: 'learn',
+      label: 'Learn',
+      description: 'Class lessons',
       group: 'School',
-      icon: <Home size={19} color={activeSection === 'overview' ? colors.tealDark : '#dce7e1'} />,
+      icon: <BookOpen size={19} color={activeSurface === 'learn' ? colors.tealDark : '#dce7e1'} />,
     },
     {
-      id: 'lessons',
-      label: 'Lessons',
-      description: 'Create and learn',
-      group: 'Learning',
-      icon: <BookOpen size={19} color={activeSection === 'lessons' ? colors.tealDark : '#dce7e1'} />,
+      id: 'teach',
+      label: 'Teach',
+      description: 'Live lessons',
+      group: 'School',
+      visible: canTeach,
+      icon: <GraduationCap size={19} color={activeSurface === 'teach' ? colors.tealDark : '#dce7e1'} />,
     },
     {
-      id: 'setup',
-      label: 'Setup',
-      description: 'Years, terms, classes',
+      id: 'admin',
+      label: 'Admin',
+      description: 'School controls',
       group: 'Admin',
       visible: isAdmin,
-      icon: <ClipboardList size={19} color={activeSection === 'setup' ? colors.tealDark : '#dce7e1'} />,
-    },
-    {
-      id: 'people',
-      label: 'People',
-      description: 'Members and classes',
-      group: 'Admin',
-      visible: isAdmin,
-      icon: <Users size={19} color={activeSection === 'people' ? colors.tealDark : '#dce7e1'} />,
-    },
-    {
-      id: 'invites',
-      label: 'Invites',
-      description: 'School access codes',
-      group: 'Access',
-      visible: isAdmin,
-      icon: <QrCode size={19} color={activeSection === 'invites' ? colors.tealDark : '#dce7e1'} />,
-    },
-    {
-      id: 'requests',
-      label: 'Requests',
-      description: 'Approve access',
-      group: 'Access',
-      visible: isAdmin,
-      icon: <UserPlus size={19} color={activeSection === 'requests' ? colors.tealDark : '#dce7e1'} />,
+      icon: <ShieldCheck size={19} color={activeSurface === 'admin' ? colors.tealDark : '#dce7e1'} />,
     },
   ];
 
@@ -493,8 +474,8 @@ export function SchoolWorkspaceScreen({ membership, onSwitchSchool }: SchoolWork
       title={schoolDetails.name}
       subtitle={`${formatRole(membership.role)} access`}
       items={navItems}
-      activeId={activeSection}
-      onSelect={setActiveSection}
+      activeId={activeSurface}
+      onSelect={setActiveSurface}
     >
     <ScrollView
       contentContainerStyle={styles.scrollContent}
@@ -530,7 +511,11 @@ export function SchoolWorkspaceScreen({ membership, onSwitchSchool }: SchoolWork
             <View style={styles.flexText}>
             <Text style={styles.heroTitle}>{schoolDetails.name}</Text>
               <Text style={styles.heroBody}>
-                Set up the school once, then manage people, classes, and access from clear sections.
+              {activeSurface === 'learn'
+                ? 'Open class lessons, read the summary, practise questions, and keep moving.'
+                : activeSurface === 'teach'
+                  ? 'Start a class lesson, add the transcript, then create materials for students.'
+                  : 'Manage the school profile, people, classes, subjects, invites, and requests.'}
               </Text>
             </View>
           </View>
@@ -546,22 +531,22 @@ export function SchoolWorkspaceScreen({ membership, onSwitchSchool }: SchoolWork
           </View>
         ) : (
           <>
-            <View style={styles.metricGrid}>
+            {activeSurface === 'admin' ? <View style={styles.metricGrid}>
               <Metric label="Active members" value={counts.activeMembers} icon={<Users size={20} color={colors.teal} />} />
               <Metric label="Classes" value={counts.classes} icon={<BookOpen size={20} color={colors.blue} />} />
               <Metric label="Subjects" value={counts.subjects} icon={<ClipboardList size={20} color={colors.gold} />} />
               <Metric label="Active invites" value={counts.invites} icon={<UserPlus size={20} color={colors.teal} />} />
               <Metric label="Join requests" value={counts.pendingRequests} icon={<Users size={20} color={colors.coral} />} />
               <Metric label="Lessons" value={counts.lessons} icon={<BookOpen size={20} color={colors.blue} />} />
-            </View>
+            </View> : null}
 
-            {isAdmin ? (
-              <>
-                {activeSection === 'lessons' ? (
-                  <LessonWorkspace membership={membership} setup={setup} onLessonsChanged={loadWorkspace} />
-                ) : (
+            {activeSurface === 'learn' ? (
+              <LessonWorkspace membership={membership} setup={setup} onLessonsChanged={loadWorkspace} mode="learn" />
+            ) : activeSurface === 'teach' ? (
+              <LessonWorkspace membership={membership} setup={setup} onLessonsChanged={loadWorkspace} mode="teach" />
+            ) : isAdmin ? (
                   <AdminSetup
-                    section={activeSection}
+                    section={adminSection}
                     setup={setup}
                     counts={counts}
                     schoolId={membership.schoolId}
@@ -631,17 +616,11 @@ export function SchoolWorkspaceScreen({ membership, onSwitchSchool }: SchoolWork
                     onRemoveClassSubject={handleRemoveClassSubject}
                     onReviewJoinRequest={handleReviewJoinRequest}
                     onUpdateMemberStatus={handleUpdateMemberStatus}
-                    onSelectSection={setActiveSection}
+                    onSelectSection={setAdminSection}
                     onError={setError}
                   />
-                )}
-              </>
             ) : (
-              activeSection === 'lessons' ? (
-                <LessonWorkspace membership={membership} setup={setup} onLessonsChanged={loadWorkspace} />
-              ) : (
-                <MemberWorkspace setup={setup} membership={membership} />
-              )
+              <MemberWorkspace setup={setup} membership={membership} />
             )}
           </>
         )}
@@ -652,7 +631,7 @@ export function SchoolWorkspaceScreen({ membership, onSwitchSchool }: SchoolWork
 }
 
 type AdminSetupProps = {
-  section: WorkspaceSection;
+  section: AdminSection;
   setup: SchoolSetupState;
   counts: WorkspaceCounts;
   schoolId: string;
@@ -729,7 +708,7 @@ type AdminSetupProps = {
   onRemoveClassSubject: (classSubjectId: string) => void;
   onReviewJoinRequest: (requestId: string, decision: 'approve' | 'decline') => void;
   onUpdateMemberStatus: (member: SchoolMemberRow, status: 'active' | 'suspended') => void;
-  onSelectSection: (section: WorkspaceSection) => void;
+  onSelectSection: (section: AdminSection) => void;
   onError: (message: string) => void;
 };
 
@@ -782,8 +761,8 @@ function WorkspaceNav({
   activeSection,
   onSelect,
 }: {
-  activeSection: WorkspaceSection;
-  onSelect: (section: WorkspaceSection) => void;
+  activeSection: AdminSection;
+  onSelect: (section: AdminSection) => void;
 }) {
   return (
     <View style={styles.navRow}>
@@ -800,6 +779,67 @@ function WorkspaceNav({
       ))}
     </View>
   );
+}
+
+function AdminSectionIntro({ section, counts }: { section: AdminSection; counts: WorkspaceCounts }) {
+  const copy = adminSectionCopy(section, counts);
+
+  return (
+    <View style={styles.adminIntro}>
+      <View style={styles.adminIntroIcon}>{copy.icon}</View>
+      <View style={styles.flexText}>
+        <Text style={styles.adminIntroTitle}>{copy.title}</Text>
+        <Text style={styles.adminIntroBody}>{copy.body}</Text>
+      </View>
+    </View>
+  );
+}
+
+function adminSectionCopy(section: AdminSection, counts: WorkspaceCounts) {
+  const copy: Record<AdminSection, { title: string; body: string; icon: ReactNode }> = {
+    overview: {
+      title: 'Admin home',
+      body: `${counts.classes} classes, ${counts.subjects} subjects, ${counts.activeMembers} active members.`,
+      icon: <ShieldCheck size={22} color="#ffffff" />,
+    },
+    profile: {
+      title: 'School profile',
+      body: 'Keep the school identity clear and recognizable for every member.',
+      icon: <ShieldCheck size={22} color="#ffffff" />,
+    },
+    academic: {
+      title: 'Academic calendar',
+      body: 'Create years and terms before placing classes into the school calendar.',
+      icon: <CalendarDays size={22} color="#ffffff" />,
+    },
+    classes: {
+      title: 'Classes and teaching',
+      body: 'Create classes, connect subjects, and assign the teacher responsible.',
+      icon: <BookOpen size={22} color="#ffffff" />,
+    },
+    subjects: {
+      title: 'Subjects',
+      body: 'Build the subject list used by classes, lessons, quizzes, and progress.',
+      icon: <GraduationCap size={22} color="#ffffff" />,
+    },
+    people: {
+      title: 'People',
+      body: 'Manage active members, suspensions, and class access.',
+      icon: <Users size={22} color="#ffffff" />,
+    },
+    invites: {
+      title: 'Invites',
+      body: 'Create access codes for students, teachers, admins, and class entry.',
+      icon: <QrCode size={22} color="#ffffff" />,
+    },
+    requests: {
+      title: 'Requests',
+      body: `${counts.pendingRequests} pending access request${counts.pendingRequests === 1 ? '' : 's'}.`,
+      icon: <UserPlus size={22} color="#ffffff" />,
+    },
+  };
+
+  return copy[section];
 }
 
 function OverviewTile({ label, value }: { label: string; value: string }) {
@@ -926,32 +966,32 @@ function getSetupChecklist(setup: SchoolSetupState) {
       done: setup.academicYears.length > 0,
       title: 'Academic year',
       body: 'Create the school year that terms and classes will use.',
-      actionLabel: 'Open setup',
-      section: 'setup' as WorkspaceSection,
+      actionLabel: 'Open academic',
+      section: 'academic' as AdminSection,
     },
     {
       id: 'term',
       done: setup.academicTerms.length > 0,
       title: 'Term',
       body: 'Add at least one term so classes can sit in a real calendar.',
-      actionLabel: 'Open setup',
-      section: 'setup' as WorkspaceSection,
+      actionLabel: 'Open academic',
+      section: 'academic' as AdminSection,
     },
     {
       id: 'subjects',
       done: setup.subjects.length > 0,
       title: 'Subjects',
       body: 'Add subjects before lessons and class teaching assignments begin.',
-      actionLabel: 'Open setup',
-      section: 'setup' as WorkspaceSection,
+      actionLabel: 'Open subjects',
+      section: 'subjects' as AdminSection,
     },
     {
       id: 'classes',
       done: setup.classes.length > 0,
       title: 'Classes',
       body: 'Create classes for students, teachers, lessons, and invite codes.',
-      actionLabel: 'Open setup',
-      section: 'setup' as WorkspaceSection,
+      actionLabel: 'Open classes',
+      section: 'classes' as AdminSection,
     },
     {
       id: 'invites',
@@ -959,7 +999,7 @@ function getSetupChecklist(setup: SchoolSetupState) {
       title: 'Invite codes',
       body: 'Create invite codes for students, teachers, or admins.',
       actionLabel: 'Open invites',
-      section: 'invites' as WorkspaceSection,
+      section: 'invites' as AdminSection,
     },
     {
       id: 'people',
@@ -967,7 +1007,7 @@ function getSetupChecklist(setup: SchoolSetupState) {
       title: 'People',
       body: 'Add or approve people, then place them in their classes.',
       actionLabel: 'Open people',
-      section: 'people' as WorkspaceSection,
+      section: 'people' as AdminSection,
     },
   ];
 }
@@ -1048,45 +1088,41 @@ function AdminSetup({
     const checklist = getSetupChecklist(setup);
 
     return (
-      <View style={styles.setupGrid}>
-        <View style={styles.card}>
-          <SectionTitle icon={<ShieldCheck size={22} color={colors.teal} />} title="School overview" />
-          <Text style={styles.cardBody}>
-            Your school space is active. Use Setup for academic structure, People for member access,
-            Invites for codes, and Requests for approvals.
-          </Text>
-          <SchoolIdentityEditor
-            values={schoolDetails}
-            saving={saving === 'school-details'}
-            onChange={onChange.setSchoolDetails}
-            onSave={onUpdateSchoolDetails}
-            schoolId={schoolId}
-            onError={onError}
-          />
-          <View style={styles.overviewGrid}>
-            <OverviewTile label="School code" value={schoolCode ?? 'Not set'} />
-            <OverviewTile label="Classes" value={String(counts.classes)} />
-            <OverviewTile label="Subjects" value={String(counts.subjects)} />
-            <OverviewTile label="Pending requests" value={String(counts.pendingRequests)} />
+      <View style={styles.stack}>
+        <WorkspaceNav activeSection={section} onSelect={onSelectSection} />
+        <AdminSectionIntro section={section} counts={counts} />
+        <View style={styles.setupGrid}>
+          <View style={styles.card}>
+            <SectionTitle icon={<ShieldCheck size={22} color={colors.teal} />} title="School overview" />
+            <Text style={styles.cardBody}>
+              Your school space is active. Open each area when you need to shape the school, assign people,
+              create access codes, or review requests.
+            </Text>
+            <View style={styles.overviewGrid}>
+              <OverviewTile label="School code" value={schoolCode ?? 'Not set'} />
+              <OverviewTile label="Classes" value={String(counts.classes)} />
+              <OverviewTile label="Subjects" value={String(counts.subjects)} />
+              <OverviewTile label="Pending requests" value={String(counts.pendingRequests)} />
+            </View>
           </View>
-        </View>
 
-        <View style={styles.card}>
-          <SectionTitle icon={<ClipboardList size={22} color={colors.gold} />} title="Onboarding checklist" />
-          <Text style={styles.cardBody}>
-            Complete these items to make this school ready for teachers and students.
-          </Text>
-          <View style={styles.checklist}>
-            {checklist.map((item) => (
-              <ChecklistRow
-                key={item.id}
-                done={item.done}
-                title={item.title}
-                body={item.body}
-                actionLabel={item.actionLabel}
-                onAction={() => onSelectSection(item.section)}
-              />
-            ))}
+          <View style={styles.card}>
+            <SectionTitle icon={<ClipboardList size={22} color={colors.gold} />} title="Onboarding checklist" />
+            <Text style={styles.cardBody}>
+              Complete these items to make this school ready for teachers and students.
+            </Text>
+            <View style={styles.checklist}>
+              {checklist.map((item) => (
+                <ChecklistRow
+                  key={item.id}
+                  done={item.done}
+                  title={item.title}
+                  body={item.body}
+                  actionLabel={item.actionLabel}
+                  onAction={() => onSelectSection(item.section)}
+                />
+              ))}
+            </View>
           </View>
         </View>
       </View>
@@ -1094,8 +1130,29 @@ function AdminSetup({
   }
 
   return (
-    <View style={styles.setupGrid}>
-      {section === 'setup' ? <View style={styles.card}>
+    <View style={styles.stack}>
+      <WorkspaceNav activeSection={section} onSelect={onSelectSection} />
+      <AdminSectionIntro section={section} counts={counts} />
+      <View style={styles.setupGrid}>
+      {section === 'profile' ? <View style={styles.card}>
+        <SectionTitle icon={<ShieldCheck size={22} color={colors.teal} />} title="School profile" />
+        <Text style={styles.helperText}>Set the name, location, logo, banner, and visual marker students see.</Text>
+        <SchoolIdentityEditor
+          values={schoolDetails}
+          saving={saving === 'school-details'}
+          onChange={onChange.setSchoolDetails}
+          onSave={onUpdateSchoolDetails}
+          schoolId={schoolId}
+          onError={onError}
+        />
+        <View style={styles.overviewGrid}>
+          <OverviewTile label="School code" value={schoolCode ?? 'Not set'} />
+          <OverviewTile label="Active members" value={String(counts.activeMembers)} />
+          <OverviewTile label="Lessons" value={String(counts.lessons)} />
+        </View>
+      </View> : null}
+
+      {section === 'academic' ? <View style={styles.card}>
         <SectionTitle icon={<CalendarDays size={22} color={colors.teal} />} title="Academic year" />
         <Field label="Name" value={values.yearName} onChangeText={onChange.setYearName} placeholder="2026 Academic Year" />
         <View style={styles.formRow}>
@@ -1118,7 +1175,7 @@ function AdminSetup({
         />
       </View> : null}
 
-      {section === 'setup' ? <View style={styles.card}>
+      {section === 'academic' ? <View style={styles.card}>
         <SectionTitle icon={<ClipboardList size={22} color={colors.blue} />} title="Term" />
         <Text style={styles.helperText}>
           {selectedYearId ? 'Terms are attached to the selected academic year.' : 'Add an academic year before adding terms.'}
@@ -1144,7 +1201,7 @@ function AdminSetup({
         />
       </View> : null}
 
-      {section === 'setup' ? <View style={styles.card}>
+      {section === 'subjects' ? <View style={styles.card}>
         <SectionTitle icon={<GraduationCap size={22} color={colors.gold} />} title="Subjects" />
         <Field label="Subject" value={values.subjectName} onChangeText={onChange.setSubjectName} placeholder="Basic Science" />
         <Field label="Department" value={values.subjectDepartment} onChangeText={onChange.setSubjectDepartment} placeholder="Science" />
@@ -1152,7 +1209,7 @@ function AdminSetup({
         <SubjectList subjects={setup.subjects} />
       </View> : null}
 
-      {section === 'setup' ? <View style={styles.card}>
+      {section === 'classes' ? <View style={styles.card}>
         <SectionTitle icon={<BookOpen size={22} color={colors.blue} />} title="Classes" />
         <Text style={styles.helperText}>
           {selectedTermId ? 'New classes will use the selected term.' : 'Select or create a term for term-based class tracking.'}
@@ -1185,7 +1242,7 @@ function AdminSetup({
         <ClassList classes={setup.classes} terms={setup.academicTerms} selectedClassId={inviteClassId} onSelectClass={onSelectInviteClass} />
       </View> : null}
 
-      {section === 'setup' ? <View style={styles.card}>
+      {section === 'classes' ? <View style={styles.card}>
         <SectionTitle icon={<ClipboardList size={22} color={colors.gold} />} title="Class subjects" />
         <Text style={styles.helperText}>Attach subjects to a class and choose the teacher responsible.</Text>
         <PickerRow
@@ -1290,6 +1347,7 @@ function AdminSetup({
           onReview={onReviewJoinRequest}
         />
       </View> : null}
+      </View>
     </View>
   );
 }
@@ -1899,6 +1957,9 @@ const styles = StyleSheet.create({
   setupGrid: {
     gap: 16,
   },
+  stack: {
+    gap: 16,
+  },
   navRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -1924,6 +1985,37 @@ const styles = StyleSheet.create({
   },
   navPillTextActive: {
     color: '#ffffff',
+  },
+  adminIntro: {
+    minHeight: 92,
+    borderRadius: 22,
+    padding: 18,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    backgroundColor: '#101916',
+    borderWidth: 1,
+    borderColor: '#20352f',
+  },
+  adminIntroIcon: {
+    width: 52,
+    height: 52,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.tealDark,
+  },
+  adminIntroTitle: {
+    color: '#ffffff',
+    fontSize: 22,
+    lineHeight: 28,
+    fontWeight: '900',
+  },
+  adminIntroBody: {
+    color: '#dce7e1',
+    fontSize: 13,
+    lineHeight: 20,
+    marginTop: 4,
   },
   overviewGrid: {
     flexDirection: 'row',

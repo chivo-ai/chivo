@@ -18,6 +18,7 @@
         "npm:expo-linear-gradient@~15.0.8",
         "npm:expo-linking@~8.0.12",
         "npm:expo-router@~6.0.23",
+        "npm:expo-speech@~14.0.8",
         "npm:expo-status-bar@~3.0.9",
         "npm:expo@~54.0.33",
         "npm:lucide-react-native@^1.14.0",

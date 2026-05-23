@@ -660,6 +660,75 @@ using (
   )
 );
 
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values (
+  'chivo-lesson-audio',
+  'chivo-lesson-audio',
+  false,
+  104857600,
+  array[
+    'audio/mp4',
+    'audio/m4a',
+    'audio/x-m4a',
+    'audio/aac',
+    'audio/mp3',
+    'audio/mpeg',
+    'audio/aiff',
+    'audio/ogg',
+    'audio/flac',
+    'audio/webm',
+    'audio/wav',
+    'audio/3gpp'
+  ]
+)
+on conflict (id) do update
+set
+  public = excluded.public,
+  file_size_limit = excluded.file_size_limit,
+  allowed_mime_types = excluded.allowed_mime_types;
+
+drop policy if exists "lesson audio owners read" on storage.objects;
+drop policy if exists "teachers upload lesson audio" on storage.objects;
+drop policy if exists "lesson audio owners update" on storage.objects;
+drop policy if exists "lesson audio owners delete" on storage.objects;
+
+create policy "lesson audio owners read"
+on storage.objects for select
+using (
+  bucket_id = 'chivo-lesson-audio'
+  and auth.role() = 'authenticated'
+  and (storage.foldername(name))[1] = auth.uid()::text
+);
+
+create policy "teachers upload lesson audio"
+on storage.objects for insert
+with check (
+  bucket_id = 'chivo-lesson-audio'
+  and auth.role() = 'authenticated'
+  and (storage.foldername(name))[1] = auth.uid()::text
+);
+
+create policy "lesson audio owners update"
+on storage.objects for update
+using (
+  bucket_id = 'chivo-lesson-audio'
+  and auth.role() = 'authenticated'
+  and (storage.foldername(name))[1] = auth.uid()::text
+)
+with check (
+  bucket_id = 'chivo-lesson-audio'
+  and auth.role() = 'authenticated'
+  and (storage.foldername(name))[1] = auth.uid()::text
+);
+
+create policy "lesson audio owners delete"
+on storage.objects for delete
+using (
+  bucket_id = 'chivo-lesson-audio'
+  and auth.role() = 'authenticated'
+  and (storage.foldername(name))[1] = auth.uid()::text
+);
+
 alter table public.profiles enable row level security;
 alter table public.schools enable row level security;
 alter table public.school_memberships enable row level security;
@@ -998,6 +1067,18 @@ with check (
     select 1 from public.school_memberships sm
     where sm.id = quiz_attempts.student_membership_id
       and sm.profile_id = auth.uid()
+  )
+);
+
+create policy "staff read school quiz attempts"
+on public.quiz_attempts for select
+using (
+  exists (
+    select 1
+    from public.quizzes q
+    join public.lessons l on l.id = q.lesson_id
+    where q.id = quiz_attempts.quiz_id
+      and public.has_school_role(l.school_id, array['owner', 'admin', 'teacher']::public.school_role[])
   )
 );
 

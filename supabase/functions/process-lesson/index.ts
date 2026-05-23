@@ -6,6 +6,7 @@ type ProcessLessonRequest = {
 };
 
 type GeneratedLesson = {
+  transcript?: string;
   title?: string;
   summary?: string;
   key_points?: string[];
@@ -19,6 +20,11 @@ type GeneratedLesson = {
     front: string;
     back: string;
   }>;
+};
+
+type AudioInput = {
+  mimeType: string;
+  buffer: ArrayBuffer;
 };
 
 const corsHeaders = {
@@ -100,8 +106,22 @@ serve(async (request) => {
 
     const transcriptText = transcript?.cleaned_text ?? transcript?.raw_text;
 
-    if (!transcriptText?.trim()) {
-      return json({ error: 'Lesson transcript is required before AI processing' }, 400);
+    const { data: recording, error: recordingError } = transcriptText?.trim()
+      ? { data: null, error: null }
+      : await supabase
+          .from('lesson_recordings')
+          .select('storage_path, mime_type')
+          .eq('lesson_id', lessonId)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+    if (recordingError) {
+      throw recordingError;
+    }
+
+    if (!transcriptText?.trim() && !recording?.storage_path) {
+      return json({ error: 'Lesson transcript or audio is required before Chivo can prepare it' }, 400);
     }
 
     const { data: job, error: jobError } = await supabase
@@ -126,11 +146,17 @@ serve(async (request) => {
 
     await supabase.from('lessons').update({ status: 'transcribing' }).eq('id', lesson.id);
 
+    const audio = transcriptText?.trim() ? null : await fetchLessonAudio(supabase, recording);
     const generated = await generateWithGemini({
       title: lesson.title,
       language: lesson.language,
-      transcript: transcriptText,
+      transcript: transcriptText?.trim() ? transcriptText : null,
+      audio,
     });
+
+    if (!transcriptText?.trim() && generated.transcript?.trim()) {
+      await saveGeneratedTranscript(supabase, lesson.id, lesson.language, generated.transcript);
+    }
 
     await replaceGeneratedLesson(supabase, lesson.id, lesson.language, generated);
 
@@ -172,7 +198,8 @@ serve(async (request) => {
 async function generateWithGemini(input: {
   title: string;
   language: string;
-  transcript: string;
+  transcript: string | null;
+  audio: AudioInput | null;
 }): Promise<GeneratedLesson> {
   const geminiKey = Deno.env.get('GEMINI_API_KEY');
 
@@ -182,14 +209,19 @@ async function generateWithGemini(input: {
 
   const prompt = [
     'You are Chivo AI, a classroom learning assistant.',
-    'Create a student-friendly study pack from this classroom transcript.',
-    'Return JSON only with: title, summary, key_points, quiz, flashcards.',
+    input.audio
+      ? 'Listen to the classroom audio, write a clean transcript, then create a student-friendly study pack.'
+      : 'Create a student-friendly study pack from this classroom transcript.',
+    'Return JSON only with: transcript, title, summary, key_points, quiz, flashcards.',
     'quiz should contain 5 questions. Each question must include prompt, options, answer, explanation.',
     'flashcards should contain 6 compact flashcards with front and back.',
     `Lesson title: ${input.title}`,
     `Language: ${input.language}`,
-    input.transcript,
+    input.transcript ?? '',
   ].join('\n\n');
+  const parts = input.audio
+    ? [{ text: prompt }, await createAudioPart(geminiKey, input.audio, input.title)]
+    : [{ text: prompt }];
 
   const response = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`,
@@ -197,7 +229,7 @@ async function generateWithGemini(input: {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
+        contents: [{ parts }],
         generationConfig: {
           responseMimeType: 'application/json',
         },
@@ -215,12 +247,150 @@ async function generateWithGemini(input: {
   const parsed = JSON.parse(text) as GeneratedLesson;
 
   return {
+    transcript: parsed.transcript ?? input.transcript ?? '',
     title: parsed.title ?? input.title,
     summary: parsed.summary ?? '',
     key_points: Array.isArray(parsed.key_points) ? parsed.key_points : [],
     quiz: Array.isArray(parsed.quiz) ? parsed.quiz : [],
     flashcards: Array.isArray(parsed.flashcards) ? parsed.flashcards : [],
   };
+}
+
+async function fetchLessonAudio(
+  supabase: any,
+  recording: { storage_path: string; mime_type: string | null } | null
+): Promise<AudioInput | null> {
+  if (!recording?.storage_path) {
+    return null;
+  }
+
+  const { data, error } = await supabase.storage.from('chivo-lesson-audio').download(recording.storage_path);
+
+  if (error) {
+    throw error;
+  }
+
+  const buffer = await data.arrayBuffer();
+  return {
+    mimeType: geminiAudioMimeType(recording.mime_type ?? data.type ?? 'audio/aac'),
+    buffer,
+  };
+}
+
+function geminiAudioMimeType(mimeType: string) {
+  const normalized = mimeType.toLowerCase().split(';')[0].trim();
+
+  if (['audio/m4a', 'audio/x-m4a', 'audio/mp4'].includes(normalized)) {
+    return 'audio/aac';
+  }
+
+  if (normalized === 'audio/mpeg') {
+    return 'audio/mp3';
+  }
+
+  if (normalized === 'audio/webm') {
+    throw new Error('This browser audio format needs a transcript before Chivo can prepare it.');
+  }
+
+  return normalized;
+}
+
+async function createAudioPart(geminiKey: string, audio: AudioInput, displayName: string) {
+  const inlineLimitBytes = 18 * 1024 * 1024;
+
+  if (audio.buffer.byteLength <= inlineLimitBytes) {
+    return {
+      inline_data: {
+        mime_type: audio.mimeType,
+        data: arrayBufferToBase64(audio.buffer),
+      },
+    };
+  }
+
+  const file = await uploadAudioToGemini(geminiKey, audio, displayName);
+  return {
+    file_data: {
+      mime_type: file.mimeType,
+      file_uri: file.uri,
+    },
+  };
+}
+
+async function uploadAudioToGemini(geminiKey: string, audio: AudioInput, displayName: string) {
+  const startResponse = await fetch(`https://generativelanguage.googleapis.com/upload/v1beta/files?key=${geminiKey}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Goog-Upload-Protocol': 'resumable',
+      'X-Goog-Upload-Command': 'start',
+      'X-Goog-Upload-Header-Content-Length': `${audio.buffer.byteLength}`,
+      'X-Goog-Upload-Header-Content-Type': audio.mimeType,
+    },
+    body: JSON.stringify({
+      file: {
+        display_name: displayName.slice(0, 80) || 'lesson-audio',
+      },
+    }),
+  });
+
+  if (!startResponse.ok) {
+    const details = await startResponse.text();
+    throw new Error(`Gemini audio upload failed: ${details}`);
+  }
+
+  const uploadUrl = startResponse.headers.get('x-goog-upload-url');
+  if (!uploadUrl) {
+    throw new Error('Gemini audio upload URL was not returned');
+  }
+
+  const uploadResponse = await fetch(uploadUrl, {
+    method: 'POST',
+    headers: {
+      'Content-Length': `${audio.buffer.byteLength}`,
+      'X-Goog-Upload-Offset': '0',
+      'X-Goog-Upload-Command': 'upload, finalize',
+    },
+    body: audio.buffer,
+  });
+
+  if (!uploadResponse.ok) {
+    const details = await uploadResponse.text();
+    throw new Error(`Gemini audio upload failed: ${details}`);
+  }
+
+  const payload = await uploadResponse.json();
+  const file = payload.file;
+
+  if (!file?.uri) {
+    throw new Error('Gemini audio file URI was not returned');
+  }
+
+  return {
+    uri: file.uri as string,
+    mimeType: (file.mimeType as string | undefined) ?? audio.mimeType,
+  };
+}
+
+async function saveGeneratedTranscript(
+  supabase: any,
+  lessonId: string,
+  language: string,
+  transcript: string
+) {
+  const { error } = await supabase.from('lesson_transcripts').upsert(
+    {
+      lesson_id: lessonId,
+      provider: 'gemini',
+      language,
+      raw_text: transcript.trim(),
+      cleaned_text: transcript.trim(),
+    },
+    { onConflict: 'lesson_id,provider,language' }
+  );
+
+  if (error) {
+    throw error;
+  }
 }
 
 async function replaceGeneratedLesson(
@@ -318,4 +488,17 @@ function json(body: unknown, status = 200) {
 
 function getServiceRoleKey() {
   return Deno.env.get('SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+}
+
+function arrayBufferToBase64(buffer: ArrayBuffer) {
+  const bytes = new Uint8Array(buffer);
+  const chunkSize = 0x8000;
+  let binary = '';
+
+  for (let index = 0; index < bytes.length; index += chunkSize) {
+    const chunk = bytes.subarray(index, index + chunkSize);
+    binary += String.fromCharCode(...chunk);
+  }
+
+  return btoa(binary);
 }

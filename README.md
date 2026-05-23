@@ -71,11 +71,21 @@ Completed in this group so far:
 - teacher publish action
 - students only see published lessons in the app
 - function-level staff permission check before Gemini processing
+- class-first lesson room with separate Live, Review, Published, Quiz, and Cards areas
+- browser live transcript capture where supported
+- native lesson audio recording path through `expo-audio`
+- lesson audio storage bucket and Gemini audio processing path
+- interactive quiz attempts saved to `quiz_attempts`
+- focused flashcard session view
+- clearer admin console split into profile, academic, classes, subjects, people, invites, and requests
+- student lesson personalization by language and learning mode through `personalize-lesson`
+- server-scored quiz attempts through `submit-quiz-attempt`
+- quiz results update student progress and weak areas
+- teacher quiz insight card with attempts, average score, and students who need help
 
 Current focus:
 
-- testing teacher lesson creation, AI processing, publishing, and student viewing against Supabase
-- adding audio recording/upload after the transcript-based lesson pipeline is proven
+- testing teacher lesson recording, AI processing, publishing, quiz attempts, and student viewing against Supabase
 
 Group 2 is done when a teacher can publish a lesson and a student can learn from it end to end.
 
@@ -121,6 +131,10 @@ For a database that already has Chivo tables or enum types, use `supabase/group1
 
 For the first Group 2 lesson workflow on an existing early database, run `supabase/group2-upgrade.sql`.
 
+For native/mobile lesson audio on an existing early database, run `supabase/group3-audio-upgrade.sql`.
+
+For quiz progress and teacher attempt insight on an existing early database, run `supabase/group4-progress-upgrade.sql`.
+
 Edge Functions:
 
 - `create-school`: creates a school, owner membership, trial subscription, and audit log.
@@ -128,6 +142,8 @@ Edge Functions:
 - `request-school-access`: sends a request to join a school by school code.
 - `review-join-request`: lets a school owner/admin approve or decline a request.
 - `process-lesson`: Gemini lesson processing foundation.
+- `personalize-lesson`: creates a student-specific lesson version by language and learning mode.
+- `submit-quiz-attempt`: scores student quiz attempts and updates progress signals.
 
 ## Environment
 
