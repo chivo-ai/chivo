@@ -150,6 +150,14 @@ type AssignMemberToClassInput = {
   role: SchoolMembershipRole;
 };
 
+type RequestClassAccessInput = {
+  schoolId: string;
+  classId: string;
+  schoolMembershipId: string;
+  requestedRole: SchoolMembershipRole;
+  message: string;
+};
+
 type CreateClassSubjectInput = {
   classId: string;
   subjectId: string;
@@ -175,7 +183,7 @@ export async function fetchSchoolSetupState(
     subjects,
     classes,
     members,
-    adminRecords,
+    accessRecords,
   ] = await Promise.all([
     db
       .from('academic_years')
@@ -202,10 +210,7 @@ export async function fetchSchoolSetupState(
       .select('id, profile_id, role, status, created_at, profiles!school_memberships_profile_id_fkey(full_name, preferred_language)')
       .eq('school_id', schoolId)
       .order('created_at', { ascending: false }),
-    includeAdminRecords ? fetchAdminRecords(db, schoolId) : Promise.resolve({
-      invites: { data: [], error: null },
-      joinRequests: { data: [], error: null },
-    }),
+    includeAdminRecords ? fetchAdminRecords(db, schoolId) : fetchMemberAccessRecords(db, schoolId),
   ]);
 
   const classIds = ((classes.data ?? []) as ClassRow[]).map((schoolClass) => schoolClass.id);
@@ -233,8 +238,8 @@ export async function fetchSchoolSetupState(
     members.error,
     classMemberships.error,
     classSubjects.error,
-    adminRecords.invites.error,
-    adminRecords.joinRequests.error,
+    accessRecords.invites.error,
+    accessRecords.joinRequests.error,
   ].find(Boolean);
 
   if (error) {
@@ -249,8 +254,8 @@ export async function fetchSchoolSetupState(
     members: (members.data ?? []) as SchoolMemberRow[],
     classMemberships: (classMemberships.data ?? []) as ClassMembershipRow[],
     classSubjects: (classSubjects.data ?? []) as ClassSubjectRow[],
-    invites: (adminRecords.invites.data ?? []) as InviteRow[],
-    joinRequests: (adminRecords.joinRequests.data ?? []) as JoinRequestRow[],
+    invites: (accessRecords.invites.data ?? []) as InviteRow[],
+    joinRequests: (accessRecords.joinRequests.data ?? []) as JoinRequestRow[],
   };
 }
 
@@ -269,6 +274,19 @@ async function fetchAdminRecords(db: any, schoolId: string) {
   ]);
 
   return { invites, joinRequests };
+}
+
+async function fetchMemberAccessRecords(db: any, schoolId: string) {
+  const joinRequests = await db
+    .from('school_join_requests')
+    .select('id, profile_id, class_id, requested_role, status, message, created_at, profiles!school_join_requests_profile_id_fkey(full_name), classes(name)')
+    .eq('school_id', schoolId)
+    .order('created_at', { ascending: false });
+
+  return {
+    invites: { data: [], error: null },
+    joinRequests,
+  };
 }
 
 export async function createAcademicYear(input: CreateAcademicYearInput) {
@@ -423,6 +441,67 @@ export async function assignMemberToClass(input: AssignMemberToClassInput) {
   if (error) {
     throw error;
   }
+}
+
+export async function requestClassAccess(input: RequestClassAccessInput) {
+  requireFields([
+    ['Class', input.classId],
+    ['Member', input.schoolMembershipId],
+  ]);
+
+  const profileId = await getCurrentUserId();
+  const db = client() as any;
+
+  const { data: existingClassMembership, error: membershipError } = await db
+    .from('class_memberships')
+    .select('id, status')
+    .eq('class_id', input.classId)
+    .eq('school_membership_id', input.schoolMembershipId)
+    .maybeSingle();
+
+  if (membershipError) {
+    throw membershipError;
+  }
+
+  if (existingClassMembership?.status === 'active') {
+    return { alreadyMember: true };
+  }
+
+  const { data: existingRequest, error: requestLookupError } = await db
+    .from('school_join_requests')
+    .select('id, status')
+    .eq('school_id', input.schoolId)
+    .eq('class_id', input.classId)
+    .eq('profile_id', profileId)
+    .eq('status', 'review')
+    .maybeSingle();
+
+  if (requestLookupError) {
+    throw requestLookupError;
+  }
+
+  if (existingRequest) {
+    return { alreadyRequested: true, request: existingRequest };
+  }
+
+  const { data, error } = await db
+    .from('school_join_requests')
+    .insert({
+      school_id: input.schoolId,
+      class_id: input.classId,
+      profile_id: profileId,
+      requested_role: input.requestedRole,
+      status: 'review',
+      message: input.message.trim() || null,
+    })
+    .select('id, status')
+    .single();
+
+  if (error) {
+    throw error;
+  }
+
+  return { request: data };
 }
 
 export async function removeMemberFromClass(classMembershipId: string) {

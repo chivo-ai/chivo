@@ -29,6 +29,12 @@ import { supabase } from '../../lib/supabase';
 import { acceptInvite, createSchool, requestSchoolAccess, signOut } from '../../services/auth';
 import { colors } from '../../theme/tokens';
 import { ActiveSchoolMembership, MembershipStatus, SchoolMembershipRole } from '../../types';
+import { AccessAccountScreen } from './screens/AccessAccountScreen';
+import { AccessCrewsScreen } from './screens/AccessCrewsScreen';
+import { AccessHomeScreen } from './screens/AccessHomeScreen';
+import { CreateSchoolScreen } from './screens/CreateSchoolScreen';
+import { JoinSchoolScreen } from './screens/JoinSchoolScreen';
+import { RequestSchoolScreen } from './screens/RequestSchoolScreen';
 
 type AccessAction = 'create' | 'join' | 'request' | null;
 type HomeView = 'home' | 'account' | 'crews';
@@ -362,8 +368,15 @@ export function SchoolAccessScreen({ user, onEnterSchool }: SchoolAccessScreenPr
             <IconAction active={activeAction === 'join'} label="Join with code" onPress={() => setActiveAction(activeAction === 'join' ? null : 'join')}>
               <QrCode size={18} color={activeAction === 'join' ? '#ffffff' : colors.tealDark} />
             </IconAction>
-            <IconAction active={activeView === 'account'} label="Account" onPress={() => setActiveView(activeView === 'account' ? 'home' : 'account')}>
-              <UserCircle size={18} color={activeView === 'account' ? '#ffffff' : colors.tealDark} />
+            <IconAction
+              active={!activeAction && activeView === 'account'}
+              label="Account"
+              onPress={() => {
+                setActiveAction(null);
+                setActiveView(activeView === 'account' ? 'home' : 'account');
+              }}
+            >
+              <UserCircle size={18} color={!activeAction && activeView === 'account' ? '#ffffff' : colors.tealDark} />
             </IconAction>
             <Pressable onPress={handleSignOut} style={styles.iconButton}>
               {submitting === 'sign_out' ? <ActivityIndicator color={colors.tealDark} /> : <LogOut size={18} color={colors.tealDark} />}
@@ -374,22 +387,11 @@ export function SchoolAccessScreen({ user, onEnterSchool }: SchoolAccessScreenPr
         {error ? <Text style={styles.errorText}>{error}</Text> : null}
         {message ? <Text style={styles.successText}>{message}</Text> : null}
 
-        {activeAction ? (
-          <ActionPanel
-            action={activeAction}
+        {activeAction === 'create' ? (
+          <CreateSchoolScreen
+            userId={user.id}
+            values={{ schoolName, country, city, schoolLogoUrl, schoolBannerUrl, schoolStickerKey }}
             submitting={submitting}
-            values={{
-              schoolName,
-              country,
-              city,
-              schoolLogoUrl,
-              schoolBannerUrl,
-              schoolStickerKey,
-              inviteCode,
-              requestSchoolCode,
-              requestMessage,
-              requestRole,
-            }}
             onChange={{
               setSchoolName,
               setCountry,
@@ -397,94 +399,52 @@ export function SchoolAccessScreen({ user, onEnterSchool }: SchoolAccessScreenPr
               setSchoolLogoUrl,
               setSchoolBannerUrl,
               setSchoolStickerKey,
-              setInviteCode,
-              setRequestSchoolCode,
-              setRequestMessage,
-              setRequestRole,
             }}
-            onCancel={() => setActiveAction(null)}
             onCreate={handleCreateSchool}
-            onJoin={handleAcceptInvite}
-            onRequest={handleRequestAccess}
-            userId={user.id}
             onError={setError}
           />
-        ) : null}
-
-        {activeView === 'account' ? (
-          <AccountScreen
+        ) : activeAction === 'join' ? (
+          <JoinSchoolScreen
+            inviteCode={inviteCode}
+            submitting={submitting}
+            onChangeInviteCode={setInviteCode}
+            onJoin={handleAcceptInvite}
+          />
+        ) : activeAction === 'request' ? (
+          <RequestSchoolScreen
+            schoolCode={requestSchoolCode}
+            requestRole={requestRole}
+            requestMessage={requestMessage}
+            submitting={submitting}
+            onChangeSchoolCode={setRequestSchoolCode}
+            onChangeRole={setRequestRole}
+            onChangeMessage={setRequestMessage}
+            onRequest={handleRequestAccess}
+          />
+        ) : activeView === 'account' ? (
+          <AccessAccountScreen
             user={user}
             values={{ profileName, preferredLanguage, learningLevel }}
             imageValues={{ profileAvatarUrl, profileStickerKey }}
             imagePathPrefix={`profiles/${user.id}`}
-            submitting={submitting === 'request'}
+            submitting={submitting}
             onChange={{ setProfileName, setPreferredLanguage, setLearningLevel }}
             onImageChange={{ setProfileAvatarUrl, setProfileStickerKey }}
             onError={setError}
-            onBack={() => setActiveView('home')}
             onSave={handleSaveProfile}
           />
         ) : activeView === 'crews' ? (
-          <CrewsScreen onBack={() => setActiveView('home')} />
+          <AccessCrewsScreen />
         ) : (
-        <View style={styles.layout}>
-          <View style={styles.mainColumn}>
-            <View style={styles.heroPanel}>
-              <View style={styles.heroIcon}>
-                <School size={24} color="#ffffff" />
-              </View>
-              <View style={styles.flexText}>
-                <Text style={styles.heroTitle}>Start from your school space</Text>
-                <Text style={styles.heroBody}>
-                  Chivo AI turns lessons into summaries, quizzes, flashcards, audio study, and study crews while keeping each school private.
-                </Text>
-              </View>
-            </View>
-
-            <HubSection title="Your schools" icon={<Building2 size={20} color={colors.teal} />}>
-              {loadingMemberships ? (
-                <ActivityIndicator color={colors.tealDark} />
-              ) : activeMemberships.length ? (
-                activeMemberships.map((membership) => (
-                  <SchoolRow key={membership.id} membership={membership} onEnter={() => onEnterSchool(mapMembershipRow(membership))} />
-                ))
-              ) : (
-                <EmptyState
-                  title="No active school yet"
-                  body="Create a school workspace, use an invite code, or request access from your school."
-                  actionLabel="Request access"
-                  onAction={() => setActiveAction('request')}
-                />
-              )}
-            </HubSection>
-
-            <HubSection title="Pending access" icon={<UserPlus size={20} color={colors.coral} />}>
-              {pendingMemberships.length ? (
-                pendingMemberships.map((membership) => <PendingRow key={membership.id} membership={membership} />)
-              ) : (
-                <Text style={styles.cardBody}>Requests and invitations waiting for approval will appear here.</Text>
-              )}
-            </HubSection>
-
-            <HubSection title="Crews" icon={<Users size={20} color={colors.blue} />}>
-              <Text style={styles.cardBody}>Study crews will appear here when you create or join one inside a school.</Text>
-            </HubSection>
-          </View>
-
-          <View style={styles.sideColumn}>
-            <View style={styles.profileCard}>
-              <View style={styles.profileIcon}>
-                <UserCircle size={28} color={colors.tealDark} />
-              </View>
-              <Text style={styles.profileName}>{user.user_metadata?.full_name ?? user.email?.split('@')[0] ?? 'Your profile'}</Text>
-              <Text style={styles.profileMeta}>{user.email}</Text>
-              <View style={styles.profileStatRow}>
-                <ProfileStat label="Schools" value={activeMemberships.length} />
-                <ProfileStat label="Pending" value={pendingMemberships.length} />
-              </View>
-            </View>
-          </View>
-        </View>
+          <AccessHomeScreen
+            user={user}
+            activeMemberships={activeMemberships}
+            pendingMemberships={pendingMemberships}
+            loading={loadingMemberships}
+            onEnterSchool={onEnterSchool}
+            onRequestAccess={() => setActiveAction('request')}
+            onOpenCrews={() => setActiveView('crews')}
+          />
         )}
       </View>
     </ScrollView>

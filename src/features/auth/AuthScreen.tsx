@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { Link } from 'expo-router';
+import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -19,8 +20,8 @@ import { colors } from '../../theme/tokens';
 
 type AuthMode = 'sign_in' | 'sign_up';
 
-export function AuthScreen() {
-  const [mode, setMode] = useState<AuthMode>('sign_in');
+export function AuthScreen({ initialMode = 'sign_in' }: { initialMode?: AuthMode }) {
+  const [mode, setMode] = useState<AuthMode>(initialMode);
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -32,6 +33,10 @@ export function AuthScreen() {
   const [error, setError] = useState<string | null>(null);
 
   const isSignUp = mode === 'sign_up';
+
+  useEffect(() => {
+    setMode(initialMode);
+  }, [initialMode]);
 
   async function handleSubmit() {
     setError(null);
@@ -195,6 +200,23 @@ export function AuthScreen() {
                   <Text style={styles.submitButtonText}>{isSignUp ? 'Create account' : 'Sign in'}</Text>
                 )}
               </Pressable>
+              <View style={styles.linkRow}>
+                <Link href="/(auth)/login" asChild>
+                  <Pressable>
+                    <Text style={styles.linkText}>Login</Text>
+                  </Pressable>
+                </Link>
+                <Link href="/(auth)/register" asChild>
+                  <Pressable>
+                    <Text style={styles.linkText}>Register</Text>
+                  </Pressable>
+                </Link>
+                <Link href="/(auth)/forgot" asChild>
+                  <Pressable>
+                    <Text style={styles.linkText}>Forgot</Text>
+                  </Pressable>
+                </Link>
+              </View>
             </View>
           </View>
         </View>
@@ -263,6 +285,17 @@ const styles = StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: colors.canvas,
+  },
+  linkRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 14,
+  },
+  linkText: {
+    color: colors.tealDark,
+    fontSize: 13,
+    fontWeight: '900',
   },
   scrollContent: {
     flexGrow: 1,

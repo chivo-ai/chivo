@@ -2,6 +2,7 @@ import { ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
+  Platform,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -22,10 +23,12 @@ import {
   UserPlus,
   Users,
 } from 'lucide-react-native';
+import { router } from 'expo-router';
 
 import { AppNavigation, AppNavItem } from '../../components/AppNavigation';
 import { ImageUploadButton } from '../../components/ImageUploadButton';
-import { LessonWorkspace } from '../lessons/LessonWorkspace';
+import { LearnerScreen } from '../learner/LearnerScreen';
+import { TeacherScreen } from '../teacher/TeacherScreen';
 import { supabase } from '../../lib/supabase';
 import { signOut } from '../../services/auth';
 import {
@@ -58,6 +61,7 @@ import { ActiveSchoolMembership, SchoolMembershipRole } from '../../types';
 type SchoolWorkspaceScreenProps = {
   membership: ActiveSchoolMembership;
   onSwitchSchool: () => void;
+  initialSurface?: WorkspaceSurface;
 };
 
 type WorkspaceCounts = {
@@ -112,7 +116,48 @@ const adminSections: Array<{ id: AdminSection; label: string }> = [
   { id: 'requests', label: 'Requests' },
 ];
 
-export function SchoolWorkspaceScreen({ membership, onSwitchSchool }: SchoolWorkspaceScreenProps) {
+function initialWorkspaceSurface(canTeach: boolean, isAdmin: boolean): WorkspaceSurface {
+  const pathSurface = workspaceSurfaceFromPath();
+
+  if (pathSurface && surfaceAllowed(pathSurface, canTeach, isAdmin)) {
+    return pathSurface;
+  }
+
+  return canTeach ? 'teach' : 'learn';
+}
+
+function workspaceSurfaceFromPath(): WorkspaceSurface | null {
+  if (Platform.OS !== 'web' || typeof window === 'undefined') {
+    return null;
+  }
+
+  const path = window.location.pathname.toLowerCase();
+
+  if (path.includes('/admin')) {
+    return 'admin';
+  }
+
+  if (path.includes('/teach')) {
+    return 'teach';
+  }
+
+  if (path.includes('/learn')) {
+    return 'learn';
+  }
+
+  return null;
+}
+
+function surfaceAllowed(surface: WorkspaceSurface, canTeach: boolean, isAdmin: boolean) {
+  return surface === 'learn' || (surface === 'teach' && canTeach) || (surface === 'admin' && isAdmin);
+}
+
+function syncWorkspaceRoute(surface: WorkspaceSurface) {
+  const nextPath = `/${surface}`;
+  router.push(nextPath as '/learn' | '/teach' | '/admin');
+}
+
+export function SchoolWorkspaceScreen({ membership, onSwitchSchool, initialSurface }: SchoolWorkspaceScreenProps) {
   const [counts, setCounts] = useState<WorkspaceCounts>(emptyCounts);
   const [setup, setSetup] = useState<SchoolSetupState>(emptySetup);
   const [loading, setLoading] = useState(true);
@@ -123,7 +168,11 @@ export function SchoolWorkspaceScreen({ membership, onSwitchSchool }: SchoolWork
   const [message, setMessage] = useState<string | null>(null);
   const isAdmin = membership.role === 'owner' || membership.role === 'admin';
   const canTeach = ['owner', 'admin', 'teacher'].includes(membership.role);
-  const [activeSurface, setActiveSurface] = useState<WorkspaceSurface>(canTeach ? 'teach' : 'learn');
+  const [activeSurface, setActiveSurface] = useState<WorkspaceSurface>(() =>
+    initialSurface && surfaceAllowed(initialSurface, canTeach, isAdmin)
+      ? initialSurface
+      : initialWorkspaceSurface(canTeach, isAdmin)
+  );
   const [adminSection, setAdminSection] = useState<AdminSection>('overview');
   const [schoolDetails, setSchoolDetails] = useState({
     name: membership.school.name,
@@ -254,6 +303,37 @@ export function SchoolWorkspaceScreen({ membership, onSwitchSchool }: SchoolWork
       .catch((caught) => setError(caught instanceof Error ? caught.message : 'Could not load school.'))
       .finally(() => setLoading(false));
   }, [loadWorkspace]);
+
+  useEffect(() => {
+    if (surfaceAllowed(activeSurface, canTeach, isAdmin)) {
+      return;
+    }
+
+    setActiveSurface(initialWorkspaceSurface(canTeach, isAdmin));
+  }, [activeSurface, canTeach, isAdmin]);
+
+  useEffect(() => {
+    if (!initialSurface || !surfaceAllowed(initialSurface, canTeach, isAdmin)) {
+      return;
+    }
+
+    setActiveSurface(initialSurface);
+  }, [canTeach, initialSurface, isAdmin]);
+
+  useEffect(() => {
+    if (Platform.OS !== 'web' || typeof window === 'undefined') {
+      return;
+    }
+
+    const syncFromPath = () => {
+      setActiveSurface(initialWorkspaceSurface(canTeach, isAdmin));
+    };
+
+    window.addEventListener('popstate', syncFromPath);
+    syncFromPath();
+
+    return () => window.removeEventListener('popstate', syncFromPath);
+  }, [canTeach, isAdmin]);
 
   async function handleRefresh() {
     setRefreshing(true);
@@ -469,13 +549,22 @@ export function SchoolWorkspaceScreen({ membership, onSwitchSchool }: SchoolWork
     );
   }
 
+  function handleSelectSurface(surface: WorkspaceSurface) {
+    if (!surfaceAllowed(surface, canTeach, isAdmin)) {
+      return;
+    }
+
+    setActiveSurface(surface);
+    syncWorkspaceRoute(surface);
+  }
+
   return (
     <AppNavigation
       title={schoolDetails.name}
       subtitle={`${formatRole(membership.role)} access`}
       items={navItems}
       activeId={activeSurface}
-      onSelect={setActiveSurface}
+      onSelect={handleSelectSurface}
     >
     <ScrollView
       contentContainerStyle={styles.scrollContent}
@@ -541,9 +630,9 @@ export function SchoolWorkspaceScreen({ membership, onSwitchSchool }: SchoolWork
             </View> : null}
 
             {activeSurface === 'learn' ? (
-              <LessonWorkspace membership={membership} setup={setup} onLessonsChanged={loadWorkspace} mode="learn" />
+              <LearnerScreen membership={membership} setup={setup} onWorkspaceChanged={loadWorkspace} />
             ) : activeSurface === 'teach' ? (
-              <LessonWorkspace membership={membership} setup={setup} onLessonsChanged={loadWorkspace} mode="teach" />
+              <TeacherScreen membership={membership} setup={setup} onWorkspaceChanged={loadWorkspace} />
             ) : isAdmin ? (
                   <AdminSetup
                     section={adminSection}

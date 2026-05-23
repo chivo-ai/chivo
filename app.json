@@ -17,12 +17,14 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.chivoai.app",
       "infoPlist": {
+        "NSCameraUsageDescription": "Chivo AI uses the camera to scan school and class invite QR codes.",
         "NSMicrophoneUsageDescription": "Chivo AI records classroom lessons so teachers can create summaries, quizzes, and accessible study notes for students."
       }
     },
     "android": {
       "package": "com.chivoai.app",
       "permissions": [
+        "CAMERA",
         "RECORD_AUDIO"
       ],
       "adaptiveIcon": {

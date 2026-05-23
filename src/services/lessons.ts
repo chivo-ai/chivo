@@ -86,6 +86,15 @@ export type QuizAttemptRow = {
   created_at: string;
 };
 
+export type TeacherLessonInsight = {
+  lessonId: string;
+  quizId: string;
+  attemptCount: number;
+  averageScore: number;
+  needsHelpCount: number;
+  latestScore: number | null;
+};
+
 export type LessonDetail = {
   lesson: LessonRow;
   output: LessonOutputRow | null;
@@ -499,6 +508,56 @@ export async function fetchQuizAttempts(quizId: string): Promise<QuizAttemptRow[
   }
 
   return (data ?? []) as QuizAttemptRow[];
+}
+
+export async function fetchTeacherLessonInsights(lessonIds: string[]): Promise<TeacherLessonInsight[]> {
+  if (!lessonIds.length) {
+    return [];
+  }
+
+  const db = client() as any;
+  const { data: quizzes, error: quizzesError } = await db
+    .from('quizzes')
+    .select('id, lesson_id')
+    .in('lesson_id', lessonIds);
+
+  if (quizzesError) {
+    throw quizzesError;
+  }
+
+  const quizRows = (quizzes ?? []) as Array<{ id: string; lesson_id: string }>;
+  const quizIds = quizRows.map((quiz) => quiz.id);
+
+  if (!quizIds.length) {
+    return [];
+  }
+
+  const { data: attempts, error: attemptsError } = await db
+    .from('quiz_attempts')
+    .select('id, quiz_id, student_membership_id, score, answers, completed_at, created_at')
+    .in('quiz_id', quizIds)
+    .order('completed_at', { ascending: false });
+
+  if (attemptsError) {
+    throw attemptsError;
+  }
+
+  const attemptRows = (attempts ?? []) as QuizAttemptRow[];
+
+  return quizRows.map((quiz) => {
+    const quizAttempts = attemptRows.filter((attempt) => attempt.quiz_id === quiz.id);
+    const totalScore = quizAttempts.reduce((total, attempt) => total + Number(attempt.score ?? 0), 0);
+    const averageScore = quizAttempts.length ? totalScore / quizAttempts.length : 0;
+
+    return {
+      lessonId: quiz.lesson_id,
+      quizId: quiz.id,
+      attemptCount: quizAttempts.length,
+      averageScore,
+      needsHelpCount: quizAttempts.filter((attempt) => Number(attempt.score ?? 0) < 60).length,
+      latestScore: quizAttempts[0]?.score === null || quizAttempts[0]?.score === undefined ? null : Number(quizAttempts[0].score),
+    };
+  });
 }
 
 function requireFields(fields: Array<[string, string | null | undefined]>) {

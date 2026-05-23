@@ -27,11 +27,15 @@ Scope:
 - class access assignment
 - join request approval
 - role-aware school views
+- learner class requests from inside an active school
+- teacher class roster management for assigned classes
 
 Completed in this group so far:
 
 - signed-in home hub for schools, pending access, crews, and account entry
 - standalone personal account screen
+- separate Home, Account, Create, Join, Request, and Crews access screens
+- QR code scanner support for school and class invite codes
 - personal profile editing with direct image upload and sticker identity
 - responsive app navigation with a hover sidebar on web and floating bottom navigation on mobile
 - school cards and workspace headers showing logo/banner/sticker identity
@@ -41,6 +45,12 @@ Completed in this group so far:
 - real school creation, invite redemption, access requests, and request review
 - academic setup, class setup, subject assignment, member assignment, and invite code creation
 - clearer join/request errors when a user enters an invite code in the school-code flow
+- Expo Router entry with `(auth)` and `(tabs)` route groups
+- real access routes for `/home`, `/account`, `/create`, `/join`, `/request`, and `/crews`
+- real workspace routes for `/learn`, `/teach`, and `/admin` on mobile and web
+- real school routes for `/school/my-school/[id]` and `/school/class/[id]`
+- learner class request cards after entering a school
+- teacher roster panel for class members and class access
 
 Group 1 can now be tested as a real school admin flow. Further polish can happen after testing reveals what feels slow or unclear.
 
@@ -72,6 +82,9 @@ Completed in this group so far:
 - students only see published lessons in the app
 - function-level staff permission check before Gemini processing
 - class-first lesson room with separate Live, Review, Published, Quiz, and Cards areas
+- lesson library screen before opening an individual lesson
+- real lesson routes for `/lessons` and `/lessons/[id]`
+- lesson filters for date window, year, time of day, and sort order
 - browser live transcript capture where supported
 - native lesson audio recording path through `expo-audio`
 - lesson audio storage bucket and Gemini audio processing path
@@ -82,10 +95,11 @@ Completed in this group so far:
 - server-scored quiz attempts through `submit-quiz-attempt`
 - quiz results update student progress and weak areas
 - teacher quiz insight card with attempts, average score, and students who need help
+- teacher Class Insight section across published lessons
 
 Current focus:
 
-- testing teacher lesson recording, AI processing, publishing, quiz attempts, and student viewing against Supabase
+- testing class requests, roster management, lesson recording, AI processing, publishing, quiz attempts, and student viewing against Supabase
 
 Group 2 is done when a teacher can publish a lesson and a student can learn from it end to end.
 
@@ -134,6 +148,8 @@ For the first Group 2 lesson workflow on an existing early database, run `supaba
 For native/mobile lesson audio on an existing early database, run `supabase/group3-audio-upgrade.sql`.
 
 For quiz progress and teacher attempt insight on an existing early database, run `supabase/group4-progress-upgrade.sql`.
+
+For learner class requests and teacher class roster management on an existing early database, run `supabase/group5-class-flow-upgrade.sql`.
 
 Edge Functions:
 

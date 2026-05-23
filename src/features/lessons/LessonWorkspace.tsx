@@ -14,8 +14,9 @@ import {
   useAudioRecorder,
   useAudioRecorderState,
 } from 'expo-audio';
+import { router } from 'expo-router';
 import * as Speech from 'expo-speech';
-import { ArrowLeft, BookOpen, Brain, CheckCircle2, ClipboardList, DoorOpen, Layers, Mic, MicOff, Pause, Play, Sparkles, Square, UserCheck, Volume2 } from 'lucide-react-native';
+import { ArrowLeft, BookOpen, Brain, CalendarDays, CheckCircle2, ClipboardList, Clock3, DoorOpen, Layers, Mic, MicOff, Pause, Play, Sparkles, Square, UserCheck, Volume2 } from 'lucide-react-native';
 
 import {
   LearningMode,
@@ -25,12 +26,14 @@ import {
   LessonRecordingUpload,
   QuizAttemptAnswer,
   QuizAttemptRow,
+  TeacherLessonInsight,
   addLessonTranscript,
   createLesson,
   endLessonSession,
   fetchLessonDetail,
   fetchLessons,
   fetchQuizAttempts,
+  fetchTeacherLessonInsights,
   personalizeLesson,
   processLesson,
   publishLesson,
@@ -87,12 +90,24 @@ type LessonWorkspaceProps = {
   setup: SchoolSetupState;
   onLessonsChanged?: () => void;
   mode?: 'learn' | 'teach';
+  initialClassId?: string | null;
+  initialLessonId?: string | null;
 };
 
-type LessonRoomSection = 'live' | 'review' | 'published' | 'quiz' | 'cards';
+type LessonRoomSection = 'live' | 'review' | 'published' | 'quiz' | 'cards' | 'insight';
 type StudySection = 'summary' | 'quiz' | 'cards';
+type LessonDateFilter = 'all' | 'today' | 'week' | 'month' | 'year';
+type LessonTimeFilter = 'all' | 'morning' | 'afternoon' | 'evening';
+type LessonSort = 'newest' | 'oldest';
 
-export function LessonWorkspace({ membership, setup, onLessonsChanged, mode }: LessonWorkspaceProps) {
+export function LessonWorkspace({
+  membership,
+  setup,
+  onLessonsChanged,
+  mode,
+  initialClassId,
+  initialLessonId,
+}: LessonWorkspaceProps) {
   const [lessons, setLessons] = useState<LessonRow[]>([]);
   const [detail, setDetail] = useState<LessonDetail | null>(null);
   const [selectedLessonId, setSelectedLessonId] = useState<string | null>(null);
@@ -103,6 +118,11 @@ export function LessonWorkspace({ membership, setup, onLessonsChanged, mode }: L
   const [message, setMessage] = useState<string | null>(null);
   const [roomSection, setRoomSection] = useState<LessonRoomSection>('published');
   const [quizAttempts, setQuizAttempts] = useState<QuizAttemptRow[]>([]);
+  const [teacherInsights, setTeacherInsights] = useState<TeacherLessonInsight[]>([]);
+  const [lessonDateFilter, setLessonDateFilter] = useState<LessonDateFilter>('all');
+  const [lessonTimeFilter, setLessonTimeFilter] = useState<LessonTimeFilter>('all');
+  const [lessonSort, setLessonSort] = useState<LessonSort>('newest');
+  const [lessonYear, setLessonYear] = useState<string>('all');
 
   const [title, setTitle] = useState('');
   const [language, setLanguage] = useState('English');
@@ -116,6 +136,7 @@ export function LessonWorkspace({ membership, setup, onLessonsChanged, mode }: L
   const [capturedAudio, setCapturedAudio] = useState<LessonRecordingUpload | null>(null);
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
   const listeningRef = useRef(false);
+  const initialLessonOpenedRef = useRef<string | null>(null);
   const audioRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const audioState = useAudioRecorderState(audioRecorder);
 
@@ -142,10 +163,17 @@ export function LessonWorkspace({ membership, setup, onLessonsChanged, mode }: L
     () => subjectsForClass(setup.classSubjects, setup.subjects, activeClassId),
     [activeClassId, setup.classSubjects, setup.subjects]
   );
-  const filteredLessons = lessons.filter((lesson) => {
+  const baseFilteredLessons = lessons.filter((lesson) => {
     const inClass = activeClassId ? lesson.class_id === activeClassId : true;
     const inSubject = selectedSubjectId ? lesson.subject_id === selectedSubjectId : true;
     return inClass && inSubject;
+  });
+  const availableLessonYears = lessonYears(baseFilteredLessons);
+  const filteredLessons = filterLessonsByTime(baseFilteredLessons, {
+    dateFilter: lessonDateFilter,
+    timeFilter: lessonTimeFilter,
+    sort: lessonSort,
+    year: lessonYear,
   });
   const openLiveLesson = lessons.find(
     (lesson) =>
@@ -163,6 +191,8 @@ export function LessonWorkspace({ membership, setup, onLessonsChanged, mode }: L
   const audioDurationLabel = formatDuration(audioState.durationMillis);
   const roomLessons = lessonsForRoomSection(filteredLessons, isTeacher, roomSection);
   const roomLessonIds = roomLessons.map((lesson) => lesson.id).join('|');
+  const insightLessons = filteredLessons.filter((lesson) => lesson.status === 'published');
+  const insightLessonIds = insightLessons.map((lesson) => lesson.id).join('|');
   const detailStudySection = roomSection === 'quiz' ? 'quiz' : roomSection === 'cards' ? 'cards' : 'summary';
 
   useEffect(() => {
@@ -180,6 +210,42 @@ export function LessonWorkspace({ membership, setup, onLessonsChanged, mode }: L
   }, [activeClassId, visibleClasses]);
 
   useEffect(() => {
+    if (!initialClassId || activeClassId === initialClassId) {
+      return;
+    }
+
+    if (!visibleClasses.some((schoolClass) => schoolClass.id === initialClassId)) {
+      return;
+    }
+
+    const subjects = subjectsForClass(setup.classSubjects, setup.subjects, initialClassId);
+    setActiveClassId(initialClassId);
+    setSelectedSubjectId(subjects[0]?.id ?? null);
+    setSelectedLessonId(null);
+    setDetail(null);
+  }, [activeClassId, initialClassId, setup.classSubjects, setup.subjects, visibleClasses]);
+
+  useEffect(() => {
+    initialLessonOpenedRef.current = null;
+  }, [initialLessonId]);
+
+  useEffect(() => {
+    if (!initialLessonId || loading || initialLessonOpenedRef.current === initialLessonId) {
+      return;
+    }
+
+    const lesson = lessons.find((item) => item.id === initialLessonId);
+    if (!lesson) {
+      return;
+    }
+
+    initialLessonOpenedRef.current = initialLessonId;
+    setActiveClassId(lesson.class_id);
+    setSelectedSubjectId(lesson.subject_id);
+    void loadLessonDetail(initialLessonId);
+  }, [initialLessonId, lessons, loading]);
+
+  useEffect(() => {
     if (activeClassId && !selectedSubjectId && activeClassSubjects[0]) {
       setSelectedSubjectId(activeClassSubjects[0].id);
     }
@@ -190,18 +256,43 @@ export function LessonWorkspace({ membership, setup, onLessonsChanged, mode }: L
       return;
     }
 
-    if (selectedLessonId && roomLessons.some((lesson) => lesson.id === selectedLessonId)) {
+    if (!selectedLessonId || roomLessons.some((lesson) => lesson.id === selectedLessonId)) {
       return;
     }
 
-    const firstLesson = roomLessons[0];
-    setSelectedLessonId(firstLesson?.id ?? null);
+    setSelectedLessonId(null);
     setDetail(null);
+  }, [activeClassId, roomLessonIds, selectedLessonId]);
 
-    if (firstLesson) {
-      void loadLessonDetail(firstLesson.id);
+  useEffect(() => {
+    if (!isTeacher || !activeClassId) {
+      setTeacherInsights([]);
+      return;
     }
-  }, [activeClassId, roomLessonIds, roomSection, selectedLessonId]);
+
+    const lessonIds = insightLessonIds ? insightLessonIds.split('|') : [];
+    if (!lessonIds.length) {
+      setTeacherInsights([]);
+      return;
+    }
+
+    let active = true;
+    fetchTeacherLessonInsights(lessonIds)
+      .then((rows) => {
+        if (active) {
+          setTeacherInsights(rows);
+        }
+      })
+      .catch((caught) => {
+        if (active) {
+          setError(caught instanceof Error ? caught.message : 'Could not load class insight.');
+        }
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [activeClassId, insightLessonIds, isTeacher]);
 
   useEffect(
     () => () => {
@@ -431,18 +522,11 @@ export function LessonWorkspace({ membership, setup, onLessonsChanged, mode }: L
   function enterClass(classId: string) {
     const subjects = subjectsForClass(setup.classSubjects, setup.subjects, classId);
     const firstSubjectId = subjects[0]?.id ?? null;
-    const firstLesson =
-      lessons.find((lesson) => lesson.class_id === classId && (!firstSubjectId || lesson.subject_id === firstSubjectId)) ??
-      lessons.find((lesson) => lesson.class_id === classId);
 
     setActiveClassId(classId);
-    setSelectedSubjectId(firstLesson?.subject_id ?? firstSubjectId);
-    setSelectedLessonId(firstLesson?.id ?? null);
+    setSelectedSubjectId(firstSubjectId);
+    setSelectedLessonId(null);
     setDetail(null);
-
-    if (firstLesson) {
-      void loadLessonDetail(firstLesson.id);
-    }
   }
 
   function leaveClass() {
@@ -463,11 +547,8 @@ export function LessonWorkspace({ membership, setup, onLessonsChanged, mode }: L
     try {
       const rows = await fetchLessons(membership.schoolId, isTeacher);
       setLessons(rows);
-      const firstLessonId = selectedLessonId ?? rows[0]?.id ?? null;
-      setSelectedLessonId(firstLessonId);
-      if (firstLessonId) {
-        await loadLessonDetail(firstLessonId);
-      } else {
+      if (selectedLessonId && !rows.some((lesson) => lesson.id === selectedLessonId)) {
+        setSelectedLessonId(null);
         setDetail(null);
       }
     } catch (caught) {
@@ -709,7 +790,7 @@ export function LessonWorkspace({ membership, setup, onLessonsChanged, mode }: L
                   schoolClass={schoolClass}
                   subjectCount={subjectsForClass(setup.classSubjects, setup.subjects, schoolClass.id).length}
                   lessonCount={lessons.filter((lesson) => lesson.class_id === schoolClass.id).length}
-                  onEnter={() => enterClass(schoolClass.id)}
+                  onEnter={() => router.push(`/school/class/${schoolClass.id}` as never)}
                 />
               ))}
             </View>
@@ -852,39 +933,30 @@ export function LessonWorkspace({ membership, setup, onLessonsChanged, mode }: L
             </View>
           ) : null}
 
-          <View style={styles.layout}>
-            <View style={styles.listColumn}>
-              <View style={styles.card}>
-                <SectionTitle icon={<BookOpen size={22} color={colors.blue} />} title={roomSectionTitle(roomSection, isTeacher)} />
-                {loading ? (
-                  <ActivityIndicator color={colors.tealDark} />
-                ) : roomLessons.length ? (
-                  <View style={styles.recordList}>
-                    {roomLessons.map((lesson) => (
-                      <Pressable
-                        key={lesson.id}
-                        onPress={() => loadLessonDetail(lesson.id)}
-                        style={[styles.lessonRow, lesson.id === selectedLessonId && styles.lessonRowActive]}
-                      >
-                        <View style={styles.flexText}>
-                          <Text style={styles.recordTitle}>{lesson.title}</Text>
-                          <Text style={styles.recordMeta}>
-                            {subjectName(setup.subjects, lesson.subject_id)}
-                          </Text>
-                        </View>
-                        <StatusBadge status={lesson.status} />
-                      </Pressable>
-                    ))}
-                  </View>
-                ) : (
-                  <Text style={styles.cardBody}>
-                    {roomSectionEmptyText(roomSection, isTeacher)}
+          {isTeacher && roomSection === 'insight' ? (
+            <TeacherInsightDashboard lessons={insightLessons} insights={teacherInsights} />
+          ) : selectedLessonId ? (
+            <View style={styles.lessonRoute}>
+              <View style={styles.lessonRouteHeader}>
+                <Pressable
+                  onPress={() => {
+                    setSelectedLessonId(null);
+                    setDetail(null);
+                    setQuizAttempts([]);
+                  }}
+                  style={styles.backButton}
+                >
+                  <ArrowLeft size={18} color={colors.tealDark} />
+                  <Text style={styles.backButtonText}>Lessons</Text>
+                </Pressable>
+                <View style={styles.flexText}>
+                  <Text style={styles.lessonRouteTitle}>{detail?.lesson.title ?? 'Lesson'}</Text>
+                  <Text style={styles.recordMeta}>
+                    {detail ? `${subjectName(setup.subjects, detail.lesson.subject_id)} - ${lessonDateLabel(detail.lesson)}` : 'Opening lesson'}
                   </Text>
-                )}
+                </View>
               </View>
-            </View>
 
-            <View style={styles.detailColumn}>
               {loadingDetail ? (
                 <View style={styles.card}>
                   <ActivityIndicator color={colors.tealDark} />
@@ -918,12 +990,59 @@ export function LessonWorkspace({ membership, setup, onLessonsChanged, mode }: L
                 />
               ) : (
                 <View style={styles.card}>
-                  <SectionTitle icon={<Brain size={22} color={colors.gold} />} title="Study materials" />
-                  <Text style={styles.cardBody}>Select a lesson to view its summary, quiz, and flashcards.</Text>
+                  <SectionTitle icon={<Brain size={22} color={colors.gold} />} title="Lesson" />
+                  <Text style={styles.cardBody}>This lesson could not be opened.</Text>
                 </View>
               )}
             </View>
-          </View>
+          ) : (
+            <View style={styles.lessonLibrary}>
+              <View style={styles.card}>
+                <SectionTitle icon={<BookOpen size={22} color={colors.blue} />} title={roomSectionTitle(roomSection, isTeacher)} />
+                <LessonFilterBar
+                  dateFilter={lessonDateFilter}
+                  timeFilter={lessonTimeFilter}
+                  sort={lessonSort}
+                  year={lessonYear}
+                  years={availableLessonYears}
+                  onDateFilterChange={(value) => {
+                    setLessonDateFilter(value);
+                    setSelectedLessonId(null);
+                    setDetail(null);
+                  }}
+                  onTimeFilterChange={(value) => {
+                    setLessonTimeFilter(value);
+                    setSelectedLessonId(null);
+                    setDetail(null);
+                  }}
+                  onSortChange={setLessonSort}
+                  onYearChange={(value) => {
+                    setLessonYear(value);
+                    setSelectedLessonId(null);
+                    setDetail(null);
+                  }}
+                />
+                {loading ? (
+                  <ActivityIndicator color={colors.tealDark} />
+                ) : roomLessons.length ? (
+                  <View style={styles.lessonLibraryGrid}>
+                    {roomLessons.map((lesson) => (
+                      <LessonLibraryCard
+                        key={lesson.id}
+                        lesson={lesson}
+                        subject={subjectName(setup.subjects, lesson.subject_id)}
+                        onOpen={() => router.push(`/lessons/${lesson.id}` as never)}
+                      />
+                    ))}
+                  </View>
+                ) : (
+                  <Text style={styles.cardBody}>
+                    {roomSectionEmptyText(roomSection, isTeacher)}
+                  </Text>
+                )}
+              </View>
+            </View>
+          )}
         </>
       )}
     </View>
@@ -948,6 +1067,7 @@ function RoomSectionNav({
         { id: 'published', label: 'Published', count: lessonCounts.published },
         { id: 'quiz', label: 'Quiz', count: lessonCounts.quiz },
         { id: 'cards', label: 'Cards', count: lessonCounts.cards },
+        { id: 'insight', label: 'Insight', count: lessonCounts.insight },
       ]
     : [
         { id: 'published', label: 'Lessons', count: lessonCounts.published },
@@ -972,6 +1092,135 @@ function RoomSectionNav({
         );
       })}
     </View>
+  );
+}
+
+function LessonFilterBar({
+  dateFilter,
+  timeFilter,
+  sort,
+  year,
+  years,
+  onDateFilterChange,
+  onTimeFilterChange,
+  onSortChange,
+  onYearChange,
+}: {
+  dateFilter: LessonDateFilter;
+  timeFilter: LessonTimeFilter;
+  sort: LessonSort;
+  year: string;
+  years: string[];
+  onDateFilterChange: (value: LessonDateFilter) => void;
+  onTimeFilterChange: (value: LessonTimeFilter) => void;
+  onSortChange: (value: LessonSort) => void;
+  onYearChange: (value: string) => void;
+}) {
+  const dateOptions: Array<{ id: LessonDateFilter; label: string }> = [
+    { id: 'all', label: 'All' },
+    { id: 'today', label: 'Today' },
+    { id: 'week', label: 'Week' },
+    { id: 'month', label: 'Month' },
+    { id: 'year', label: 'Year' },
+  ];
+  const timeOptions: Array<{ id: LessonTimeFilter; label: string }> = [
+    { id: 'all', label: 'Any time' },
+    { id: 'morning', label: 'Morning' },
+    { id: 'afternoon', label: 'Afternoon' },
+    { id: 'evening', label: 'Evening' },
+  ];
+
+  return (
+    <View style={styles.lessonFilters}>
+      <View style={styles.filterGroup}>
+        <View style={styles.filterLabelRow}>
+          <CalendarDays size={15} color={colors.tealDark} />
+          <Text style={styles.filterLabel}>Date</Text>
+        </View>
+        <View style={styles.filterPillRow}>
+          {dateOptions.map((option) => (
+            <Pressable
+              key={option.id}
+              onPress={() => onDateFilterChange(option.id)}
+              style={[styles.filterPill, dateFilter === option.id && styles.filterPillActive]}
+            >
+              <Text style={[styles.filterPillText, dateFilter === option.id && styles.filterPillTextActive]}>{option.label}</Text>
+            </Pressable>
+          ))}
+        </View>
+      </View>
+
+      <View style={styles.filterGroup}>
+        <View style={styles.filterLabelRow}>
+          <Clock3 size={15} color={colors.tealDark} />
+          <Text style={styles.filterLabel}>Time</Text>
+        </View>
+        <View style={styles.filterPillRow}>
+          {timeOptions.map((option) => (
+            <Pressable
+              key={option.id}
+              onPress={() => onTimeFilterChange(option.id)}
+              style={[styles.filterPill, timeFilter === option.id && styles.filterPillActive]}
+            >
+              <Text style={[styles.filterPillText, timeFilter === option.id && styles.filterPillTextActive]}>{option.label}</Text>
+            </Pressable>
+          ))}
+        </View>
+      </View>
+
+      <View style={styles.filterGroup}>
+        <Text style={styles.filterLabel}>Year</Text>
+        <View style={styles.filterPillRow}>
+          <Pressable onPress={() => onYearChange('all')} style={[styles.filterPill, year === 'all' && styles.filterPillActive]}>
+            <Text style={[styles.filterPillText, year === 'all' && styles.filterPillTextActive]}>All years</Text>
+          </Pressable>
+          {years.map((item) => (
+            <Pressable key={item} onPress={() => onYearChange(item)} style={[styles.filterPill, year === item && styles.filterPillActive]}>
+              <Text style={[styles.filterPillText, year === item && styles.filterPillTextActive]}>{item}</Text>
+            </Pressable>
+          ))}
+        </View>
+      </View>
+
+      <View style={styles.filterGroup}>
+        <Text style={styles.filterLabel}>Order</Text>
+        <View style={styles.filterPillRow}>
+          <Pressable onPress={() => onSortChange('newest')} style={[styles.filterPill, sort === 'newest' && styles.filterPillActive]}>
+            <Text style={[styles.filterPillText, sort === 'newest' && styles.filterPillTextActive]}>Newest</Text>
+          </Pressable>
+          <Pressable onPress={() => onSortChange('oldest')} style={[styles.filterPill, sort === 'oldest' && styles.filterPillActive]}>
+            <Text style={[styles.filterPillText, sort === 'oldest' && styles.filterPillTextActive]}>Oldest</Text>
+          </Pressable>
+        </View>
+      </View>
+    </View>
+  );
+}
+
+function LessonLibraryCard({
+  lesson,
+  subject,
+  onOpen,
+}: {
+  lesson: LessonRow;
+  subject: string;
+  onOpen: () => void;
+}) {
+  return (
+    <Pressable onPress={onOpen} style={styles.lessonLibraryCard}>
+      <View style={styles.lessonLibraryTop}>
+        <View style={styles.lessonLibraryIcon}>
+          <BookOpen size={20} color={colors.tealDark} />
+        </View>
+        <StatusBadge status={lesson.status} />
+      </View>
+      <Text style={styles.lessonLibraryTitle}>{lesson.title}</Text>
+      <Text style={styles.lessonLibraryMeta}>{subject}</Text>
+      <View style={styles.lessonLibraryFooter}>
+        <Text style={styles.lessonLibraryDate}>{lessonDateLabel(lesson)}</Text>
+        <Text style={styles.lessonLibraryDate}>{lessonTimeLabel(lesson)}</Text>
+      </View>
+    </Pressable>
   );
 }
 
@@ -1658,6 +1907,85 @@ function QuizInsightPanel({
   );
 }
 
+function TeacherInsightDashboard({
+  lessons,
+  insights,
+}: {
+  lessons: LessonRow[];
+  insights: TeacherLessonInsight[];
+}) {
+  const insightByLesson = new Map(insights.map((insight) => [insight.lessonId, insight]));
+  const totalAttempts = insights.reduce((total, insight) => total + insight.attemptCount, 0);
+  const averageScore = totalAttempts
+    ? insights.reduce((total, insight) => total + insight.averageScore * insight.attemptCount, 0) / totalAttempts
+    : 0;
+  const needsHelp = insights.reduce((total, insight) => total + insight.needsHelpCount, 0);
+
+  return (
+    <View style={styles.insightDashboard}>
+      <View style={styles.insightHero}>
+        <View style={styles.insightHeroIcon}>
+          <Brain size={25} color="#ffffff" />
+        </View>
+        <View style={styles.flexText}>
+          <Text style={styles.insightHeroTitle}>Class insight</Text>
+          <Text style={styles.insightHeroBody}>Quiz results show where the class is ready and where to revisit.</Text>
+        </View>
+      </View>
+
+      <View style={styles.insightStats}>
+        <View style={styles.insightStat}>
+          <Text style={styles.insightValue}>{lessons.length}</Text>
+          <Text style={styles.insightLabel}>Lessons</Text>
+        </View>
+        <View style={styles.insightStat}>
+          <Text style={styles.insightValue}>{totalAttempts}</Text>
+          <Text style={styles.insightLabel}>Attempts</Text>
+        </View>
+        <View style={styles.insightStat}>
+          <Text style={styles.insightValue}>{Math.round(averageScore)}%</Text>
+          <Text style={styles.insightLabel}>Average</Text>
+        </View>
+        <View style={styles.insightStat}>
+          <Text style={styles.insightValue}>{needsHelp}</Text>
+          <Text style={styles.insightLabel}>Need help</Text>
+        </View>
+      </View>
+
+      <View style={styles.insightLessonList}>
+        {lessons.length ? (
+          lessons.map((lesson) => {
+            const insight = insightByLesson.get(lesson.id);
+            const hasAttempts = Boolean(insight?.attemptCount);
+
+            return (
+              <View key={lesson.id} style={styles.insightLessonCard}>
+                <View style={styles.flexText}>
+                  <Text style={styles.insightLessonTitle}>{lesson.title}</Text>
+                  <Text style={styles.insightLessonMeta}>
+                    {hasAttempts
+                      ? `${insight?.attemptCount ?? 0} attempts - ${Math.round(insight?.averageScore ?? 0)}% average`
+                      : 'No attempts yet'}
+                  </Text>
+                </View>
+                <View style={[styles.insightStatusPill, hasAttempts && styles.insightStatusPillActive]}>
+                  <Text style={[styles.insightStatusText, hasAttempts && styles.insightStatusTextActive]}>
+                    {hasAttempts ? `${insight?.needsHelpCount ?? 0} need help` : 'Waiting'}
+                  </Text>
+                </View>
+              </View>
+            );
+          })
+        ) : (
+          <View style={styles.card}>
+            <Text style={styles.cardBody}>Publish lessons and collect quiz attempts to see class insight.</Text>
+          </View>
+        )}
+      </View>
+    </View>
+  );
+}
+
 function FlashcardPanel({ flashcards }: { flashcards: LessonDetail['flashcards'] }) {
   const [activeIndex, setActiveIndex] = useState(0);
   const [showBack, setShowBack] = useState(false);
@@ -1781,6 +2109,7 @@ function lessonSectionCounts(lessons: LessonRow[]): Record<LessonRoomSection, nu
     published,
     quiz: published,
     cards: published,
+    insight: published,
   };
 }
 
@@ -1807,6 +2136,7 @@ function roomSectionTitle(section: LessonRoomSection, isTeacher: boolean) {
     published: isTeacher ? 'Published lessons' : 'Lessons',
     quiz: 'Quiz',
     cards: 'Cards',
+    insight: 'Class insight',
   };
 
   return labels[section];
@@ -1827,6 +2157,10 @@ function roomSectionEmptyText(section: LessonRoomSection, isTeacher: boolean) {
 
   if (section === 'cards') {
     return isTeacher ? 'Published lessons with cards will appear here.' : 'Cards will appear after lessons are published.';
+  }
+
+  if (section === 'insight') {
+    return 'Publish lessons and collect quiz attempts to see class insight.';
   }
 
   return isTeacher ? 'Published lessons will appear here.' : 'Published lessons for this subject will appear here.';
@@ -1942,6 +2276,95 @@ function lessonStatusLabel(status: LessonRow['status']) {
   return labels[status];
 }
 
+function filterLessonsByTime(
+  lessons: LessonRow[],
+  filters: {
+    dateFilter: LessonDateFilter;
+    timeFilter: LessonTimeFilter;
+    sort: LessonSort;
+    year: string;
+  }
+) {
+  const now = new Date();
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const startOfWeek = startOfToday - now.getDay() * 24 * 60 * 60 * 1000;
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+  const startOfYear = new Date(now.getFullYear(), 0, 1).getTime();
+
+  return [...lessons]
+    .filter((lesson) => {
+      const timestamp = lessonTimestamp(lesson);
+      const date = new Date(timestamp);
+
+      if (filters.year !== 'all' && String(date.getFullYear()) !== filters.year) {
+        return false;
+      }
+
+      if (filters.dateFilter === 'today' && timestamp < startOfToday) {
+        return false;
+      }
+
+      if (filters.dateFilter === 'week' && timestamp < startOfWeek) {
+        return false;
+      }
+
+      if (filters.dateFilter === 'month' && timestamp < startOfMonth) {
+        return false;
+      }
+
+      if (filters.dateFilter === 'year' && timestamp < startOfYear) {
+        return false;
+      }
+
+      return timeFilterMatches(date, filters.timeFilter);
+    })
+    .sort((left, right) =>
+      filters.sort === 'newest'
+        ? lessonTimestamp(right) - lessonTimestamp(left)
+        : lessonTimestamp(left) - lessonTimestamp(right)
+    );
+}
+
+function timeFilterMatches(date: Date, filter: LessonTimeFilter) {
+  const hour = date.getHours();
+
+  if (filter === 'morning') {
+    return hour >= 5 && hour < 12;
+  }
+
+  if (filter === 'afternoon') {
+    return hour >= 12 && hour < 17;
+  }
+
+  if (filter === 'evening') {
+    return hour >= 17 || hour < 5;
+  }
+
+  return true;
+}
+
+function lessonYears(lessons: LessonRow[]) {
+  return Array.from(new Set(lessons.map((lesson) => new Date(lessonTimestamp(lesson)).getFullYear()).filter(Boolean)))
+    .sort((left, right) => right - left)
+    .map(String);
+}
+
+function lessonTimestamp(lesson: LessonRow) {
+  const value = lesson.recorded_at ?? lesson.published_at ?? lesson.created_at;
+  const timestamp = new Date(value).getTime();
+  return Number.isFinite(timestamp) ? timestamp : 0;
+}
+
+function lessonDateLabel(lesson: LessonRow) {
+  const date = new Date(lessonTimestamp(lesson));
+  return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function lessonTimeLabel(lesson: LessonRow) {
+  const date = new Date(lessonTimestamp(lesson));
+  return date.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+}
+
 function speechLocale(language: string) {
   const normalized = language.trim().toLowerCase();
   const locales: Record<string, string> = {
@@ -1975,6 +2398,137 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 16,
+  },
+  lessonLibrary: {
+    gap: 16,
+  },
+  lessonRoute: {
+    gap: 16,
+  },
+  lessonRouteHeader: {
+    minHeight: 68,
+    borderRadius: 20,
+    padding: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: colors.paper,
+    borderWidth: 1,
+    borderColor: colors.line,
+  },
+  lessonRouteTitle: {
+    color: colors.ink,
+    fontSize: 20,
+    lineHeight: 26,
+    fontWeight: '900',
+  },
+  lessonFilters: {
+    gap: 12,
+  },
+  filterGroup: {
+    gap: 7,
+  },
+  filterLabelRow: {
+    minHeight: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  filterLabel: {
+    color: colors.ink,
+    fontSize: 12,
+    lineHeight: 17,
+    fontWeight: '900',
+  },
+  filterPillRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  filterPill: {
+    minHeight: 34,
+    borderRadius: 14,
+    paddingHorizontal: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: colors.line,
+  },
+  filterPillActive: {
+    backgroundColor: colors.tealDark,
+    borderColor: colors.tealDark,
+  },
+  filterPillText: {
+    color: colors.tealDark,
+    fontSize: 12,
+    fontWeight: '900',
+  },
+  filterPillTextActive: {
+    color: '#ffffff',
+  },
+  lessonLibraryGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  lessonLibraryCard: {
+    minWidth: 230,
+    flex: 1,
+    borderRadius: 20,
+    padding: 14,
+    gap: 10,
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: colors.line,
+    shadowColor: '#16251f',
+    shadowOpacity: 0.06,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 6 },
+  },
+  lessonLibraryTop: {
+    minHeight: 38,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
+  lessonLibraryIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.softTeal,
+  },
+  lessonLibraryTitle: {
+    color: colors.ink,
+    fontSize: 16,
+    lineHeight: 22,
+    fontWeight: '900',
+  },
+  lessonLibraryMeta: {
+    color: colors.muted,
+    fontSize: 12,
+    lineHeight: 18,
+    fontWeight: '800',
+  },
+  lessonLibraryFooter: {
+    minHeight: 28,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  lessonLibraryDate: {
+    minHeight: 28,
+    borderRadius: 14,
+    paddingHorizontal: 9,
+    paddingTop: 6,
+    color: colors.tealDark,
+    backgroundColor: colors.softTeal,
+    fontSize: 11,
+    lineHeight: 15,
+    fontWeight: '900',
   },
   classGrid: {
     flexDirection: 'row',
@@ -2813,6 +3367,38 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     fontWeight: '800',
   },
+  insightDashboard: {
+    gap: 14,
+  },
+  insightHero: {
+    minHeight: 104,
+    borderRadius: 22,
+    padding: 18,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    backgroundColor: colors.ink,
+  },
+  insightHeroIcon: {
+    width: 54,
+    height: 54,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.tealDark,
+  },
+  insightHeroTitle: {
+    color: '#ffffff',
+    fontSize: 22,
+    lineHeight: 28,
+    fontWeight: '900',
+  },
+  insightHeroBody: {
+    color: '#dce7e1',
+    fontSize: 13,
+    lineHeight: 19,
+    fontWeight: '800',
+  },
   insightBox: {
     borderRadius: 18,
     padding: 12,
@@ -2870,6 +3456,55 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 17,
     fontWeight: '900',
+  },
+  insightLessonList: {
+    gap: 10,
+  },
+  insightLessonCard: {
+    minHeight: 74,
+    borderRadius: 18,
+    padding: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: colors.paper,
+    borderWidth: 1,
+    borderColor: colors.line,
+  },
+  insightLessonTitle: {
+    color: colors.ink,
+    fontSize: 15,
+    lineHeight: 21,
+    fontWeight: '900',
+  },
+  insightLessonMeta: {
+    color: colors.muted,
+    fontSize: 12,
+    lineHeight: 18,
+    fontWeight: '800',
+  },
+  insightStatusPill: {
+    minHeight: 34,
+    borderRadius: 14,
+    paddingHorizontal: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.softGold,
+    borderWidth: 1,
+    borderColor: '#f2d995',
+  },
+  insightStatusPillActive: {
+    backgroundColor: colors.softTeal,
+    borderColor: '#d4e8df',
+  },
+  insightStatusText: {
+    color: '#6f5520',
+    fontSize: 11,
+    lineHeight: 15,
+    fontWeight: '900',
+  },
+  insightStatusTextActive: {
+    color: colors.tealDark,
   },
   explanationText: {
     color: colors.tealDark,

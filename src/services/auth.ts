@@ -71,6 +71,20 @@ export async function signInWithEmail(input: SignInInput) {
   return data;
 }
 
+export async function sendPasswordReset(email: string) {
+  const cleanEmail = email.trim();
+
+  if (!cleanEmail) {
+    throw new Error('Email is required.');
+  }
+
+  const { error } = await client().auth.resetPasswordForEmail(cleanEmail);
+
+  if (error) {
+    throw error;
+  }
+}
+
 export async function signOut() {
   const { error } = await client().auth.signOut();
 
