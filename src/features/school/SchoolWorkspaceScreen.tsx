@@ -1,89 +1,31 @@
-import { ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
-  Platform,
   Pressable,
   RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from 'react-native';
-import {
-  ArrowLeft,
-  BookOpen,
-  CalendarDays,
-  ClipboardList,
-  GraduationCap,
-  LogOut,
-  QrCode,
-  ShieldCheck,
-  UserPlus,
-  Users,
-} from 'lucide-react-native';
 import { router } from 'expo-router';
+import { ArrowLeft, BookOpen, GraduationCap, LogOut, ShieldCheck } from 'lucide-react-native';
 
 import { AppNavigation, AppNavItem } from '../../components/AppNavigation';
-import { ImageUploadButton } from '../../components/ImageUploadButton';
+import { signOut } from '../../services/auth';
+import { fetchSchoolSetupState, SchoolSetupState } from '../../services/school';
+import { colors } from '../../theme/tokens';
+import { ActiveSchoolMembership } from '../../types';
 import { LearnerScreen } from '../learner/LearnerScreen';
 import { TeacherScreen } from '../teacher/TeacherScreen';
-import { supabase } from '../../lib/supabase';
-import { signOut } from '../../services/auth';
-import {
-  AcademicTermRow,
-  AcademicYearRow,
-  ClassMembershipRow,
-  ClassSubjectRow,
-  ClassRow,
-  InviteRow,
-  SchoolSetupState,
-  SchoolMemberRow,
-  SubjectRow,
-  assignMemberToClass,
-  createClassSubject,
-  createAcademicTerm,
-  createAcademicYear,
-  createClass,
-  createSchoolInvite,
-  createSubject,
-  fetchSchoolSetupState,
-  removeClassSubject,
-  removeMemberFromClass,
-  reviewJoinRequest,
-  updateClassUsername,
-  updateSchoolDetails,
-  updateSchoolMemberStatus,
-} from '../../services/school';
-import { colors } from '../../theme/tokens';
-import { ActiveSchoolMembership, SchoolMembershipRole } from '../../types';
+
+type WorkspaceSurface = 'learn' | 'teach';
 
 type SchoolWorkspaceScreenProps = {
   membership: ActiveSchoolMembership;
   onSwitchSchool: () => void;
   initialSurface?: WorkspaceSurface;
-};
-
-type WorkspaceCounts = {
-  activeMembers: number;
-  classes: number;
-  subjects: number;
-  invites: number;
-  pendingRequests: number;
-  lessons: number;
-};
-
-type WorkspaceSurface = 'learn' | 'teach' | 'admin';
-type AdminSection = 'overview' | 'profile' | 'academic' | 'classes' | 'subjects' | 'people' | 'invites' | 'requests';
-
-const emptyCounts: WorkspaceCounts = {
-  activeMembers: 0,
-  classes: 0,
-  subjects: 0,
-  invites: 0,
-  pendingRequests: 0,
-  lessons: 0,
 };
 
 const emptySetup: SchoolSetupState = {
@@ -98,135 +40,38 @@ const emptySetup: SchoolSetupState = {
   joinRequests: [],
 };
 
-const inviteRoles: SchoolMembershipRole[] = ['student', 'teacher', 'admin'];
-const stickerPack = [
-  { key: 'spark', label: 'Spark', accent: colors.gold },
-  { key: 'orbit', label: 'Orbit', accent: colors.blue },
-  { key: 'leaf', label: 'Leaf', accent: colors.teal },
-  { key: 'coral', label: 'Coral', accent: colors.coral },
-];
-
-const adminSections: Array<{ id: AdminSection; label: string }> = [
-  { id: 'overview', label: 'Overview' },
-  { id: 'profile', label: 'Profile' },
-  { id: 'academic', label: 'Academic' },
-  { id: 'classes', label: 'Classes' },
-  { id: 'subjects', label: 'Subjects' },
-  { id: 'people', label: 'People' },
-  { id: 'invites', label: 'Invites' },
-  { id: 'requests', label: 'Requests' },
-];
-
-function initialWorkspaceSurface(canTeach: boolean, isAdmin: boolean): WorkspaceSurface {
-  const pathSurface = workspaceSurfaceFromPath();
-
-  if (pathSurface && surfaceAllowed(pathSurface, canTeach, isAdmin)) {
-    return pathSurface;
-  }
-
-  return canTeach ? 'teach' : 'learn';
-}
-
-function workspaceSurfaceFromPath(): WorkspaceSurface | null {
-  if (Platform.OS !== 'web' || typeof window === 'undefined') {
-    return null;
-  }
-
-  const path = window.location.pathname.toLowerCase();
-
-  if (path.includes('/admin')) {
-    return 'admin';
-  }
-
-  if (path.includes('/teach')) {
-    return 'teach';
-  }
-
-  if (path.includes('/learn')) {
-    return 'learn';
-  }
-
-  return null;
-}
-
-function surfaceAllowed(surface: WorkspaceSurface, canTeach: boolean, isAdmin: boolean) {
-  return surface === 'learn' || (surface === 'teach' && canTeach) || (surface === 'admin' && isAdmin);
-}
-
-function syncWorkspaceRoute(surface: WorkspaceSurface) {
-  const nextPath = `/${surface}`;
-  router.push(nextPath as '/learn' | '/teach' | '/admin');
-}
-
-export function SchoolWorkspaceScreen({ membership, onSwitchSchool, initialSurface }: SchoolWorkspaceScreenProps) {
-  const [counts, setCounts] = useState<WorkspaceCounts>(emptyCounts);
+export function SchoolWorkspaceScreen({
+  membership,
+  onSwitchSchool,
+  initialSurface,
+}: SchoolWorkspaceScreenProps) {
+  const isAdmin = membership.role === 'owner' || membership.role === 'admin';
+  const canTeach = ['owner', 'admin', 'teacher'].includes(membership.role);
+  const startingSurface = initialSurface === 'teach' && canTeach ? 'teach' : 'learn';
+  const [activeSurface, setActiveSurface] = useState<WorkspaceSurface>(startingSurface);
   const [setup, setSetup] = useState<SchoolSetupState>(emptySetup);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
-  const [saving, setSaving] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
-  const isAdmin = membership.role === 'owner' || membership.role === 'admin';
-  const canTeach = ['owner', 'admin', 'teacher'].includes(membership.role);
-  const [activeSurface, setActiveSurface] = useState<WorkspaceSurface>(() =>
-    initialSurface && surfaceAllowed(initialSurface, canTeach, isAdmin)
-      ? initialSurface
-      : initialWorkspaceSurface(canTeach, isAdmin)
-  );
-  const [adminSection, setAdminSection] = useState<AdminSection>('overview');
-  const [schoolDetails, setSchoolDetails] = useState({
-    name: membership.school.name,
-    username: membership.school.slug ?? '',
-    country: membership.school.country ?? '',
-    city: membership.school.city ?? '',
-    logoUrl: membership.school.logoUrl ?? '',
-    bannerUrl: membership.school.bannerUrl ?? '',
-    stickerKey: membership.school.stickerKey ?? 'spark',
-  });
 
-  const [yearName, setYearName] = useState('');
-  const [yearStart, setYearStart] = useState('');
-  const [yearEnd, setYearEnd] = useState('');
-  const [selectedYearId, setSelectedYearId] = useState<string | null>(null);
+  const school = membership.school;
+  const schoolName = school.name;
+  const schoolUsername = school.slug ?? '';
+  const schoolPlace = [school.city, school.country].filter(Boolean).join(', ');
 
-  const [termName, setTermName] = useState('');
-  const [termStart, setTermStart] = useState('');
-  const [termEnd, setTermEnd] = useState('');
-  const [selectedTermId, setSelectedTermId] = useState<string | null>(null);
-
-  const [subjectName, setSubjectName] = useState('');
-  const [subjectDepartment, setSubjectDepartment] = useState('');
-
-  const [className, setClassName] = useState('');
-  const [classUsername, setClassUsername] = useState('');
-  const [gradeLevel, setGradeLevel] = useState('');
-  const [classLogoUrl, setClassLogoUrl] = useState('');
-  const [classBannerUrl, setClassBannerUrl] = useState('');
-  const [classStickerKey, setClassStickerKey] = useState('orbit');
-
-  const [inviteClassId, setInviteClassId] = useState<string | null>(null);
-  const [inviteRole, setInviteRole] = useState<SchoolMembershipRole>('student');
-  const [inviteMaxUses, setInviteMaxUses] = useState('');
-
-  const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
-  const [selectedMemberClassId, setSelectedMemberClassId] = useState<string | null>(null);
-  const [selectedSubjectClassId, setSelectedSubjectClassId] = useState<string | null>(null);
-  const [selectedSubjectId, setSelectedSubjectId] = useState<string | null>(null);
-  const [selectedTeacherId, setSelectedTeacherId] = useState<string | null>(null);
-
-  const navItems: AppNavItem[] = [
+  const navItems = useMemo<AppNavItem[]>(() => [
     {
       id: 'learn',
       label: 'Learn',
-      description: 'Class lessons',
+      description: 'Lessons and practice',
       group: 'School',
       icon: <BookOpen size={19} color={activeSurface === 'learn' ? colors.tealDark : '#dce7e1'} />,
     },
     {
       id: 'teach',
       label: 'Teach',
-      description: 'Live lessons',
+      description: 'Live class work',
       group: 'School',
       visible: canTeach,
       icon: <GraduationCap size={19} color={activeSurface === 'teach' ? colors.tealDark : '#dce7e1'} />,
@@ -234,71 +79,32 @@ export function SchoolWorkspaceScreen({ membership, onSwitchSchool, initialSurfa
     {
       id: 'admin',
       label: 'Admin',
-      description: 'School controls',
-      group: 'Admin',
+      description: 'School console',
+      group: 'School',
       visible: isAdmin,
-      icon: <ShieldCheck size={19} color={activeSurface === 'admin' ? colors.tealDark : '#dce7e1'} />,
+      icon: <ShieldCheck size={19} color="#dce7e1" />,
     },
-  ];
+  ], [activeSurface, canTeach, isAdmin]);
 
-  const selectedYear = useMemo(
-    () => setup.academicYears.find((year) => year.id === selectedYearId) ?? setup.academicYears[0],
-    [selectedYearId, setup.academicYears]
-  );
+  const counts = useMemo(() => {
+    const activeMembers = setup.members.filter((member) => member.status === 'active').length;
+    const joinedClasses = setup.classMemberships.filter(
+      (item) => item.school_membership_id === membership.id && item.status === 'active'
+    ).length;
 
-  const selectedTerm = useMemo(
-    () => setup.academicTerms.find((term) => term.id === selectedTermId) ?? setup.academicTerms[0],
-    [selectedTermId, setup.academicTerms]
-  );
-
-  const selectedMember = useMemo(
-    () => setup.members.find((member) => member.id === selectedMemberId) ?? null,
-    [selectedMemberId, setup.members]
-  );
+    return {
+      activeMembers,
+      classes: setup.classes.length,
+      subjects: setup.subjects.length,
+      joinedClasses,
+    };
+  }, [membership.id, setup]);
 
   const loadWorkspace = useCallback(async () => {
-    if (!supabase) {
-      return;
-    }
-
     setError(null);
-
-    const [setupState, activeMembers, lessons] = await Promise.all([
-      fetchSchoolSetupState(membership.schoolId, isAdmin),
-      countRows('school_memberships', membership.schoolId, 'school_id', { status: 'active' }),
-      countRows('lessons', membership.schoolId, 'school_id'),
-    ]);
-
-    if (activeMembers.error || lessons.error) {
-      setError(activeMembers.error ?? lessons.error);
-    }
-
-    setSetup(setupState);
-    setCounts({
-      activeMembers: setupState.members.filter((member) => member.status === 'active').length || activeMembers.count,
-      classes: setupState.classes.length,
-      subjects: setupState.subjects.length,
-      invites: setupState.invites.filter((invite) => invite.status === 'active').length,
-      pendingRequests: setupState.joinRequests.filter((request) => request.status === 'review').length,
-      lessons: lessons.count,
-    });
-
-    setSelectedYearId((current) => current ?? setupState.academicYears[0]?.id ?? null);
-    setSelectedTermId((current) => current ?? setupState.academicTerms[0]?.id ?? null);
-    setSelectedMemberId((current) => current ?? setupState.members[0]?.id ?? null);
-    setSelectedMemberClassId((current) => current ?? setupState.classes[0]?.id ?? null);
-    setSelectedSubjectClassId((current) => current ?? setupState.classes[0]?.id ?? null);
-    setSelectedSubjectId((current) => current ?? setupState.subjects[0]?.id ?? null);
-    setSelectedTeacherId((current) => {
-      const teacher = setupState.members.find((member) =>
-        member.status === 'active' && ['owner', 'admin', 'teacher'].includes(member.role)
-      );
-      return current ?? teacher?.id ?? null;
-    });
-  }, [
-    isAdmin,
-    membership.schoolId,
-  ]);
+    const nextSetup = await fetchSchoolSetupState(membership.schoolId, isAdmin);
+    setSetup(nextSetup);
+  }, [isAdmin, membership.schoolId]);
 
   useEffect(() => {
     setLoading(true);
@@ -308,35 +114,21 @@ export function SchoolWorkspaceScreen({ membership, onSwitchSchool, initialSurfa
   }, [loadWorkspace]);
 
   useEffect(() => {
-    if (surfaceAllowed(activeSurface, canTeach, isAdmin)) {
-      return;
+    if (activeSurface === 'teach' && !canTeach) {
+      setActiveSurface('learn');
     }
-
-    setActiveSurface(initialWorkspaceSurface(canTeach, isAdmin));
-  }, [activeSurface, canTeach, isAdmin]);
+  }, [activeSurface, canTeach]);
 
   useEffect(() => {
-    if (!initialSurface || !surfaceAllowed(initialSurface, canTeach, isAdmin)) {
+    if (initialSurface === 'teach' && canTeach) {
+      setActiveSurface('teach');
       return;
     }
 
-    setActiveSurface(initialSurface);
-  }, [canTeach, initialSurface, isAdmin]);
-
-  useEffect(() => {
-    if (Platform.OS !== 'web' || typeof window === 'undefined') {
-      return;
+    if (initialSurface === 'learn') {
+      setActiveSurface('learn');
     }
-
-    const syncFromPath = () => {
-      setActiveSurface(initialWorkspaceSurface(canTeach, isAdmin));
-    };
-
-    window.addEventListener('popstate', syncFromPath);
-    syncFromPath();
-
-    return () => window.removeEventListener('popstate', syncFromPath);
-  }, [canTeach, isAdmin]);
+  }, [canTeach, initialSurface]);
 
   async function handleRefresh() {
     setRefreshing(true);
@@ -355,1680 +147,187 @@ export function SchoolWorkspaceScreen({ membership, onSwitchSchool, initialSurfa
     }
   }
 
-  async function save(action: string, work: () => Promise<void>, successMessage: string | (() => string)) {
-    setSaving(action);
-    setError(null);
-    setMessage(null);
-    try {
-      await work();
-      setMessage(typeof successMessage === 'function' ? successMessage() : successMessage);
-      await loadWorkspace();
-    } catch (caught) {
-      setError(caught instanceof Error ? caught.message : 'Could not save changes.');
-    } finally {
-      setSaving(null);
-    }
-  }
-
-  async function handleCreateAcademicYear() {
-    await save(
-      'year',
-      async () => {
-        await createAcademicYear({
-          schoolId: membership.schoolId,
-          name: yearName,
-          startsAt: yearStart,
-          endsAt: yearEnd,
-        });
-        setYearName('');
-        setYearStart('');
-        setYearEnd('');
-      },
-      'Academic year added.'
-    );
-  }
-
-  async function handleCreateAcademicTerm() {
-    await save(
-      'term',
-      async () => {
-        await createAcademicTerm({
-          schoolId: membership.schoolId,
-          academicYearId: selectedYear?.id ?? '',
-          name: termName,
-          startsAt: termStart,
-          endsAt: termEnd,
-        });
-        setTermName('');
-        setTermStart('');
-        setTermEnd('');
-      },
-      'Term added.'
-    );
-  }
-
-  async function handleCreateSubject() {
-    await save(
-      'subject',
-      async () => {
-        await createSubject({
-          schoolId: membership.schoolId,
-          name: subjectName,
-          department: subjectDepartment,
-        });
-        setSubjectName('');
-        setSubjectDepartment('');
-      },
-      'Subject added.'
-    );
-  }
-
-  async function handleCreateClass() {
-    await save(
-      'class',
-      async () => {
-        await createClass({
-          schoolId: membership.schoolId,
-          academicTermId: selectedTerm?.id ?? null,
-          name: className,
-          username: classUsername,
-          gradeLevel,
-          logoUrl: classLogoUrl,
-          bannerUrl: classBannerUrl,
-          stickerKey: classStickerKey,
-        });
-        setClassName('');
-        setClassUsername('');
-        setGradeLevel('');
-        setClassLogoUrl('');
-        setClassBannerUrl('');
-        setClassStickerKey('orbit');
-      },
-      'Class added.'
-    );
-  }
-
-  async function handleUpdateSchoolDetails() {
-    await save(
-      'school-details',
-      async () => {
-        const updated = await updateSchoolDetails({
-          schoolId: membership.schoolId,
-          ...schoolDetails,
-        });
-        setSchoolDetails({
-          name: updated.name ?? schoolDetails.name,
-          username: updated.slug ?? schoolDetails.username,
-          country: updated.country ?? '',
-          city: updated.city ?? '',
-          logoUrl: updated.logo_url ?? '',
-          bannerUrl: updated.banner_url ?? '',
-          stickerKey: updated.sticker_key ?? 'spark',
-        });
-      },
-      'School profile updated.'
-    );
-  }
-
-  async function handleUpdateClassUsername(classId: string, username: string) {
-    await save(
-      `class-username-${classId}`,
-      async () => {
-        await updateClassUsername({ classId, username });
-      },
-      'Class username updated.'
-    );
-  }
-
-  async function handleCreateInvite() {
-    let createdCode = '';
-    await save(
-      'invite',
-      async () => {
-        createdCode = await createSchoolInvite({
-          schoolId: membership.schoolId,
-          classId: inviteClassId,
-          role: inviteRole,
-          maxUses: inviteMaxUses,
-        });
-        setInviteMaxUses('');
-      },
-      () => `Invite code created: ${createdCode}`
-    );
-  }
-
-  async function handleAssignMemberToClass() {
-    await save(
-      'assign-member',
-      async () => {
-        await assignMemberToClass({
-          classId: selectedMemberClassId ?? '',
-          schoolMembershipId: selectedMember?.id ?? '',
-          role: selectedMember?.role ?? 'student',
-        });
-      },
-      'Class access updated.'
-    );
-  }
-
-  async function handleRemoveMemberFromClass(classMembershipId: string) {
-    await save(
-      `remove-member-${classMembershipId}`,
-      async () => {
-        await removeMemberFromClass(classMembershipId);
-      },
-      'Class access removed.'
-    );
-  }
-
-  async function handleCreateClassSubject() {
-    await save(
-      'class-subject',
-      async () => {
-        await createClassSubject({
-          classId: selectedSubjectClassId ?? '',
-          subjectId: selectedSubjectId ?? '',
-          teacherMembershipId: selectedTeacherId,
-        });
-      },
-      'Class subject added.'
-    );
-  }
-
-  async function handleRemoveClassSubject(classSubjectId: string) {
-    await save(
-      `remove-subject-${classSubjectId}`,
-      async () => {
-        await removeClassSubject(classSubjectId);
-      },
-      'Class subject removed.'
-    );
-  }
-
-  async function handleReviewJoinRequest(requestId: string, decision: 'approve' | 'decline') {
-    await save(
-      `${decision}-request-${requestId}`,
-      async () => {
-        await reviewJoinRequest(requestId, decision);
-      },
-      decision === 'approve' ? 'Request approved.' : 'Request declined.'
-    );
-  }
-
-  async function handleUpdateMemberStatus(member: SchoolMemberRow, status: 'active' | 'suspended') {
-    await save(
-      `${status}-member-${member.id}`,
-      async () => {
-        await updateSchoolMemberStatus(member.id, status);
-      },
-      status === 'active' ? 'Member restored.' : 'Member suspended.'
-    );
-  }
-
-  function handleSelectSurface(surface: WorkspaceSurface) {
-    if (!surfaceAllowed(surface, canTeach, isAdmin)) {
+  function selectSurface(id: string) {
+    if (id === 'admin') {
+      router.push('/admin');
       return;
     }
 
-    setActiveSurface(surface);
-    syncWorkspaceRoute(surface);
+    if (id === 'teach' && !canTeach) {
+      return;
+    }
+
+    const nextSurface = id === 'teach' ? 'teach' : 'learn';
+    setActiveSurface(nextSurface);
+    router.push(nextSurface === 'teach' ? '/teach' : '/learn');
   }
 
   return (
     <AppNavigation
-      title={schoolDetails.name}
+      title={schoolName}
       subtitle={`${formatRole(membership.role)} access`}
       items={navItems}
       activeId={activeSurface}
-      onSelect={(id) => handleSelectSurface(id as WorkspaceSurface)}
+      onSelect={selectSurface}
     >
-    <ScrollView
-      contentContainerStyle={styles.scrollContent}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
-    >
-      <View style={styles.shell}>
-        <View style={styles.topRow}>
-          <Pressable onPress={onSwitchSchool} style={styles.iconButton}>
-            <ArrowLeft size={20} color={colors.tealDark} />
-          </Pressable>
-          <View style={styles.flexText}>
-            <Text style={styles.title}>{schoolDetails.name}</Text>
-            <Text style={styles.meta}>
-              {formatRole(membership.role)} access - {schoolDetails.username || schoolDetails.city || 'Location not set'}
-            </Text>
-          </View>
-          <Pressable onPress={handleSignOut} style={styles.signOutButton}>
-            {signingOut ? (
-              <ActivityIndicator color={colors.tealDark} />
-            ) : (
-              <>
-                <LogOut size={17} color={colors.tealDark} />
-                <Text style={styles.signOutText}>Sign out</Text>
-              </>
-            )}
-          </Pressable>
-        </View>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
+      >
+        <View style={styles.shell}>
+          <View style={styles.topRow}>
+            <Pressable onPress={onSwitchSchool} style={styles.iconButton}>
+              <ArrowLeft size={20} color={colors.tealDark} />
+            </Pressable>
 
-        <View style={styles.heroPanel}>
-          <BannerStrip imageUrl={schoolDetails.bannerUrl} stickerKey={schoolDetails.stickerKey} />
-          <View style={styles.heroHeader}>
-            <IdentityMark imageUrl={schoolDetails.logoUrl} stickerKey={schoolDetails.stickerKey} label={schoolDetails.name} size="large" />
             <View style={styles.flexText}>
-            <Text style={styles.heroTitle}>{schoolDetails.name}</Text>
-              <Text style={styles.heroBody}>
-              {activeSurface === 'learn'
-                ? 'Open class lessons, read the summary, practise questions, and keep moving.'
-                : activeSurface === 'teach'
-                  ? 'Start a class lesson, add the transcript, then create materials for students.'
-                  : 'Manage the school profile, people, classes, subjects, invites, and requests.'}
+              <Text style={styles.title}>{schoolName}</Text>
+              <Text style={styles.meta} numberOfLines={1}>
+                {schoolUsername || schoolPlace || formatRole(membership.role)}
               </Text>
             </View>
+
+            <Pressable onPress={handleSignOut} style={styles.signOutButton}>
+              {signingOut ? (
+                <ActivityIndicator color={colors.tealDark} />
+              ) : (
+                <>
+                  <LogOut size={17} color={colors.tealDark} />
+                  <Text style={styles.signOutText}>Sign out</Text>
+                </>
+              )}
+            </Pressable>
           </View>
+
+          <View style={styles.heroPanel}>
+            <View style={styles.banner}>
+              {school.bannerUrl ? <Image source={{ uri: school.bannerUrl }} style={styles.bannerImage} /> : null}
+            </View>
+            <View style={styles.heroHeader}>
+              <IdentityMark imageUrl={school.logoUrl} label={schoolName} />
+              <View style={styles.flexText}>
+                <Text style={styles.heroTitle}>
+                  {activeSurface === 'teach' ? 'Teaching studio' : 'Learning space'}
+                </Text>
+                <Text style={styles.heroBody}>
+                  {activeSurface === 'teach'
+                    ? 'Start lessons, manage class work, and prepare materials for students.'
+                    : 'Open classes, read lesson summaries, practise, and keep progress moving.'}
+                </Text>
+              </View>
+            </View>
+          </View>
+
+          {error ? <Text style={styles.errorText}>{error}</Text> : null}
+
+          <View style={styles.metricGrid}>
+            <Metric label="Members" value={counts.activeMembers} />
+            <Metric label="Classes" value={counts.classes} />
+            <Metric label="Subjects" value={counts.subjects} />
+            <Metric label="Joined" value={counts.joinedClasses} />
+          </View>
+
+          {loading ? (
+            <View style={styles.loadingCard}>
+              <ActivityIndicator color={colors.tealDark} />
+              <Text style={styles.meta}>Loading school data</Text>
+            </View>
+          ) : activeSurface === 'teach' ? (
+            <TeacherScreen membership={membership} setup={setup} onWorkspaceChanged={loadWorkspace} />
+          ) : (
+            <LearnerScreen membership={membership} setup={setup} onWorkspaceChanged={loadWorkspace} />
+          )}
         </View>
-
-        {error ? <Text style={styles.errorText}>{error}</Text> : null}
-        {message ? <Text style={styles.successText}>{message}</Text> : null}
-
-        {loading ? (
-          <View style={styles.loadingCard}>
-            <ActivityIndicator color={colors.tealDark} />
-            <Text style={styles.meta}>Loading school data</Text>
-          </View>
-        ) : (
-          <>
-            {activeSurface === 'admin' ? <View style={styles.metricGrid}>
-              <Metric label="Active members" value={counts.activeMembers} icon={<Users size={20} color={colors.teal} />} />
-              <Metric label="Classes" value={counts.classes} icon={<BookOpen size={20} color={colors.blue} />} />
-              <Metric label="Subjects" value={counts.subjects} icon={<ClipboardList size={20} color={colors.gold} />} />
-              <Metric label="Active invites" value={counts.invites} icon={<UserPlus size={20} color={colors.teal} />} />
-              <Metric label="Join requests" value={counts.pendingRequests} icon={<Users size={20} color={colors.coral} />} />
-              <Metric label="Lessons" value={counts.lessons} icon={<BookOpen size={20} color={colors.blue} />} />
-            </View> : null}
-
-            {activeSurface === 'learn' ? (
-              <LearnerScreen membership={membership} setup={setup} onWorkspaceChanged={loadWorkspace} />
-            ) : activeSurface === 'teach' ? (
-              <TeacherScreen membership={membership} setup={setup} onWorkspaceChanged={loadWorkspace} />
-            ) : isAdmin ? (
-                  <AdminSetup
-                    section={adminSection}
-                    setup={setup}
-                    counts={counts}
-                    schoolId={membership.schoolId}
-                    schoolCode={schoolDetails.username || null}
-                    schoolDetails={schoolDetails}
-                    selectedYearId={selectedYear?.id ?? null}
-                    selectedTermId={selectedTerm?.id ?? null}
-                    inviteClassId={inviteClassId}
-                    inviteRole={inviteRole}
-                    selectedMemberId={selectedMemberId}
-                    selectedMemberClassId={selectedMemberClassId}
-                    selectedSubjectClassId={selectedSubjectClassId}
-                    selectedSubjectId={selectedSubjectId}
-                    selectedTeacherId={selectedTeacherId}
-                    values={{
-                      yearName,
-                      yearStart,
-                      yearEnd,
-                      termName,
-                      termStart,
-                      termEnd,
-                      subjectName,
-                      subjectDepartment,
-                      className,
-                      classUsername,
-                      gradeLevel,
-                      classLogoUrl,
-                      classBannerUrl,
-                      classStickerKey,
-                      inviteMaxUses,
-                    }}
-                    saving={saving}
-                    onSelectYear={setSelectedYearId}
-                    onSelectTerm={setSelectedTermId}
-                    onSelectInviteClass={setInviteClassId}
-                    onSelectInviteRole={setInviteRole}
-                    onSelectMember={setSelectedMemberId}
-                    onSelectMemberClass={setSelectedMemberClassId}
-                    onSelectSubjectClass={setSelectedSubjectClassId}
-                    onSelectSubject={setSelectedSubjectId}
-                    onSelectTeacher={setSelectedTeacherId}
-                    onChange={{
-                      setYearName,
-                      setYearStart,
-                      setYearEnd,
-                      setTermName,
-                      setTermStart,
-                      setTermEnd,
-                      setSubjectName,
-                      setSubjectDepartment,
-                      setClassName,
-                      setClassUsername,
-                      setGradeLevel,
-                      setClassLogoUrl,
-                      setClassBannerUrl,
-                      setClassStickerKey,
-                      setSchoolDetails,
-                      setInviteMaxUses,
-                    }}
-                    onCreateYear={handleCreateAcademicYear}
-                    onCreateTerm={handleCreateAcademicTerm}
-                    onCreateSubject={handleCreateSubject}
-                    onCreateClass={handleCreateClass}
-                    onUpdateClassUsername={handleUpdateClassUsername}
-                    onUpdateSchoolDetails={handleUpdateSchoolDetails}
-                    onCreateInvite={handleCreateInvite}
-                    onAssignMemberToClass={handleAssignMemberToClass}
-                    onRemoveMemberFromClass={handleRemoveMemberFromClass}
-                    onCreateClassSubject={handleCreateClassSubject}
-                    onRemoveClassSubject={handleRemoveClassSubject}
-                    onReviewJoinRequest={handleReviewJoinRequest}
-                    onUpdateMemberStatus={handleUpdateMemberStatus}
-                    onSelectSection={setAdminSection}
-                    onError={setError}
-                  />
-            ) : (
-              <MemberWorkspace setup={setup} membership={membership} />
-            )}
-          </>
-        )}
-      </View>
-    </ScrollView>
+      </ScrollView>
     </AppNavigation>
   );
 }
 
-type AdminSetupProps = {
-  section: AdminSection;
-  setup: SchoolSetupState;
-  counts: WorkspaceCounts;
-  schoolId: string;
-  schoolCode: string | null;
-  schoolDetails: {
-    name: string;
-    username: string;
-    country: string;
-    city: string;
-    logoUrl: string;
-    bannerUrl: string;
-    stickerKey: string;
-  };
-  selectedYearId: string | null;
-  selectedTermId: string | null;
-  inviteClassId: string | null;
-  inviteRole: SchoolMembershipRole;
-  selectedMemberId: string | null;
-  selectedMemberClassId: string | null;
-  selectedSubjectClassId: string | null;
-  selectedSubjectId: string | null;
-  selectedTeacherId: string | null;
-  values: {
-    yearName: string;
-    yearStart: string;
-    yearEnd: string;
-    termName: string;
-    termStart: string;
-    termEnd: string;
-    subjectName: string;
-    subjectDepartment: string;
-    className: string;
-    classUsername: string;
-    gradeLevel: string;
-    classLogoUrl: string;
-    classBannerUrl: string;
-    classStickerKey: string;
-    inviteMaxUses: string;
-  };
-  saving: string | null;
-  onSelectYear: (id: string) => void;
-  onSelectTerm: (id: string) => void;
-  onSelectInviteClass: (id: string | null) => void;
-  onSelectInviteRole: (role: SchoolMembershipRole) => void;
-  onSelectMember: (id: string) => void;
-  onSelectMemberClass: (id: string) => void;
-  onSelectSubjectClass: (id: string) => void;
-  onSelectSubject: (id: string) => void;
-  onSelectTeacher: (id: string | null) => void;
-  onChange: {
-    setYearName: (value: string) => void;
-    setYearStart: (value: string) => void;
-    setYearEnd: (value: string) => void;
-    setTermName: (value: string) => void;
-    setTermStart: (value: string) => void;
-    setTermEnd: (value: string) => void;
-    setSubjectName: (value: string) => void;
-    setSubjectDepartment: (value: string) => void;
-    setClassName: (value: string) => void;
-    setClassUsername: (value: string) => void;
-    setGradeLevel: (value: string) => void;
-    setClassLogoUrl: (value: string) => void;
-    setClassBannerUrl: (value: string) => void;
-    setClassStickerKey: (value: string) => void;
-    setSchoolDetails: (value: AdminSetupProps['schoolDetails']) => void;
-    setInviteMaxUses: (value: string) => void;
-  };
-  onCreateYear: () => void;
-  onCreateTerm: () => void;
-  onCreateSubject: () => void;
-  onCreateClass: () => void;
-  onUpdateClassUsername: (classId: string, username: string) => void;
-  onUpdateSchoolDetails: () => void;
-  onCreateInvite: () => void;
-  onAssignMemberToClass: () => void;
-  onRemoveMemberFromClass: (classMembershipId: string) => void;
-  onCreateClassSubject: () => void;
-  onRemoveClassSubject: (classSubjectId: string) => void;
-  onReviewJoinRequest: (requestId: string, decision: 'approve' | 'decline') => void;
-  onUpdateMemberStatus: (member: SchoolMemberRow, status: 'active' | 'suspended') => void;
-  onSelectSection: (section: AdminSection) => void;
-  onError: (message: string) => void;
-};
-
-function MemberWorkspace({
-  setup,
-  membership,
-}: {
-  setup: SchoolSetupState;
-  membership: ActiveSchoolMembership;
-}) {
-  const assignedClasses = setup.classMemberships
-    .filter((item) => item.school_membership_id === membership.id && item.status === 'active')
-    .map((item) => setup.classes.find((schoolClass) => schoolClass.id === item.class_id))
-    .filter(Boolean) as ClassRow[];
-
+function Metric({ label, value }: { label: string; value: number }) {
   return (
-    <View style={styles.card}>
-      <SectionTitle icon={<BookOpen size={22} color={colors.blue} />} title="Class access" />
-      {assignedClasses.length ? (
-        <View style={styles.recordList}>
-          {assignedClasses.map((schoolClass) => {
-            const subjectNames = setup.classSubjects
-              .filter((item) => item.class_id === schoolClass.id)
-              .map((item) => setup.subjects.find((subject) => subject.id === item.subject_id)?.name)
-              .filter(Boolean);
-
-            return (
-              <View key={schoolClass.id} style={styles.recordRow}>
-                <View style={styles.flexText}>
-                  <Text style={styles.recordTitle}>{schoolClass.name}</Text>
-                  <Text style={styles.recordMeta}>
-                    {schoolClass.grade_level ?? 'Grade not set'}
-                    {subjectNames.length ? ` - ${subjectNames.join(', ')}` : ''}
-                  </Text>
-                </View>
-              </View>
-            );
-          })}
-        </View>
-      ) : (
-        <Text style={styles.cardBody}>
-          Your school account is active. Classes will appear here when an admin adds you.
-        </Text>
-      )}
-    </View>
-  );
-}
-
-function WorkspaceNav({
-  activeSection,
-  onSelect,
-}: {
-  activeSection: AdminSection;
-  onSelect: (section: AdminSection) => void;
-}) {
-  return (
-    <View style={styles.navRow}>
-      {adminSections.map((section) => (
-        <Pressable
-          key={section.id}
-          onPress={() => onSelect(section.id)}
-          style={[styles.navPill, activeSection === section.id && styles.navPillActive]}
-        >
-          <Text style={[styles.navPillText, activeSection === section.id && styles.navPillTextActive]}>
-            {section.label}
-          </Text>
-        </Pressable>
-      ))}
-    </View>
-  );
-}
-
-function AdminSectionIntro({ section, counts }: { section: AdminSection; counts: WorkspaceCounts }) {
-  const copy = adminSectionCopy(section, counts);
-
-  return (
-    <View style={styles.adminIntro}>
-      <View style={styles.adminIntroIcon}>{copy.icon}</View>
-      <View style={styles.flexText}>
-        <Text style={styles.adminIntroTitle}>{copy.title}</Text>
-        <Text style={styles.adminIntroBody}>{copy.body}</Text>
-      </View>
-    </View>
-  );
-}
-
-function adminSectionCopy(section: AdminSection, counts: WorkspaceCounts) {
-  const copy: Record<AdminSection, { title: string; body: string; icon: ReactNode }> = {
-    overview: {
-      title: 'Admin home',
-      body: `${counts.classes} classes, ${counts.subjects} subjects, ${counts.activeMembers} active members.`,
-      icon: <ShieldCheck size={22} color="#ffffff" />,
-    },
-    profile: {
-      title: 'School profile',
-      body: 'Keep the school identity clear and recognizable for every member.',
-      icon: <ShieldCheck size={22} color="#ffffff" />,
-    },
-    academic: {
-      title: 'Academic calendar',
-      body: 'Create years and terms before placing classes into the school calendar.',
-      icon: <CalendarDays size={22} color="#ffffff" />,
-    },
-    classes: {
-      title: 'Classes and teaching',
-      body: 'Create classes, connect subjects, and assign the teacher responsible.',
-      icon: <BookOpen size={22} color="#ffffff" />,
-    },
-    subjects: {
-      title: 'Subjects',
-      body: 'Build the subject list used by classes, lessons, quizzes, and progress.',
-      icon: <GraduationCap size={22} color="#ffffff" />,
-    },
-    people: {
-      title: 'People',
-      body: 'Manage active members, suspensions, and class access.',
-      icon: <Users size={22} color="#ffffff" />,
-    },
-    invites: {
-      title: 'Invites',
-      body: 'Create access codes for students, teachers, admins, and class entry.',
-      icon: <QrCode size={22} color="#ffffff" />,
-    },
-    requests: {
-      title: 'Requests',
-      body: `${counts.pendingRequests} pending access request${counts.pendingRequests === 1 ? '' : 's'}.`,
-      icon: <UserPlus size={22} color="#ffffff" />,
-    },
-  };
-
-  return copy[section];
-}
-
-function OverviewTile({ label, value }: { label: string; value: string }) {
-  return (
-    <View style={styles.overviewTile}>
-      <Text style={styles.overviewValue}>{value}</Text>
-      <Text style={styles.overviewLabel}>{label}</Text>
-    </View>
-  );
-}
-
-function SchoolIdentityEditor({
-  values,
-  saving,
-  onChange,
-  onSave,
-  schoolId,
-  onError,
-}: {
-  values: AdminSetupProps['schoolDetails'];
-  saving: boolean;
-  onChange: (value: AdminSetupProps['schoolDetails']) => void;
-  onSave: () => void;
-  schoolId: string;
-  onError: (message: string) => void;
-}) {
-  return (
-    <View style={styles.identityEditor}>
-      <BannerStrip imageUrl={values.bannerUrl} stickerKey={values.stickerKey} />
-      <View style={styles.identityEditorBody}>
-        <IdentityMark imageUrl={values.logoUrl} stickerKey={values.stickerKey} label={values.name} size="large" />
-        <View style={styles.flexText}>
-          <Field label="School name" value={values.name} onChangeText={(name) => onChange({ ...values, name })} placeholder="School name" />
-          <Field label="School username" value={values.username} onChangeText={(username) => onChange({ ...values, username })} placeholder="bestcity-academy" />
-          <View style={styles.formRow}>
-            <Field label="Country" value={values.country} onChangeText={(country) => onChange({ ...values, country })} placeholder="Nigeria" />
-            <Field label="City" value={values.city} onChangeText={(city) => onChange({ ...values, city })} placeholder="Lagos" />
-          </View>
-        </View>
-      </View>
-      <View style={styles.formRowPadded}>
-        <ImageUploadButton
-          label={values.logoUrl ? 'Replace logo' : 'Upload logo'}
-          pathPrefix={`schools/${schoolId}/logo`}
-          onUploaded={(logoUrl) => onChange({ ...values, logoUrl })}
-          onError={onError}
-        />
-        <ImageUploadButton
-          label={values.bannerUrl ? 'Replace banner' : 'Upload banner'}
-          pathPrefix={`schools/${schoolId}/banner`}
-          onUploaded={(bannerUrl) => onChange({ ...values, bannerUrl })}
-          onError={onError}
-        />
-      </View>
-      <StickerPicker selectedKey={values.stickerKey} onSelect={(stickerKey) => onChange({ ...values, stickerKey })} />
-      <SubmitButton label="Save school profile" loading={saving} onPress={onSave} />
-    </View>
-  );
-}
-
-function IdentityMark({
-  imageUrl,
-  stickerKey,
-  label,
-  size,
-}: {
-  imageUrl?: string | null;
-  stickerKey?: string | null;
-  label: string;
-  size: 'small' | 'large';
-}) {
-  const sticker = stickerPack.find((item) => item.key === stickerKey) ?? stickerPack[0];
-  const initials = label
-    .split(' ')
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase())
-    .join('') || 'CH';
-
-  return (
-    <View style={[styles.identityMark, size === 'large' && styles.identityMarkLarge, { backgroundColor: sticker.accent }]}>
-      {imageUrl ? (
-        <Image source={{ uri: imageUrl }} style={styles.identityImage} resizeMode="cover" />
-      ) : (
-        <Text style={styles.identityInitials}>{initials}</Text>
-      )}
-    </View>
-  );
-}
-
-function BannerStrip({ imageUrl, stickerKey }: { imageUrl?: string | null; stickerKey?: string | null }) {
-  const sticker = stickerPack.find((item) => item.key === stickerKey) ?? stickerPack[0];
-
-  return (
-    <View style={[styles.bannerStrip, { backgroundColor: sticker.accent }]}>
-      {imageUrl ? <Image source={{ uri: imageUrl }} style={styles.bannerImage} resizeMode="cover" /> : null}
-    </View>
-  );
-}
-
-function StickerPicker({ selectedKey, onSelect }: { selectedKey: string; onSelect: (key: string) => void }) {
-  return (
-    <View style={styles.stickerRow}>
-      {stickerPack.map((sticker) => (
-        <Pressable
-          key={sticker.key}
-          onPress={() => onSelect(sticker.key)}
-          style={[
-            styles.stickerChoice,
-            { borderColor: selectedKey === sticker.key ? sticker.accent : colors.line },
-          ]}
-        >
-          <View style={[styles.stickerSwatch, { backgroundColor: sticker.accent }]} />
-          <Text style={styles.stickerText}>{sticker.label}</Text>
-        </Pressable>
-      ))}
-    </View>
-  );
-}
-
-function getSetupChecklist(setup: SchoolSetupState) {
-  return [
-    {
-      id: 'year',
-      done: setup.academicYears.length > 0,
-      title: 'Academic year',
-      body: 'Create the school year that terms and classes will use.',
-      actionLabel: 'Open academic',
-      section: 'academic' as AdminSection,
-    },
-    {
-      id: 'term',
-      done: setup.academicTerms.length > 0,
-      title: 'Term',
-      body: 'Add at least one term so classes can sit in a real calendar.',
-      actionLabel: 'Open academic',
-      section: 'academic' as AdminSection,
-    },
-    {
-      id: 'subjects',
-      done: setup.subjects.length > 0,
-      title: 'Subjects',
-      body: 'Add subjects before lessons and class teaching assignments begin.',
-      actionLabel: 'Open subjects',
-      section: 'subjects' as AdminSection,
-    },
-    {
-      id: 'classes',
-      done: setup.classes.length > 0,
-      title: 'Classes',
-      body: 'Create classes for students, teachers, lessons, and invite codes.',
-      actionLabel: 'Open classes',
-      section: 'classes' as AdminSection,
-    },
-    {
-      id: 'invites',
-      done: setup.invites.some((invite) => invite.status === 'active'),
-      title: 'Invite codes',
-      body: 'Create invite codes for students, teachers, or admins.',
-      actionLabel: 'Open invites',
-      section: 'invites' as AdminSection,
-    },
-    {
-      id: 'people',
-      done: setup.members.filter((member) => member.status === 'active').length > 1,
-      title: 'People',
-      body: 'Add or approve people, then place them in their classes.',
-      actionLabel: 'Open people',
-      section: 'people' as AdminSection,
-    },
-  ];
-}
-
-function ChecklistRow({
-  done,
-  title,
-  body,
-  actionLabel,
-  onAction,
-}: {
-  done: boolean;
-  title: string;
-  body: string;
-  actionLabel: string;
-  onAction: () => void;
-}) {
-  return (
-    <View style={[styles.checklistRow, done && styles.checklistRowDone]}>
-      <View style={[styles.checkDot, done && styles.checkDotDone]}>
-        <Text style={[styles.checkDotText, done && styles.checkDotTextDone]}>{done ? 'OK' : ''}</Text>
-      </View>
-      <View style={styles.flexText}>
-        <Text style={styles.recordTitle}>{title}</Text>
-        <Text style={styles.recordMeta}>{body}</Text>
-      </View>
-      <Pressable onPress={onAction} style={[styles.actionButton, styles.actionButtonMuted]}>
-        <Text style={styles.actionButtonTextMuted}>{done ? 'Review' : actionLabel}</Text>
-      </Pressable>
-    </View>
-  );
-}
-
-function AdminSetup({
-  section,
-  setup,
-  counts,
-  schoolId,
-  schoolCode,
-  schoolDetails,
-  selectedYearId,
-  selectedTermId,
-  inviteClassId,
-  inviteRole,
-  selectedMemberId,
-  selectedMemberClassId,
-  selectedSubjectClassId,
-  selectedSubjectId,
-  selectedTeacherId,
-  values,
-  saving,
-  onSelectYear,
-  onSelectTerm,
-  onSelectInviteClass,
-  onSelectInviteRole,
-  onSelectMember,
-  onSelectMemberClass,
-  onSelectSubjectClass,
-  onSelectSubject,
-  onSelectTeacher,
-  onChange,
-  onCreateYear,
-  onCreateTerm,
-  onCreateSubject,
-  onCreateClass,
-  onUpdateClassUsername,
-  onUpdateSchoolDetails,
-  onCreateInvite,
-  onAssignMemberToClass,
-  onRemoveMemberFromClass,
-  onCreateClassSubject,
-  onRemoveClassSubject,
-  onReviewJoinRequest,
-  onUpdateMemberStatus,
-  onSelectSection,
-  onError,
-}: AdminSetupProps) {
-  if (section === 'overview') {
-    const checklist = getSetupChecklist(setup);
-
-    return (
-      <View style={styles.stack}>
-        <WorkspaceNav activeSection={section} onSelect={onSelectSection} />
-        <AdminSectionIntro section={section} counts={counts} />
-        <View style={styles.setupGrid}>
-          <View style={styles.card}>
-            <SectionTitle icon={<ShieldCheck size={22} color={colors.teal} />} title="School overview" />
-            <Text style={styles.cardBody}>
-              Your school space is active. Open each area when you need to shape the school, assign people,
-              create access codes, or review requests.
-            </Text>
-            <View style={styles.overviewGrid}>
-              <OverviewTile label="School code" value={schoolCode ?? 'Not set'} />
-              <OverviewTile label="Classes" value={String(counts.classes)} />
-              <OverviewTile label="Subjects" value={String(counts.subjects)} />
-              <OverviewTile label="Pending requests" value={String(counts.pendingRequests)} />
-            </View>
-          </View>
-
-          <View style={styles.card}>
-            <SectionTitle icon={<ClipboardList size={22} color={colors.gold} />} title="Onboarding checklist" />
-            <Text style={styles.cardBody}>
-              Complete these items to make this school ready for teachers and students.
-            </Text>
-            <View style={styles.checklist}>
-              {checklist.map((item) => (
-                <ChecklistRow
-                  key={item.id}
-                  done={item.done}
-                  title={item.title}
-                  body={item.body}
-                  actionLabel={item.actionLabel}
-                  onAction={() => onSelectSection(item.section)}
-                />
-              ))}
-            </View>
-          </View>
-        </View>
-      </View>
-    );
-  }
-
-  return (
-    <View style={styles.stack}>
-      <WorkspaceNav activeSection={section} onSelect={onSelectSection} />
-      <AdminSectionIntro section={section} counts={counts} />
-      <View style={styles.setupGrid}>
-      {section === 'profile' ? <View style={styles.card}>
-        <SectionTitle icon={<ShieldCheck size={22} color={colors.teal} />} title="School profile" />
-        <Text style={styles.helperText}>Set the name, location, logo, banner, and visual marker students see.</Text>
-        <SchoolIdentityEditor
-          values={schoolDetails}
-          saving={saving === 'school-details'}
-          onChange={onChange.setSchoolDetails}
-          onSave={onUpdateSchoolDetails}
-          schoolId={schoolId}
-          onError={onError}
-        />
-        <View style={styles.overviewGrid}>
-          <OverviewTile label="School code" value={schoolCode ?? 'Not set'} />
-          <OverviewTile label="Active members" value={String(counts.activeMembers)} />
-          <OverviewTile label="Lessons" value={String(counts.lessons)} />
-        </View>
-      </View> : null}
-
-      {section === 'academic' ? <View style={styles.card}>
-        <SectionTitle icon={<CalendarDays size={22} color={colors.teal} />} title="Academic year" />
-        <Field label="Name" value={values.yearName} onChangeText={onChange.setYearName} placeholder="2026 Academic Year" />
-        <View style={styles.formRow}>
-          <Field label="Starts" value={values.yearStart} onChangeText={onChange.setYearStart} placeholder="2026-01-12" />
-          <Field label="Ends" value={values.yearEnd} onChangeText={onChange.setYearEnd} placeholder="2026-12-11" />
-        </View>
-        <SubmitButton label="Add academic year" loading={saving === 'year'} onPress={onCreateYear} />
-        <RecordList
-          emptyText="No academic years yet."
-          items={setup.academicYears}
-          renderItem={(year) => (
-            <SelectableRow
-              key={year.id}
-              selected={year.id === selectedYearId}
-              title={year.name}
-              meta={`${year.starts_at} to ${year.ends_at}`}
-              onPress={() => onSelectYear(year.id)}
-            />
-          )}
-        />
-      </View> : null}
-
-      {section === 'academic' ? <View style={styles.card}>
-        <SectionTitle icon={<ClipboardList size={22} color={colors.blue} />} title="Term" />
-        <Text style={styles.helperText}>
-          {selectedYearId ? 'Terms are attached to the selected academic year.' : 'Add an academic year before adding terms.'}
-        </Text>
-        <Field label="Name" value={values.termName} onChangeText={onChange.setTermName} placeholder="First Term" />
-        <View style={styles.formRow}>
-          <Field label="Starts" value={values.termStart} onChangeText={onChange.setTermStart} placeholder="2026-01-12" />
-          <Field label="Ends" value={values.termEnd} onChangeText={onChange.setTermEnd} placeholder="2026-04-03" />
-        </View>
-        <SubmitButton label="Add term" loading={saving === 'term'} onPress={onCreateTerm} disabled={!selectedYearId} />
-        <RecordList
-          emptyText="No terms yet."
-          items={setup.academicTerms}
-          renderItem={(term) => (
-            <SelectableRow
-              key={term.id}
-              selected={term.id === selectedTermId}
-              title={term.name}
-              meta={`${term.starts_at} to ${term.ends_at}`}
-              onPress={() => onSelectTerm(term.id)}
-            />
-          )}
-        />
-      </View> : null}
-
-      {section === 'subjects' ? <View style={styles.card}>
-        <SectionTitle icon={<GraduationCap size={22} color={colors.gold} />} title="Subjects" />
-        <Field label="Subject" value={values.subjectName} onChangeText={onChange.setSubjectName} placeholder="Basic Science" />
-        <Field label="Department" value={values.subjectDepartment} onChangeText={onChange.setSubjectDepartment} placeholder="Science" />
-        <SubmitButton label="Add subject" loading={saving === 'subject'} onPress={onCreateSubject} />
-        <SubjectList subjects={setup.subjects} />
-      </View> : null}
-
-      {section === 'classes' ? <View style={styles.card}>
-        <SectionTitle icon={<BookOpen size={22} color={colors.blue} />} title="Classes" />
-        <Text style={styles.helperText}>
-          {selectedTermId ? 'New classes will use the selected term.' : 'Select or create a term for term-based class tracking.'}
-        </Text>
-          <Field label="Class name" value={values.className} onChangeText={onChange.setClassName} placeholder="JSS 2 Blue" />
-        <Field label="Class username" value={values.classUsername} onChangeText={onChange.setClassUsername} placeholder="jss-2-blue" />
-        <Field label="Grade level" value={values.gradeLevel} onChangeText={onChange.setGradeLevel} placeholder="Junior secondary" />
-        <View style={styles.identityPreview}>
-          <IdentityMark imageUrl={values.classLogoUrl} stickerKey={values.classStickerKey} label={values.className || 'Class'} size="small" />
-          <View style={styles.flexText}>
-            <Text style={styles.recordTitle}>{values.className || 'Class identity'}</Text>
-            <Text style={styles.recordMeta}>Give each class a visual marker for students and teachers.</Text>
-          </View>
-        </View>
-        <View style={styles.formRow}>
-          <ImageUploadButton
-            label={values.classLogoUrl ? 'Replace class logo' : 'Upload class logo'}
-            pathPrefix={`schools/${schoolId}/class-logo`}
-            onUploaded={onChange.setClassLogoUrl}
-            onError={onError}
-          />
-          <ImageUploadButton
-            label={values.classBannerUrl ? 'Replace class banner' : 'Upload class banner'}
-            pathPrefix={`schools/${schoolId}/class-banner`}
-            onUploaded={onChange.setClassBannerUrl}
-            onError={onError}
-          />
-        </View>
-        <StickerPicker selectedKey={values.classStickerKey} onSelect={onChange.setClassStickerKey} />
-        <SubmitButton label="Add class" loading={saving === 'class'} onPress={onCreateClass} />
-        <ClassList
-          classes={setup.classes}
-          terms={setup.academicTerms}
-          selectedClassId={inviteClassId}
-          saving={saving}
-          onSelectClass={onSelectInviteClass}
-          onUpdateUsername={onUpdateClassUsername}
-        />
-      </View> : null}
-
-      {section === 'classes' ? <View style={styles.card}>
-        <SectionTitle icon={<ClipboardList size={22} color={colors.gold} />} title="Class subjects" />
-        <Text style={styles.helperText}>Attach subjects to a class and choose the teacher responsible.</Text>
-        <PickerRow
-          emptyText="Create a class first."
-          items={setup.classes}
-          selectedId={selectedSubjectClassId}
-          getLabel={(schoolClass) => schoolClass.name}
-          onSelect={onSelectSubjectClass}
-        />
-        <PickerRow
-          emptyText="Create a subject first."
-          items={setup.subjects}
-          selectedId={selectedSubjectId}
-          getLabel={(subject) => subject.name}
-          onSelect={onSelectSubject}
-        />
-        <PickerRow
-          emptyText="Add a teacher or admin first."
-          items={setup.members.filter((member) => member.status === 'active' && ['owner', 'admin', 'teacher'].includes(member.role))}
-          selectedId={selectedTeacherId}
-          getLabel={(member) => member.profiles?.full_name ?? formatRole(member.role)}
-          onSelect={onSelectTeacher}
-        />
-        <SubmitButton
-          label="Add class subject"
-          loading={saving === 'class-subject'}
-          onPress={onCreateClassSubject}
-          disabled={!selectedSubjectClassId || !selectedSubjectId}
-        />
-        <ClassSubjectList
-          classSubjects={setup.classSubjects}
-          classes={setup.classes}
-          subjects={setup.subjects}
-          members={setup.members}
-          saving={saving}
-          onRemove={onRemoveClassSubject}
-        />
-      </View> : null}
-
-      {section === 'people' ? <View style={styles.card}>
-        <SectionTitle icon={<Users size={22} color={colors.teal} />} title="People" />
-        <Text style={styles.helperText}>Select a member, then give access to one or more classes.</Text>
-        <MemberList
-          members={setup.members}
-          classMemberships={setup.classMemberships}
-          classes={setup.classes}
-          selectedMemberId={selectedMemberId}
-          saving={saving}
-          onSelectMember={onSelectMember}
-          onRemoveClass={onRemoveMemberFromClass}
-          onUpdateStatus={onUpdateMemberStatus}
-        />
-        <PickerRow
-          emptyText="Create a class before assigning members."
-          items={setup.classes}
-          selectedId={selectedMemberClassId}
-          getLabel={(schoolClass) => schoolClass.name}
-          onSelect={onSelectMemberClass}
-        />
-        <SubmitButton
-          label="Add selected member to class"
-          loading={saving === 'assign-member'}
-          onPress={onAssignMemberToClass}
-          disabled={!selectedMemberId || !selectedMemberClassId}
-        />
-      </View> : null}
-
-      {section === 'invites' ? <View style={styles.card}>
-        <SectionTitle icon={<QrCode size={22} color={colors.teal} />} title="Invite codes" />
-        <Text style={styles.helperText}>Choose a role and optional class before creating a code.</Text>
-        <View style={styles.pillRow}>
-          {inviteRoles.map((role) => (
-            <ChoicePill
-              key={role}
-              selected={role === inviteRole}
-              label={formatRole(role)}
-              onPress={() => onSelectInviteRole(role)}
-            />
-          ))}
-        </View>
-        <View style={styles.pillRow}>
-          <ChoicePill selected={inviteClassId === null} label="Whole school" onPress={() => onSelectInviteClass(null)} />
-          {setup.classes.map((schoolClass) => (
-            <ChoicePill
-              key={schoolClass.id}
-              selected={schoolClass.id === inviteClassId}
-              label={schoolClass.name}
-              onPress={() => onSelectInviteClass(schoolClass.id)}
-            />
-          ))}
-        </View>
-        <Field label="Max uses" value={values.inviteMaxUses} onChangeText={onChange.setInviteMaxUses} placeholder="Leave blank for no limit" keyboardType="number-pad" />
-        <SubmitButton label="Create invite code" loading={saving === 'invite'} onPress={onCreateInvite} />
-        <InviteList invites={setup.invites} classes={setup.classes} />
-      </View> : null}
-
-      {section === 'requests' ? <View style={styles.card}>
-        <SectionTitle icon={<Users size={22} color={colors.coral} />} title="Join requests" />
-        <JoinRequestList
-          requests={setup.joinRequests}
-          saving={saving}
-          onReview={onReviewJoinRequest}
-        />
-      </View> : null}
-      </View>
-    </View>
-  );
-}
-
-async function countRows(
-  table: string,
-  schoolId: string,
-  schoolColumn: string,
-  filters: Record<string, string> = {}
-) {
-  if (!supabase) {
-    return { count: 0, error: 'School access is not available right now.' };
-  }
-
-  let query = (supabase as any).from(table).select('id', { count: 'exact', head: true }).eq(schoolColumn, schoolId);
-
-  for (const [column, value] of Object.entries(filters)) {
-    query = query.eq(column, value);
-  }
-
-  const { count, error } = await query;
-
-  return {
-    count: count ?? 0,
-    error: error?.message ?? null,
-  };
-}
-
-function SectionTitle({ icon, title }: { icon: ReactNode; title: string }) {
-  return (
-    <View style={styles.sectionTitleRow}>
-      {icon}
-      <Text style={styles.cardTitle}>{title}</Text>
-    </View>
-  );
-}
-
-function Field({
-  label,
-  value,
-  onChangeText,
-  placeholder,
-  keyboardType,
-}: {
-  label: string;
-  value: string;
-  onChangeText: (value: string) => void;
-  placeholder: string;
-  keyboardType?: 'default' | 'number-pad';
-}) {
-  return (
-    <View style={styles.field}>
-      <Text style={styles.fieldLabel}>{label}</Text>
-      <TextInput
-        value={value}
-        onChangeText={onChangeText}
-        placeholder={placeholder}
-        placeholderTextColor="#8b9691"
-        keyboardType={keyboardType}
-        style={styles.input}
-      />
-    </View>
-  );
-}
-
-function SubmitButton({
-  label,
-  loading,
-  disabled,
-  onPress,
-}: {
-  label: string;
-  loading: boolean;
-  disabled?: boolean;
-  onPress: () => void;
-}) {
-  return (
-    <Pressable
-      disabled={loading || disabled}
-      onPress={onPress}
-      style={[styles.submitButton, (loading || disabled) && styles.disabledButton]}
-    >
-      {loading ? <ActivityIndicator color="#ffffff" /> : <Text style={styles.submitButtonText}>{label}</Text>}
-    </Pressable>
-  );
-}
-
-function ChoicePill({ selected, label, onPress }: { selected: boolean; label: string; onPress: () => void }) {
-  return (
-    <Pressable onPress={onPress} style={[styles.choicePill, selected && styles.choicePillActive]}>
-      <Text style={[styles.choicePillText, selected && styles.choicePillTextActive]}>{label}</Text>
-    </Pressable>
-  );
-}
-
-function SelectableRow({
-  selected,
-  title,
-  meta,
-  onPress,
-}: {
-  selected: boolean;
-  title: string;
-  meta: string;
-  onPress: () => void;
-}) {
-  return (
-    <Pressable onPress={onPress} style={[styles.recordRow, selected && styles.recordRowSelected]}>
-      <View style={styles.flexText}>
-        <Text style={styles.recordTitle}>{title}</Text>
-        <Text style={styles.recordMeta}>{meta}</Text>
-      </View>
-      {selected ? <Text style={styles.selectedText}>Selected</Text> : null}
-    </Pressable>
-  );
-}
-
-function RecordList<T>({
-  emptyText,
-  items,
-  renderItem,
-}: {
-  emptyText: string;
-  items: T[];
-  renderItem: (item: T) => ReactNode;
-}) {
-  if (!items.length) {
-    return <Text style={styles.emptyText}>{emptyText}</Text>;
-  }
-
-  return <View style={styles.recordList}>{items.map(renderItem)}</View>;
-}
-
-function SubjectList({ subjects }: { subjects: SubjectRow[] }) {
-  return (
-    <RecordList
-      emptyText="No subjects yet."
-      items={subjects}
-      renderItem={(subject) => (
-        <View key={subject.id} style={styles.recordRow}>
-          <View style={styles.flexText}>
-            <Text style={styles.recordTitle}>{subject.name}</Text>
-            <Text style={styles.recordMeta}>{subject.department ?? 'No department'}</Text>
-          </View>
-        </View>
-      )}
-    />
-  );
-}
-
-function ClassList({
-  classes,
-  terms,
-  selectedClassId,
-  saving,
-  onSelectClass,
-  onUpdateUsername,
-}: {
-  classes: ClassRow[];
-  terms: AcademicTermRow[];
-  selectedClassId: string | null;
-  saving: string | null;
-  onSelectClass: (id: string) => void;
-  onUpdateUsername: (classId: string, username: string) => void;
-}) {
-  const [draftUsernames, setDraftUsernames] = useState<Record<string, string>>({});
-
-  useEffect(() => {
-    setDraftUsernames((current) => {
-      const next = { ...current };
-      classes.forEach((schoolClass) => {
-        if (!(schoolClass.id in next)) {
-          next[schoolClass.id] = schoolClass.username ?? '';
-        }
-      });
-      return next;
-    });
-  }, [classes]);
-
-  return (
-    <RecordList
-      emptyText="No classes yet."
-      items={classes}
-      renderItem={(schoolClass) => {
-        const term = terms.find((item) => item.id === schoolClass.academic_term_id);
-        return (
-          <SelectableRowShell
-            key={schoolClass.id}
-            selected={schoolClass.id === selectedClassId}
-            onPress={() => onSelectClass(schoolClass.id)}
-          >
-            <View style={styles.flexText}>
-              <Text style={styles.recordTitle}>{schoolClass.name}</Text>
-              <Text style={styles.recordMeta}>
-                {schoolClass.grade_level ?? 'Grade not set'}{term ? ` - ${term.name}` : ''}
-              </Text>
-              <View style={styles.inlineEditRow}>
-                <TextInput
-                  value={draftUsernames[schoolClass.id] ?? schoolClass.username ?? ''}
-                  onChangeText={(username) =>
-                    setDraftUsernames((current) => ({ ...current, [schoolClass.id]: username }))
-                  }
-                  placeholder="class-username"
-                  placeholderTextColor="#8b9691"
-                  autoCapitalize="none"
-                  style={styles.inlineInput}
-                />
-                <ActionButton
-                  label="Save"
-                  tone="muted"
-                  loading={saving === `class-username-${schoolClass.id}`}
-                  onPress={() => onUpdateUsername(schoolClass.id, draftUsernames[schoolClass.id] ?? schoolClass.username)}
-                />
-              </View>
-            </View>
-            {schoolClass.id === selectedClassId ? <Text style={styles.selectedText}>Selected</Text> : null}
-          </SelectableRowShell>
-        );
-      }}
-    />
-  );
-}
-
-function PickerRow<T extends { id: string }>({
-  emptyText,
-  items,
-  selectedId,
-  getLabel,
-  onSelect,
-}: {
-  emptyText: string;
-  items: T[];
-  selectedId: string | null;
-  getLabel: (item: T) => string;
-  onSelect: (id: string) => void;
-}) {
-  if (!items.length) {
-    return <Text style={styles.emptyText}>{emptyText}</Text>;
-  }
-
-  return (
-    <View style={styles.pillRow}>
-      {items.map((item) => (
-        <ChoicePill
-          key={item.id}
-          selected={item.id === selectedId}
-          label={getLabel(item)}
-          onPress={() => onSelect(item.id)}
-        />
-      ))}
-    </View>
-  );
-}
-
-function ClassSubjectList({
-  classSubjects,
-  classes,
-  subjects,
-  members,
-  saving,
-  onRemove,
-}: {
-  classSubjects: ClassSubjectRow[];
-  classes: ClassRow[];
-  subjects: SubjectRow[];
-  members: SchoolMemberRow[];
-  saving: string | null;
-  onRemove: (classSubjectId: string) => void;
-}) {
-  return (
-    <RecordList
-      emptyText="No class subjects yet."
-      items={classSubjects}
-      renderItem={(classSubject) => {
-        const schoolClass = classes.find((item) => item.id === classSubject.class_id);
-        const subject = subjects.find((item) => item.id === classSubject.subject_id);
-        const teacher = members.find((item) => item.id === classSubject.teacher_membership_id);
-
-        return (
-          <View key={classSubject.id} style={styles.recordRow}>
-            <View style={styles.flexText}>
-              <Text style={styles.recordTitle}>
-                {schoolClass?.name ?? 'Class'} - {subject?.name ?? 'Subject'}
-              </Text>
-              <Text style={styles.recordMeta}>
-                {teacher?.profiles?.full_name ? `Teacher: ${teacher.profiles.full_name}` : 'Teacher not assigned'}
-              </Text>
-            </View>
-            <ActionButton
-              label="Remove"
-              tone="muted"
-              loading={saving === `remove-subject-${classSubject.id}`}
-              onPress={() => onRemove(classSubject.id)}
-            />
-          </View>
-        );
-      }}
-    />
-  );
-}
-
-function MemberList({
-  members,
-  classMemberships,
-  classes,
-  selectedMemberId,
-  saving,
-  onSelectMember,
-  onRemoveClass,
-  onUpdateStatus,
-}: {
-  members: SchoolMemberRow[];
-  classMemberships: ClassMembershipRow[];
-  classes: ClassRow[];
-  selectedMemberId: string | null;
-  saving: string | null;
-  onSelectMember: (id: string) => void;
-  onRemoveClass: (classMembershipId: string) => void;
-  onUpdateStatus: (member: SchoolMemberRow, status: 'active' | 'suspended') => void;
-}) {
-  return (
-    <RecordList
-      emptyText="No members yet."
-      items={members}
-      renderItem={(member) => {
-        const memberClasses = classMemberships.filter((item) => item.school_membership_id === member.id);
-
-        return (
-          <SelectableRowShell
-            key={member.id}
-            selected={member.id === selectedMemberId}
-            onPress={() => onSelectMember(member.id)}
-          >
-            <View style={styles.flexText}>
-              <Text style={styles.recordTitle}>{member.profiles?.full_name ?? 'School member'}</Text>
-              <Text style={styles.recordMeta}>
-                {formatRole(member.role)} - {formatRole(member.status)}
-                {member.profiles?.preferred_language ? ` - ${member.profiles.preferred_language}` : ''}
-              </Text>
-              <View style={styles.memberClassWrap}>
-                {memberClasses.length ? (
-                  memberClasses.map((membership) => {
-                    const schoolClass = classes.find((item) => item.id === membership.class_id);
-                    return (
-                      <Pressable
-                        key={membership.id}
-                        onPress={() => onRemoveClass(membership.id)}
-                        style={styles.memberClassPill}
-                      >
-                        <Text style={styles.memberClassPillText}>{schoolClass?.name ?? 'Class'} x</Text>
-                      </Pressable>
-                    );
-                  })
-                ) : (
-                  <Text style={styles.recordMeta}>No class assigned</Text>
-                )}
-              </View>
-            </View>
-            {member.role === 'owner' ? null : member.status === 'active' ? (
-              <ActionButton
-                label="Suspend"
-                tone="danger"
-                loading={saving === `suspended-member-${member.id}`}
-                onPress={() => onUpdateStatus(member, 'suspended')}
-              />
-            ) : (
-              <ActionButton
-                label="Restore"
-                tone="primary"
-                loading={saving === `active-member-${member.id}`}
-                onPress={() => onUpdateStatus(member, 'active')}
-              />
-            )}
-          </SelectableRowShell>
-        );
-      }}
-    />
-  );
-}
-
-function JoinRequestList({
-  requests,
-  saving,
-  onReview,
-}: {
-  requests: SchoolSetupState['joinRequests'];
-  saving: string | null;
-  onReview: (requestId: string, decision: 'approve' | 'decline') => void;
-}) {
-  const visibleRequests = requests.filter((request) => request.status === 'review');
-
-  return (
-    <RecordList
-      emptyText="No pending requests."
-      items={visibleRequests}
-      renderItem={(request) => (
-        <View key={request.id} style={styles.recordRow}>
-          <View style={styles.flexText}>
-            <Text style={styles.recordTitle}>{request.profiles?.full_name ?? 'New request'}</Text>
-            <Text style={styles.recordMeta}>
-              {formatRole(request.requested_role)} - {request.classes?.name ?? 'Whole school'}
-            </Text>
-            {request.message ? <Text style={styles.requestMessage}>{request.message}</Text> : null}
-          </View>
-          <View style={styles.actionRow}>
-            <ActionButton
-              label="Approve"
-              tone="primary"
-              loading={saving === `approve-request-${request.id}`}
-              onPress={() => onReview(request.id, 'approve')}
-            />
-            <ActionButton
-              label="Decline"
-              tone="danger"
-              loading={saving === `decline-request-${request.id}`}
-              onPress={() => onReview(request.id, 'decline')}
-            />
-          </View>
-        </View>
-      )}
-    />
-  );
-}
-
-function SelectableRowShell({
-  selected,
-  onPress,
-  children,
-}: {
-  selected: boolean;
-  onPress: () => void;
-  children: ReactNode;
-}) {
-  return (
-    <Pressable onPress={onPress} style={[styles.recordRow, selected && styles.recordRowSelected]}>
-      {children}
-    </Pressable>
-  );
-}
-
-function ActionButton({
-  label,
-  tone,
-  loading,
-  onPress,
-}: {
-  label: string;
-  tone: 'primary' | 'danger' | 'muted';
-  loading: boolean;
-  onPress: () => void;
-}) {
-  return (
-    <Pressable
-      disabled={loading}
-      onPress={onPress}
-      style={[
-        styles.actionButton,
-        tone === 'primary' && styles.actionButtonPrimary,
-        tone === 'danger' && styles.actionButtonDanger,
-        tone === 'muted' && styles.actionButtonMuted,
-        loading && styles.disabledButton,
-      ]}
-    >
-      {loading ? (
-        <ActivityIndicator color={tone === 'muted' ? colors.tealDark : '#ffffff'} />
-      ) : (
-        <Text style={[styles.actionButtonText, tone === 'muted' && styles.actionButtonTextMuted]}>{label}</Text>
-      )}
-    </Pressable>
-  );
-}
-
-function InviteList({ invites, classes }: { invites: InviteRow[]; classes: ClassRow[] }) {
-  return (
-    <RecordList
-      emptyText="No invite codes yet."
-      items={invites}
-      renderItem={(invite) => {
-        const schoolClass = classes.find((item) => item.id === invite.class_id);
-        return (
-          <View key={invite.id} style={styles.recordRow}>
-            <View style={styles.flexText}>
-              <Text style={styles.recordTitle}>{invite.code}</Text>
-              <Text style={styles.recordMeta}>
-                {formatRole(invite.role)} - {schoolClass?.name ?? 'Whole school'} - {invite.use_count}
-                {invite.max_uses ? `/${invite.max_uses}` : ''} used
-              </Text>
-            </View>
-          </View>
-        );
-      }}
-    />
-  );
-}
-
-function Metric({ label, value, icon }: { label: string; value: number; icon: ReactNode }) {
-  return (
-    <View style={styles.metricCard}>
-      <View style={styles.metricHeader}>
-        {icon}
-        <Text style={styles.metricValue}>{value}</Text>
-      </View>
+    <View style={styles.metric}>
+      <Text style={styles.metricValue}>{value}</Text>
       <Text style={styles.metricLabel}>{label}</Text>
     </View>
   );
 }
 
-function formatRole(role: string) {
-  return role
+function IdentityMark({ imageUrl, label }: { imageUrl?: string | null; label: string }) {
+  return (
+    <View style={styles.identityMark}>
+      {imageUrl ? (
+        <Image source={{ uri: imageUrl }} style={styles.identityImage} />
+      ) : (
+        <Text style={styles.identityInitials}>{initials(label)}</Text>
+      )}
+    </View>
+  );
+}
+
+function formatRole(value: string) {
+  return value
     .split('_')
     .map((part) => part.slice(0, 1).toUpperCase() + part.slice(1))
     .join(' ');
 }
 
+function initials(value: string) {
+  return value
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join('') || 'CH';
+}
+
 const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
-    paddingHorizontal: 16,
-    paddingTop: 54,
-    paddingBottom: 30,
+    paddingHorizontal: 18,
+    paddingTop: 28,
+    paddingBottom: 106,
     backgroundColor: colors.canvas,
   },
   shell: {
     width: '100%',
-    maxWidth: 1120,
+    maxWidth: 1180,
     alignSelf: 'center',
-    gap: 18,
+    gap: 16,
   },
   topRow: {
-    minHeight: 58,
+    minHeight: 50,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
+  },
+  iconButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.softTeal,
+    borderWidth: 1,
+    borderColor: colors.line,
   },
   flexText: {
     flex: 1,
     minWidth: 0,
   },
-  iconButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.softTeal,
-  },
   title: {
     color: colors.ink,
-    fontSize: 28,
-    lineHeight: 34,
+    fontSize: 24,
+    lineHeight: 30,
     fontWeight: '900',
   },
   meta: {
     color: colors.muted,
     fontSize: 13,
     lineHeight: 19,
+    fontWeight: '800',
   },
   signOutButton: {
-    minHeight: 40,
+    minHeight: 42,
     borderRadius: 14,
     paddingHorizontal: 12,
     flexDirection: 'row',
@@ -2036,525 +335,105 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 7,
     backgroundColor: colors.softTeal,
+    borderWidth: 1,
+    borderColor: colors.line,
   },
   signOutText: {
     color: colors.tealDark,
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '900',
   },
   heroPanel: {
     overflow: 'hidden',
     borderRadius: 24,
-    gap: 12,
-    backgroundColor: colors.cream,
-    borderWidth: 1,
-    borderColor: '#e2dccd',
-  },
-  heroHeader: {
-    padding: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-  },
-  heroIcon: {
-    width: 52,
-    height: 52,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.tealDark,
-  },
-  heroTitle: {
-    color: colors.ink,
-    fontSize: 22,
-    lineHeight: 28,
-    fontWeight: '900',
-  },
-  heroBody: {
-    color: '#33413b',
-    fontSize: 14,
-    lineHeight: 21,
-    marginTop: 4,
-  },
-  loadingCard: {
-    minHeight: 120,
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
-    backgroundColor: colors.paper,
-    borderWidth: 1,
-    borderColor: colors.line,
-  },
-  metricGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  metricCard: {
-    minWidth: 150,
-    flex: 1,
-    borderRadius: 18,
-    padding: 16,
-    gap: 12,
-    backgroundColor: colors.paper,
-    borderWidth: 1,
-    borderColor: colors.line,
-  },
-  metricHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 10,
-  },
-  metricValue: {
-    color: colors.ink,
-    fontSize: 24,
-    lineHeight: 30,
-    fontWeight: '900',
-  },
-  metricLabel: {
-    color: colors.muted,
-    fontSize: 13,
-    fontWeight: '800',
-  },
-  setupGrid: {
-    gap: 16,
-  },
-  stack: {
-    gap: 16,
-  },
-  navRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    padding: 6,
-    borderRadius: 18,
-    backgroundColor: '#eef2ee',
-  },
-  navPill: {
-    minHeight: 38,
-    borderRadius: 13,
-    paddingHorizontal: 13,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  navPillActive: {
-    backgroundColor: colors.tealDark,
-  },
-  navPillText: {
-    color: colors.muted,
-    fontSize: 13,
-    fontWeight: '900',
-  },
-  navPillTextActive: {
-    color: '#ffffff',
-  },
-  adminIntro: {
-    minHeight: 92,
-    borderRadius: 22,
-    padding: 18,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
     backgroundColor: '#101916',
     borderWidth: 1,
     borderColor: '#20352f',
   },
-  adminIntroIcon: {
-    width: 52,
-    height: 52,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
+  banner: {
+    height: 104,
     backgroundColor: colors.tealDark,
   },
-  adminIntroTitle: {
-    color: '#ffffff',
-    fontSize: 22,
-    lineHeight: 28,
-    fontWeight: '900',
+  bannerImage: {
+    width: '100%',
+    height: '100%',
   },
-  adminIntroBody: {
-    color: '#dce7e1',
-    fontSize: 13,
-    lineHeight: 20,
-    marginTop: 4,
-  },
-  overviewGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-  },
-  identityEditor: {
-    overflow: 'hidden',
-    borderRadius: 20,
-    gap: 12,
-    paddingBottom: 14,
-    backgroundColor: '#f7faf7',
-    borderWidth: 1,
-    borderColor: '#e1e9e3',
-  },
-  identityEditorBody: {
-    paddingHorizontal: 14,
+  heroHeader: {
+    padding: 18,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 14,
   },
-  identityPreview: {
-    minHeight: 70,
-    borderRadius: 18,
-    padding: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    backgroundColor: '#f7faf7',
-    borderWidth: 1,
-    borderColor: '#e1e9e3',
-  },
   identityMark: {
     overflow: 'hidden',
-    width: 46,
-    height: 46,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  identityMarkLarge: {
     width: 64,
     height: 64,
-    borderRadius: 22,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.gold,
+    borderWidth: 2,
+    borderColor: '#ffffff',
   },
   identityImage: {
     width: '100%',
     height: '100%',
   },
   identityInitials: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: '900',
-  },
-  bannerStrip: {
-    height: 84,
-  },
-  bannerImage: {
-    width: '100%',
-    height: '100%',
-  },
-  stickerRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    paddingHorizontal: 14,
-  },
-  stickerChoice: {
-    minHeight: 36,
-    borderRadius: 18,
-    paddingHorizontal: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 7,
-    backgroundColor: '#ffffff',
-    borderWidth: 2,
-  },
-  stickerSwatch: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-  },
-  stickerText: {
-    color: colors.ink,
-    fontSize: 12,
-    fontWeight: '900',
-  },
-  overviewTile: {
-    minWidth: 150,
-    flex: 1,
-    borderRadius: 16,
-    padding: 14,
-    backgroundColor: '#f7faf7',
-    borderWidth: 1,
-    borderColor: '#e1e9e3',
-  },
-  overviewValue: {
     color: colors.ink,
     fontSize: 18,
-    lineHeight: 24,
     fontWeight: '900',
   },
-  overviewLabel: {
-    color: colors.muted,
-    fontSize: 12,
-    lineHeight: 18,
-    fontWeight: '800',
-  },
-  checklist: {
-    gap: 10,
-  },
-  checklistRow: {
-    minHeight: 66,
-    borderRadius: 16,
-    padding: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    backgroundColor: '#f7faf7',
-    borderWidth: 1,
-    borderColor: '#e1e9e3',
-  },
-  checklistRowDone: {
-    backgroundColor: colors.softTeal,
-    borderColor: '#d4e8df',
-  },
-  checkDot: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#ffffff',
-    borderWidth: 1,
-    borderColor: colors.line,
-  },
-  checkDotDone: {
-    backgroundColor: colors.tealDark,
-    borderColor: colors.tealDark,
-  },
-  checkDotText: {
-    color: colors.muted,
-    fontSize: 11,
-    fontWeight: '900',
-  },
-  checkDotTextDone: {
+  heroTitle: {
     color: '#ffffff',
-  },
-  card: {
-    borderRadius: 22,
-    padding: 18,
-    gap: 14,
-    backgroundColor: colors.paper,
-    borderWidth: 1,
-    borderColor: colors.line,
-  },
-  sectionTitleRow: {
-    minHeight: 30,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  cardTitle: {
-    color: colors.ink,
-    fontSize: 18,
-    lineHeight: 24,
+    fontSize: 27,
+    lineHeight: 33,
     fontWeight: '900',
   },
-  cardBody: {
-    color: '#33413b',
+  heroBody: {
+    color: '#dce7e1',
     fontSize: 14,
     lineHeight: 21,
+    fontWeight: '700',
   },
-  helperText: {
-    color: colors.muted,
-    fontSize: 13,
-    lineHeight: 19,
+  metricGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
   },
-  field: {
+  metric: {
+    minWidth: 130,
     flex: 1,
-    minWidth: 170,
-    gap: 7,
-  },
-  fieldLabel: {
-    color: colors.ink,
-    fontSize: 13,
-    fontWeight: '900',
-  },
-  input: {
-    minHeight: 48,
-    borderRadius: 14,
-    paddingHorizontal: 14,
-    color: colors.ink,
-    backgroundColor: '#ffffff',
-    borderWidth: 1,
-    borderColor: colors.line,
-    fontSize: 15,
-  },
-  formRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-  },
-  formRowPadded: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-    paddingHorizontal: 14,
-  },
-  submitButton: {
-    minHeight: 48,
-    borderRadius: 15,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.tealDark,
-  },
-  submitButtonText: {
-    color: '#ffffff',
-    fontSize: 14,
-    fontWeight: '900',
-  },
-  disabledButton: {
-    opacity: 0.5,
-  },
-  recordList: {
-    gap: 8,
-  },
-  recordRow: {
-    minHeight: 48,
-    borderRadius: 15,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    backgroundColor: '#f7faf7',
-    borderWidth: 1,
-    borderColor: '#e1e9e3',
-  },
-  recordRowSelected: {
-    borderColor: colors.teal,
-    backgroundColor: colors.softTeal,
-  },
-  recordTitle: {
-    color: colors.ink,
-    fontSize: 14,
-    lineHeight: 20,
-    fontWeight: '900',
-  },
-  recordMeta: {
-    color: colors.muted,
-    fontSize: 12,
-    lineHeight: 18,
-  },
-  requestMessage: {
-    color: '#33413b',
-    fontSize: 12,
-    lineHeight: 18,
-    marginTop: 4,
-  },
-  actionRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'flex-end',
-    gap: 8,
-  },
-  actionButton: {
-    minHeight: 34,
-    borderRadius: 12,
-    paddingHorizontal: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  actionButtonPrimary: {
-    backgroundColor: colors.tealDark,
-  },
-  actionButtonDanger: {
-    backgroundColor: colors.coral,
-  },
-  actionButtonMuted: {
-    backgroundColor: colors.softTeal,
-    borderWidth: 1,
-    borderColor: '#d4e8df',
-  },
-  actionButtonText: {
-    color: '#ffffff',
-    fontSize: 12,
-    fontWeight: '900',
-  },
-  actionButtonTextMuted: {
-    color: colors.tealDark,
-  },
-  memberClassWrap: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-    marginTop: 8,
-  },
-  inlineEditRow: {
-    marginTop: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  inlineInput: {
-    minHeight: 38,
-    minWidth: 150,
-    flex: 1,
-    borderRadius: 13,
-    paddingHorizontal: 10,
-    color: colors.ink,
-    backgroundColor: '#ffffff',
-    borderWidth: 1,
-    borderColor: colors.line,
-    fontSize: 13,
-    fontWeight: '800',
-  },
-  memberClassPill: {
-    minHeight: 28,
-    borderRadius: 14,
-    paddingHorizontal: 9,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#eef2ee',
-  },
-  memberClassPillText: {
-    color: colors.tealDark,
-    fontSize: 12,
-    fontWeight: '900',
-  },
-  selectedText: {
-    color: colors.tealDark,
-    fontSize: 12,
-    fontWeight: '900',
-  },
-  emptyText: {
-    color: colors.muted,
-    fontSize: 13,
-    lineHeight: 19,
-  },
-  pillRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  choicePill: {
-    minHeight: 36,
     borderRadius: 18,
-    paddingHorizontal: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.softTeal,
+    padding: 14,
+    backgroundColor: '#ffffff',
     borderWidth: 1,
-    borderColor: '#d4e8df',
+    borderColor: colors.line,
   },
-  choicePillActive: {
-    backgroundColor: colors.tealDark,
-    borderColor: colors.tealDark,
-  },
-  choicePillText: {
-    color: colors.tealDark,
-    fontSize: 13,
+  metricValue: {
+    color: colors.ink,
+    fontSize: 25,
+    lineHeight: 31,
     fontWeight: '900',
   },
-  choicePillTextActive: {
-    color: '#ffffff',
+  metricLabel: {
+    color: colors.muted,
+    fontSize: 12,
+    lineHeight: 18,
+    fontWeight: '900',
+  },
+  loadingCard: {
+    minHeight: 118,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: colors.line,
   },
   errorText: {
     color: '#9d2e24',
-    fontSize: 13,
-    lineHeight: 19,
-    fontWeight: '800',
-  },
-  successText: {
-    color: colors.tealDark,
     fontSize: 13,
     lineHeight: 19,
     fontWeight: '800',

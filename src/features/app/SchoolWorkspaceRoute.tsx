@@ -5,7 +5,7 @@ import { BootScreen } from './BootScreen';
 import { useAppSession } from './AppSessionProvider';
 
 type SchoolWorkspaceRouteProps = {
-  surface: 'learn' | 'teach' | 'admin';
+  surface: 'learn' | 'teach';
 };
 
 export function SchoolWorkspaceRoute({ surface }: SchoolWorkspaceRouteProps) {

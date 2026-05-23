@@ -48,6 +48,7 @@ Completed in this group so far:
 - Expo Router entry with `(auth)` and `(tabs)` route groups
 - real access routes for `/home`, `/account`, `/create`, `/join`, `/request`, and `/crews`
 - real workspace routes for `/learn`, `/teach`, and `/admin` on mobile and web
+- real admin routes for `/admin/profile`, `/admin/academic`, `/admin/classes`, `/admin/subjects`, `/admin/people`, `/admin/invites`, and `/admin/requests`
 - real school routes for `/school/my-school`, `/school/my-school/[username]`, `/school/class`, and `/school/class/[username]`
 - school and class username editing for clean public routes
 - learner class request cards after entering a school
