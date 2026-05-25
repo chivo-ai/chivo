@@ -13,6 +13,7 @@ drop function if exists public.is_class_member(uuid) cascade;
 drop function if exists public.is_crew_member(uuid) cascade;
 
 drop table if exists
+  public.platform_settings,
   public.audit_logs,
   public.notifications,
   public.payment_transactions,

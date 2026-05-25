@@ -2,7 +2,7 @@ import { Redirect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { Text } from 'react-native';
 
-import { LessonsRouteScreen } from '../../src/features/lessons';
+import { LessonReaderScreen } from '../../src/features/lessons/LessonReaderScreen';
 import { BootScreen } from '../../src/features/app/BootScreen';
 import { RouteScreen } from '../../src/features/app/RouteScreen';
 import { useAppSession } from '../../src/features/app/AppSessionProvider';
@@ -29,9 +29,6 @@ export default function LessonDetailRoute() {
   const [loadingSetup, setLoadingSetup] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const isStaff = activeMembership
-    ? ['owner', 'admin', 'teacher'].includes(activeMembership.role)
-    : false;
   const isAdmin = activeMembership ? ['owner', 'admin'].includes(activeMembership.role) : false;
 
   const loadSetup = useCallback(async () => {
@@ -67,12 +64,10 @@ export default function LessonDetailRoute() {
   return (
     <RouteScreen>
       {error ? <Text style={{ color: colors.coral, fontWeight: '900' }}>{error}</Text> : null}
-      <LessonsRouteScreen
+      <LessonReaderScreen
+        lessonId={lessonId}
         membership={activeMembership}
         setup={setup}
-        mode={isStaff ? 'teach' : 'learn'}
-        initialLessonId={lessonId}
-        onWorkspaceChanged={loadSetup}
       />
     </RouteScreen>
   );

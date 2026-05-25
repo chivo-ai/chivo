@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Text } from 'react-native';
 
 import { CreateSchoolScreen } from '../../src/features/onboarding/screens/CreateSchoolScreen';
@@ -7,6 +7,7 @@ import { membershipFromCreateResult } from '../../src/features/onboarding/access
 import { RouteScreen } from '../../src/features/app/RouteScreen';
 import { useAppSession } from '../../src/features/app/AppSessionProvider';
 import { createSchool } from '../../src/services/auth';
+import { fetchSchoolCreationAvailability, SchoolCreationAvailability } from '../../src/services/platform';
 
 export default function CreateSchoolRoute() {
   const { user, setActiveMembership } = useAppSession();
@@ -19,9 +20,44 @@ export default function CreateSchoolRoute() {
   const [schoolStickerKey, setSchoolStickerKey] = useState('spark');
   const [submitting, setSubmitting] = useState<'create' | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [checkingAvailability, setCheckingAvailability] = useState(true);
+  const [schoolCreation, setSchoolCreation] = useState<SchoolCreationAvailability>({
+    enabled: true,
+    message: null,
+  });
+
+  useEffect(() => {
+    let active = true;
+
+    fetchSchoolCreationAvailability()
+      .then((availability) => {
+        if (active) {
+          setSchoolCreation(availability);
+        }
+      })
+      .catch((caught) => {
+        if (active) {
+          setError(caught instanceof Error ? caught.message : 'Could not check school creation access.');
+        }
+      })
+      .finally(() => {
+        if (active) {
+          setCheckingAvailability(false);
+        }
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   async function handleCreate() {
     setError(null);
+
+    if (!schoolCreation.enabled) {
+      setError(schoolCreation.message ?? 'School creation is paused.');
+      return;
+    }
 
     if (!schoolName.trim()) {
       setError('School name is required.');
@@ -64,6 +100,8 @@ export default function CreateSchoolRoute() {
         userId={user.id}
         values={{ schoolName, schoolUsername, country, city, schoolLogoUrl, schoolBannerUrl, schoolStickerKey }}
         submitting={submitting}
+        checkingAvailability={checkingAvailability}
+        creationDisabledReason={schoolCreation.enabled ? null : schoolCreation.message ?? 'School creation is paused.'}
         onChange={{ setSchoolName, setSchoolUsername, setCountry, setCity, setSchoolLogoUrl, setSchoolBannerUrl, setSchoolStickerKey }}
         onCreate={handleCreate}
         onError={setError}

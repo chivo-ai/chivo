@@ -50,6 +50,13 @@ serve(async (request) => {
       return json({ error: 'School name is required' }, 400);
     }
 
+    const availability = await getSchoolCreationAvailability(supabase);
+    if (!availability.enabled) {
+      return json({
+        error: availability.message ?? 'School creation is paused right now.',
+      }, 403);
+    }
+
     const slug = await createUniqueSlug(supabase, body.username?.trim() || name, Boolean(body.username?.trim()));
 
     await supabase.from('profiles').upsert({
@@ -139,6 +146,39 @@ async function createUniqueSlug(supabase: SupabaseClient, value: string, explici
   }
 
   return `${base}-${crypto.randomUUID().slice(0, 8)}`;
+}
+
+async function getSchoolCreationAvailability(supabase: SupabaseClient) {
+  const defaultState = {
+    enabled: true,
+    message: null as string | null,
+  };
+
+  const { data, error } = await supabase
+    .from('platform_settings')
+    .select('value')
+    .eq('key', 'school_creation')
+    .maybeSingle();
+
+  if (error) {
+    if (error.code === '42P01') {
+      return defaultState;
+    }
+
+    throw error;
+  }
+
+  const value = data?.value;
+  if (!value || typeof value !== 'object') {
+    return defaultState;
+  }
+
+  const settings = value as { enabled?: boolean; message?: string };
+
+  return {
+    enabled: settings.enabled !== false,
+    message: typeof settings.message === 'string' && settings.message.trim() ? settings.message.trim() : null,
+  };
 }
 
 function slugify(value: string) {

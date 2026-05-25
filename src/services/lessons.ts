@@ -27,6 +27,16 @@ export type LessonOutputRow = {
   content: Record<string, unknown>;
 };
 
+export type LessonTranscriptRow = {
+  id: string;
+  lesson_id: string;
+  provider: string;
+  language: string;
+  raw_text: string | null;
+  cleaned_text: string | null;
+  created_at: string;
+};
+
 export type LearningMode = 'simple' | 'balanced' | 'exam' | 'story' | 'catch_up';
 
 export type LessonPersonalizationRow = {
@@ -68,6 +78,29 @@ export type FlashcardRow = {
   back: string;
 };
 
+export type StudentTopicProgressRow = {
+  id: string;
+  student_membership_id: string;
+  subject_id: string | null;
+  topic: string;
+  mastery_score: number;
+  confidence_score: number;
+  last_practiced_at: string | null;
+  updated_at: string;
+};
+
+export type StudentWeakAreaRow = {
+  id: string;
+  student_membership_id: string;
+  lesson_id: string | null;
+  subject_id: string | null;
+  topic: string;
+  reason: string | null;
+  status: string;
+  created_at: string;
+  resolved_at: string | null;
+};
+
 export type QuizAttemptAnswer = {
   questionId: string;
   prompt: string;
@@ -97,11 +130,15 @@ export type TeacherLessonInsight = {
 
 export type LessonDetail = {
   lesson: LessonRow;
+  transcript: LessonTranscriptRow | null;
   output: LessonOutputRow | null;
   personalization: LessonPersonalizationRow | null;
   quiz: QuizRow | null;
   questions: QuizQuestionRow[];
   flashcards: FlashcardRow[];
+  attempts: QuizAttemptRow[];
+  progress: StudentTopicProgressRow[];
+  weakAreas: StudentWeakAreaRow[];
 };
 
 type CreateLessonInput = {
@@ -159,12 +196,19 @@ export async function fetchLessons(schoolId: string, includeDrafts = false): Pro
 
 export async function fetchLessonDetail(lessonId: string, studentMembershipId?: string | null): Promise<LessonDetail> {
   const db = client() as any;
-  const [lesson, output, quizzes, flashcards, personalization] = await Promise.all([
+  const [lesson, transcript, output, quizzes, flashcards, personalization] = await Promise.all([
     db
       .from('lessons')
       .select('id, school_id, class_id, subject_id, teacher_membership_id, title, status, language, duration_seconds, recorded_at, published_at, created_at')
       .eq('id', lessonId)
       .single(),
+    db
+      .from('lesson_transcripts')
+      .select('id, lesson_id, provider, language, raw_text, cleaned_text, created_at')
+      .eq('lesson_id', lessonId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
     db
       .from('lesson_outputs')
       .select('id, lesson_id, output_type, language, learning_level, title, summary, key_points, content')
@@ -197,6 +241,10 @@ export async function fetchLessonDetail(lessonId: string, studentMembershipId?: 
     throw lesson.error;
   }
 
+  if (transcript.error) {
+    throw transcript.error;
+  }
+
   if (output.error) {
     throw output.error;
   }
@@ -213,8 +261,12 @@ export async function fetchLessonDetail(lessonId: string, studentMembershipId?: 
     throw personalization.error;
   }
 
+  const lessonRow = lesson.data as LessonRow;
   const quiz = (quizzes.data?.[0] ?? null) as QuizRow | null;
   let questions: QuizQuestionRow[] = [];
+  let attempts: QuizAttemptRow[] = [];
+  let progress: StudentTopicProgressRow[] = [];
+  let weakAreas: StudentWeakAreaRow[] = [];
 
   if (quiz) {
     const { data, error } = await db
@@ -230,13 +282,66 @@ export async function fetchLessonDetail(lessonId: string, studentMembershipId?: 
     questions = (data ?? []) as QuizQuestionRow[];
   }
 
+  if (studentMembershipId) {
+    const progressQuery = db
+      .from('student_topic_progress')
+      .select('id, student_membership_id, subject_id, topic, mastery_score, confidence_score, last_practiced_at, updated_at')
+      .eq('student_membership_id', studentMembershipId)
+      .order('updated_at', { ascending: false })
+      .limit(6);
+
+    if (lessonRow.subject_id) {
+      progressQuery.eq('subject_id', lessonRow.subject_id);
+    }
+
+    const [attemptRows, progressRows, weakRows] = await Promise.all([
+      quiz
+        ? db
+            .from('quiz_attempts')
+            .select('id, quiz_id, student_membership_id, score, answers, completed_at, created_at')
+            .eq('quiz_id', quiz.id)
+            .eq('student_membership_id', studentMembershipId)
+            .order('completed_at', { ascending: false })
+            .limit(5)
+        : Promise.resolve({ data: [], error: null }),
+      progressQuery,
+      db
+        .from('student_weak_areas')
+        .select('id, student_membership_id, lesson_id, subject_id, topic, reason, status, created_at, resolved_at')
+        .eq('student_membership_id', studentMembershipId)
+        .eq('lesson_id', lessonId)
+        .order('created_at', { ascending: false })
+        .limit(5),
+    ]);
+
+    if (attemptRows.error) {
+      throw attemptRows.error;
+    }
+
+    if (progressRows.error) {
+      throw progressRows.error;
+    }
+
+    if (weakRows.error) {
+      throw weakRows.error;
+    }
+
+    attempts = (attemptRows.data ?? []) as QuizAttemptRow[];
+    progress = (progressRows.data ?? []) as StudentTopicProgressRow[];
+    weakAreas = (weakRows.data ?? []) as StudentWeakAreaRow[];
+  }
+
   return {
-    lesson: lesson.data as LessonRow,
+    lesson: lessonRow,
+    transcript: (transcript.data ?? null) as LessonTranscriptRow | null,
     output: (output.data ?? null) as LessonOutputRow | null,
     personalization: (personalization.data ?? null) as LessonPersonalizationRow | null,
     quiz,
     questions,
     flashcards: (flashcards.data ?? []) as FlashcardRow[],
+    attempts,
+    progress,
+    weakAreas,
   };
 }
 
@@ -415,7 +520,7 @@ export async function processLesson(lessonId: string) {
   });
 
   if (error) {
-    throw error;
+    throw await readableFunctionError(error);
   }
 
   return data;
@@ -444,7 +549,7 @@ export async function personalizeLesson(input: {
   });
 
   if (error) {
-    throw error;
+    throw await readableFunctionError(error);
   }
 
   return data;
@@ -460,7 +565,7 @@ export async function publishLesson(lessonId: string) {
     .eq('id', lessonId);
 
   if (error) {
-    throw error;
+    throw await readableFunctionError(error);
   }
 }
 
@@ -566,6 +671,35 @@ function requireFields(fields: Array<[string, string | null | undefined]>) {
   if (missing) {
     throw new Error(`${missing[0]} is required.`);
   }
+}
+
+async function readableFunctionError(error: unknown) {
+  const fallback = error instanceof Error ? error.message : 'Edge Function failed.';
+  const context = (error as { context?: unknown } | null)?.context;
+
+  if (context && typeof (context as Response).clone === 'function') {
+    try {
+      const response = (context as Response).clone();
+      const payload = await response.json();
+      if (payload && typeof payload === 'object') {
+        const message = (payload as { error?: unknown; message?: unknown }).error ?? (payload as { message?: unknown }).message;
+        if (typeof message === 'string' && message.trim()) {
+          return new Error(message.trim());
+        }
+      }
+    } catch {
+      try {
+        const text = await (context as Response).clone().text();
+        if (text.trim()) {
+          return new Error(text.trim());
+        }
+      } catch {
+        // Fall back to the Supabase client message.
+      }
+    }
+  }
+
+  return new Error(fallback);
 }
 
 async function readAudioFile(recording: LessonRecordingUpload) {

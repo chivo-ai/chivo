@@ -1,8 +1,10 @@
-import { ReactNode, useMemo, useState } from 'react';
+import { ReactNode, useEffect, useMemo, useState } from 'react';
 import {
+  Image,
   Modal,
   Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   useWindowDimensions,
@@ -10,7 +12,9 @@ import {
 } from 'react-native';
 import { Grid3X3, Menu, X } from 'lucide-react-native';
 
+import { fetchPlatformBranding, PlatformBranding } from '../services/platform';
 import { colors } from '../theme/tokens';
+import { TopBarProvider, UniversalTopBar } from './UniversalTopBar';
 
 export type AppNavItem = {
   id: string;
@@ -31,6 +35,7 @@ type AppNavigationProps = {
 };
 
 const WEB_BREAKPOINT = 860;
+const fallbackCompanyLogo = require('../../assets/icon.png');
 
 export function AppNavigation({
   title,
@@ -43,11 +48,37 @@ export function AppNavigation({
   const { width } = useWindowDimensions();
   const [expanded, setExpanded] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [branding, setBranding] = useState<PlatformBranding>({
+    name: 'Chivo AI',
+    subtitle: 'Learn smarter',
+    logoUrl: null,
+  });
 
   const visibleItems = useMemo(() => items.filter((item) => item.visible !== false), [items]);
   const primaryMobileItems = visibleItems.slice(0, 4);
   const hasOverflowItems = visibleItems.length > primaryMobileItems.length;
   const isWebShell = Platform.OS === 'web' && width >= WEB_BREAKPOINT;
+  const activeItem = visibleItems.find((item) => item.id === activeId);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    fetchPlatformBranding()
+      .then((nextBranding) => {
+        if (isMounted) {
+          setBranding(nextBranding);
+        }
+      })
+      .catch(() => {
+        if (isMounted) {
+          setBranding({ name: 'Chivo AI', subtitle: 'Learn smarter', logoUrl: null });
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   function select(id: string) {
     onSelect(id);
@@ -63,34 +94,66 @@ export function AppNavigation({
             onHoverOut={() => setExpanded(false)}
             style={[styles.sidebarSurface, expanded && styles.sidebarSurfaceExpanded]}
           >
-            <View style={styles.sidebarBrand}>
-              <View style={styles.brandBadge}>
-                <Text style={styles.brandBadgeText}>C</Text>
+            <View style={styles.sidebarTop}>
+              <View style={styles.sidebarBrand}>
+                <View style={styles.brandBadge}>
+                  <Image
+                    source={branding.logoUrl ? { uri: branding.logoUrl } : fallbackCompanyLogo}
+                    style={styles.brandLogo}
+                    resizeMode="cover"
+                  />
+                </View>
+                {expanded ? (
+                  <View style={styles.brandCopy}>
+                    <Text style={styles.sidebarTitle} numberOfLines={1}>
+                      {branding.name}
+                    </Text>
+                    <Text style={styles.sidebarSubtitle} numberOfLines={1}>
+                      {branding.subtitle ?? subtitle}
+                    </Text>
+                  </View>
+                ) : null}
               </View>
+
               {expanded ? (
-                <View style={styles.brandCopy}>
-                  <Text style={styles.sidebarTitle}>{title}</Text>
-                  <Text style={styles.sidebarSubtitle}>{subtitle}</Text>
+                <View style={styles.workspaceCard}>
+                  <Text style={styles.workspaceKicker}>Current space</Text>
+                  <Text style={styles.workspaceTitle} numberOfLines={1}>
+                    {title}
+                  </Text>
+                  <Text style={styles.workspaceMeta} numberOfLines={1}>
+                    {activeItem?.label ?? subtitle}
+                  </Text>
                 </View>
               ) : null}
             </View>
 
-            <View style={styles.sidebarItems}>
+            <ScrollView
+              style={styles.sidebarScroller}
+              contentContainerStyle={styles.sidebarItems}
+              showsVerticalScrollIndicator={expanded}
+            >
               {visibleItems.map((item, index) => {
                 const previous = visibleItems[index - 1];
-                const showGroup = expanded && item.group && item.group !== previous?.group;
+                const startsGroup = item.group && item.group !== previous?.group;
+                const showGroup = expanded && startsGroup;
+                const isActive = activeId === item.id;
 
                 return (
                   <View key={item.id}>
                     {showGroup ? <Text style={styles.groupLabel}>{item.group}</Text> : null}
+                    {!expanded && startsGroup && index > 0 ? <View style={styles.groupDivider} /> : null}
                     <Pressable
                       onPress={() => select(item.id)}
-                      style={[styles.sidebarItem, activeId === item.id && styles.sidebarItemActive]}
+                      style={[styles.sidebarItem, isActive && styles.sidebarItemActive]}
                     >
-                      <View style={styles.navIcon}>{item.icon}</View>
+                      <View style={[styles.activeRail, isActive && styles.activeRailOn]} />
+                      <View style={[styles.navIcon, isActive && styles.navIconActive]}>{item.icon}</View>
                       {expanded ? (
                         <View style={styles.navCopy}>
-                          <Text style={[styles.navLabel, activeId === item.id && styles.navLabelActive]}>{item.label}</Text>
+                          <Text style={[styles.navLabel, isActive && styles.navLabelActive]} numberOfLines={1}>
+                            {item.label}
+                          </Text>
                           {item.description ? <Text style={styles.navDescription}>{item.description}</Text> : null}
                         </View>
                       ) : null}
@@ -98,6 +161,19 @@ export function AppNavigation({
                   </View>
                 );
               })}
+            </ScrollView>
+
+            <View style={styles.sidebarFooter}>
+              {expanded ? (
+                <View style={styles.footerCard}>
+                  <Text style={styles.footerKicker}>Mode</Text>
+                  <Text style={styles.footerTitle} numberOfLines={1}>
+                    {activeItem?.group ?? 'Workspace'}
+                  </Text>
+                </View>
+              ) : (
+                <View style={styles.footerDot} />
+              )}
             </View>
           </Pressable>
         </View>
@@ -109,7 +185,10 @@ export function AppNavigation({
 
   return (
     <View style={styles.mobileShell}>
-      <View style={styles.mobileContent}>{children}</View>
+      <TopBarProvider>
+        <UniversalTopBar />
+        <View style={styles.mobileContent}>{children}</View>
+      </TopBarProvider>
 
       <View style={styles.bottomNav}>
         {primaryMobileItems.map((item) => (
@@ -176,7 +255,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.canvas,
   },
   sidebarSlot: {
-    width: 56,
+    width: 64,
     minHeight: '100%',
     zIndex: 20,
   },
@@ -185,43 +264,46 @@ const styles = StyleSheet.create({
     left: 0,
     top: 0,
     bottom: 0,
-    width: 56,
-    paddingHorizontal: 8,
-    paddingTop: 12,
-    paddingBottom: 16,
-    gap: 14,
-    backgroundColor: '#101916',
+    width: 64,
+    paddingHorizontal: 10,
+    paddingTop: 14,
+    paddingBottom: 14,
+    gap: 16,
+    backgroundColor: '#081611',
     borderRightWidth: 1,
-    borderRightColor: '#20352f',
+    borderRightColor: 'rgba(89, 121, 106, 0.32)',
     overflow: 'hidden',
   },
   sidebarSurfaceExpanded: {
-    width: 244,
+    width: 258,
     shadowColor: '#000000',
-    shadowOpacity: 0.2,
-    shadowRadius: 16,
-    shadowOffset: { width: 8, height: 0 },
+    shadowOpacity: 0.24,
+    shadowRadius: 26,
+    shadowOffset: { width: 14, height: 0 },
+  },
+  sidebarTop: {
+    gap: 12,
   },
   sidebarBrand: {
-    minHeight: 44,
+    minHeight: 46,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 11,
   },
   brandBadge: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
+    width: 42,
+    height: 42,
+    borderRadius: 15,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.tealDark,
+    overflow: 'hidden',
+    backgroundColor: '#0d241c',
     borderWidth: 1,
-    borderColor: colors.teal,
+    borderColor: '#12d2a2',
   },
-  brandBadgeText: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: '900',
+  brandLogo: {
+    width: '100%',
+    height: '100%',
   },
   brandCopy: {
     flex: 1,
@@ -229,59 +311,163 @@ const styles = StyleSheet.create({
   },
   sidebarTitle: {
     color: '#ffffff',
-    fontSize: 15,
+    fontSize: 16,
+    lineHeight: 20,
     fontWeight: '900',
   },
   sidebarSubtitle: {
-    color: '#a7b6b0',
+    color: '#b9c8c0',
     fontSize: 11,
-    lineHeight: 16,
+    lineHeight: 15,
+    fontWeight: '800',
+  },
+  workspaceCard: {
+    minHeight: 76,
+    borderRadius: 20,
+    padding: 13,
+    gap: 4,
+    backgroundColor: '#12251d',
+    borderWidth: 1,
+    borderColor: 'rgba(18, 210, 162, 0.24)',
+  },
+  workspaceKicker: {
+    color: colors.gold,
+    fontSize: 10,
+    lineHeight: 14,
+    fontWeight: '900',
+    textTransform: 'uppercase',
+  },
+  workspaceTitle: {
+    color: '#ffffff',
+    fontSize: 15,
+    lineHeight: 20,
+    fontWeight: '900',
+  },
+  workspaceMeta: {
+    color: '#b9c8c0',
+    fontSize: 11,
+    lineHeight: 15,
+    fontWeight: '800',
   },
   sidebarItems: {
-    gap: 7,
+    gap: 6,
+    paddingBottom: 10,
+  },
+  sidebarScroller: {
+    flex: 1,
+    marginHorizontal: -4,
+    paddingHorizontal: 4,
   },
   groupLabel: {
     color: colors.gold,
     fontSize: 10,
     fontWeight: '900',
-    marginTop: 10,
-    marginBottom: 3,
+    marginTop: 12,
+    marginBottom: 4,
+    paddingLeft: 9,
     textTransform: 'uppercase',
   },
+  groupDivider: {
+    width: 28,
+    height: 1,
+    marginVertical: 7,
+    alignSelf: 'center',
+    backgroundColor: 'rgba(222, 233, 226, 0.2)',
+  },
   sidebarItem: {
-    minHeight: 40,
-    borderRadius: 10,
+    position: 'relative',
+    minHeight: 46,
+    borderRadius: 16,
     paddingHorizontal: 8,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 10,
+    borderWidth: 1,
+    borderColor: 'transparent',
   },
   sidebarItemActive: {
-    backgroundColor: colors.softTeal,
-    borderWidth: 1,
-    borderColor: colors.teal,
+    backgroundColor: '#eaf8f1',
+    borderColor: '#19c99b',
+    shadowColor: '#16d7a4',
+    shadowOpacity: 0.2,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 8 },
+  },
+  activeRail: {
+    position: 'absolute',
+    left: -10,
+    width: 4,
+    height: 24,
+    borderRadius: 4,
+    backgroundColor: 'transparent',
+  },
+  activeRailOn: {
+    backgroundColor: colors.gold,
   },
   navIcon: {
-    width: 22,
+    width: 34,
+    height: 34,
+    borderRadius: 13,
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  navIconActive: {
+    backgroundColor: '#ffffff',
   },
   navCopy: {
     flex: 1,
     minWidth: 0,
   },
   navLabel: {
-    color: '#dce7e1',
+    color: '#f5fbf7',
     fontSize: 13,
+    lineHeight: 18,
     fontWeight: '900',
   },
   navLabelActive: {
     color: colors.ink,
   },
   navDescription: {
-    color: '#82928c',
+    color: '#8fa29a',
     fontSize: 11,
     lineHeight: 15,
+    fontWeight: '800',
+  },
+  sidebarFooter: {
+    minHeight: 36,
+    justifyContent: 'flex-end',
+  },
+  footerCard: {
+    minHeight: 50,
+    borderRadius: 18,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  footerKicker: {
+    color: '#8fa29a',
+    fontSize: 10,
+    lineHeight: 13,
+    fontWeight: '900',
+    textTransform: 'uppercase',
+  },
+  footerTitle: {
+    color: '#ffffff',
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '900',
+  },
+  footerDot: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignSelf: 'center',
+    backgroundColor: colors.gold,
+    borderWidth: 4,
+    borderColor: '#1a2a22',
   },
   contentPane: {
     flex: 1,

@@ -18,6 +18,7 @@ import { router } from 'expo-router';
 import * as Speech from 'expo-speech';
 import { ArrowLeft, BookOpen, Brain, CalendarDays, CheckCircle2, ClipboardList, Clock3, DoorOpen, Layers, Mic, MicOff, Pause, Play, Sparkles, Square, UserCheck, Volume2 } from 'lucide-react-native';
 
+import { LanguagePicker, speechLocaleForLanguage } from '../../components/LanguagePicker';
 import {
   LearningMode,
   LessonDetail,
@@ -333,7 +334,7 @@ export function LessonWorkspace({
     const recognition = new Recognition();
     recognition.continuous = true;
     recognition.interimResults = true;
-    recognition.lang = speechLocale(language);
+    recognition.lang = speechLocaleForLanguage(language);
 
     recognition.onresult = (event) => {
       let finalText = '';
@@ -899,7 +900,7 @@ export function LessonWorkspace({
                 ) : null}
                 <View style={styles.formRow}>
                   <Field label="Lesson title" value={title} onChangeText={setTitle} placeholder="Photosynthesis recap" />
-                  <Field label="Language" value={language} onChangeText={setLanguage} placeholder="English" />
+                  <LanguagePicker value={language} onChange={setLanguage} />
                 </View>
                 <Field
                   label="Transcript"
@@ -1382,12 +1383,24 @@ function LessonDetailView({
 
   return (
     <View style={styles.stack}>
-      <View style={styles.card}>
+      <View style={[styles.card, isTeacher && styles.teacherReviewCard]}>
         <SectionTitle icon={<Brain size={22} color={colors.gold} />} title={detail.lesson.title} />
         <View style={styles.detailMetaRow}>
           <StatusBadge status={detail.lesson.status} />
           <Text style={styles.recordMeta}>{detail.lesson.language}</Text>
+          {isTeacher ? (
+            <Text style={styles.reviewMeta}>
+              {detail.output ? 'AI study pack ready' : 'Waiting for Chivo AI'}
+            </Text>
+          ) : null}
         </View>
+        {isTeacher ? (
+          <View style={styles.reviewStrip}>
+            <ReviewMetric label="Summary" value={detail.output?.summary ? 'Ready' : 'Empty'} />
+            <ReviewMetric label="Quiz" value={detail.questions.length} />
+            <ReviewMetric label="Cards" value={detail.flashcards.length} />
+          </View>
+        ) : null}
         {canAddTranscript ? (
           <View style={styles.inlineTranscript}>
             {speechNotice ? <Text style={styles.listenNotice}>{speechNotice}</Text> : null}
@@ -1455,6 +1468,13 @@ function LessonDetailView({
               disabled={!detail.output || differentLiveLessonOpen}
               tone="gold"
             />
+            {detail.lesson.status === 'published' ? (
+              <SubmitButton
+                label="Open student view"
+                loading={false}
+                onPress={() => router.push(`/lessons/${detail.lesson.id}` as never)}
+              />
+            ) : null}
           </View>
         ) : null}
       </View>
@@ -1528,6 +1548,11 @@ function SummaryPanel({
   saving: string | null;
   onPersonalize: (lessonId: string, language: string, learningMode: LearningMode) => void;
 }) {
+  const [showAll, setShowAll] = useState(false);
+  const keyPoints = detail.output?.key_points ?? [];
+  const visiblePoints = showAll ? keyPoints : keyPoints.slice(0, 4);
+  const hasMore = keyPoints.length > visiblePoints.length || Number(detail.output?.summary?.length ?? 0) > 780;
+
   return (
     <View style={styles.stack}>
       {canPersonalize ? (
@@ -1539,13 +1564,26 @@ function SummaryPanel({
       ) : null}
       <View style={styles.card}>
         <SectionTitle icon={<ClipboardList size={22} color={colors.teal} />} title={isTeacher ? 'Summary' : 'Class summary'} />
-        <Text style={styles.summaryText}>{detail.output?.summary ?? 'Summary is not ready yet.'}</Text>
-        {detail.output?.key_points?.length ? (
+        <CollapsibleStudyText
+          text={detail.output?.summary ?? 'Summary is not ready yet.'}
+          expanded={showAll}
+          limit={780}
+          style={styles.summaryText}
+        />
+        {visiblePoints.length ? (
           <View style={styles.bulletList}>
-            {detail.output.key_points.map((point, index) => (
-              <Text key={`${point}-${index}`} style={styles.bulletText}>- {point}</Text>
+            {visiblePoints.map((point, index) => (
+              <View key={`${point}-${index}`} style={styles.aiPointCard}>
+                <Text style={styles.aiPointNumber}>{index + 1}</Text>
+                <RichStudyText text={point} style={styles.bulletText} />
+              </View>
             ))}
           </View>
+        ) : null}
+        {hasMore ? (
+          <Pressable onPress={() => setShowAll((current) => !current)} style={styles.showMoreButton}>
+            <Text style={styles.showMoreText}>{showAll ? 'Show less' : 'Show more'}</Text>
+          </Pressable>
         ) : null}
       </View>
     </View>
@@ -1595,7 +1633,7 @@ function PersonalLessonPanel({
     const text = spokenText.slice(0, Math.max(1, maxLength));
 
     Speech.speak(text, {
-      language: speechLocale(detail.personalization.language),
+      language: speechLocaleForLanguage(detail.personalization.language),
       rate: 0.92,
       pitch: 1,
       onStart: () => {
@@ -1660,16 +1698,7 @@ function PersonalLessonPanel({
       </View>
 
       <View style={styles.formRow}>
-        <View style={styles.field}>
-          <Text style={styles.personalFieldLabel}>Language</Text>
-          <TextInput
-            value={languageValue}
-            onChangeText={setLanguageValue}
-            placeholder="English"
-            placeholderTextColor="#8b9691"
-            style={styles.personalInput}
-          />
-        </View>
+        <LanguagePicker value={languageValue} onChange={setLanguageValue} />
       </View>
       <View style={styles.modeGrid}>
         {learningModeOptions.map((mode) => (
@@ -1712,11 +1741,11 @@ function PersonalLessonPanel({
             </Pressable>
           </View>
           {speechMessage ? <Text style={styles.speechMessage}>{speechMessage}</Text> : null}
-          <Text style={styles.personalSummary}>{detail.personalization.summary}</Text>
+          <RichStudyText text={detail.personalization.summary} style={styles.personalSummary} />
           {personalContent.keyPoints.length ? (
             <View style={styles.bulletList}>
               {personalContent.keyPoints.map((point, index) => (
-                <Text key={`${point}-${index}`} style={styles.personalBullet}>- {point}</Text>
+                <RichStudyText key={`${point}-${index}`} text={point} style={styles.personalBullet} />
               ))}
             </View>
           ) : null}
@@ -1725,7 +1754,7 @@ function PersonalLessonPanel({
               {personalContent.studySteps.map((step, index) => (
                 <View key={`${step}-${index}`} style={styles.studyStep}>
                   <Text style={styles.studyStepNumber}>{index + 1}</Text>
-                  <Text style={styles.studyStepText}>{step}</Text>
+                  <RichStudyText text={step} style={styles.studyStepText} />
                 </View>
               ))}
             </View>
@@ -1734,8 +1763,8 @@ function PersonalLessonPanel({
             <View style={styles.vocabGrid}>
               {personalContent.vocabulary.map((item) => (
                 <View key={`${item.term}-${item.meaning}`} style={styles.vocabCard}>
-                  <Text style={styles.vocabTerm}>{item.term}</Text>
-                  <Text style={styles.vocabMeaning}>{item.meaning}</Text>
+                  <RichStudyText text={item.term} style={styles.vocabTerm} />
+                  <RichStudyText text={item.meaning} style={styles.vocabMeaning} />
                 </View>
               ))}
             </View>
@@ -2040,6 +2069,50 @@ function SectionTitle({ icon, title }: { icon: ReactNode; title: string }) {
       {icon}
       <Text style={styles.cardTitle}>{title}</Text>
     </View>
+  );
+}
+
+function ReviewMetric({ label, value }: { label: string; value: string | number }) {
+  return (
+    <View style={styles.reviewMetric}>
+      <Text style={styles.reviewMetricValue}>{value}</Text>
+      <Text style={styles.reviewMetricLabel}>{label}</Text>
+    </View>
+  );
+}
+
+function CollapsibleStudyText({
+  text,
+  expanded,
+  limit,
+  style,
+}: {
+  text: string;
+  expanded: boolean;
+  limit: number;
+  style: object;
+}) {
+  const cleaned = text.trim();
+  const display = !expanded && cleaned.length > limit ? `${cleaned.slice(0, limit).trim()}...` : cleaned;
+  return <RichStudyText text={display} style={style} />;
+}
+
+function RichStudyText({ text, style }: { text: string; style: object }) {
+  const cleanText = text.replace(/^[-*]\s+/gm, '').trim();
+  const parts = cleanText.split(/(\*\*[^*]+\*\*)/g).filter(Boolean);
+
+  return (
+    <Text style={style}>
+      {parts.map((part, index) => {
+        const bold = part.startsWith('**') && part.endsWith('**');
+        const value = bold ? part.slice(2, -2).trim() : part;
+        return (
+          <Text key={`${value}-${index}`} style={bold ? styles.richBold : undefined}>
+            {value}
+          </Text>
+        );
+      })}
+    </Text>
   );
 }
 
@@ -2363,24 +2436,6 @@ function lessonDateLabel(lesson: LessonRow) {
 function lessonTimeLabel(lesson: LessonRow) {
   const date = new Date(lessonTimestamp(lesson));
   return date.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
-}
-
-function speechLocale(language: string) {
-  const normalized = language.trim().toLowerCase();
-  const locales: Record<string, string> = {
-    english: 'en-US',
-    french: 'fr-FR',
-    spanish: 'es-ES',
-    portuguese: 'pt-PT',
-    arabic: 'ar-SA',
-    hausa: 'ha-NG',
-    yoruba: 'yo-NG',
-    igbo: 'ig-NG',
-    hindi: 'hi-IN',
-    chinese: 'zh-CN',
-  };
-
-  return locales[normalized] ?? 'en-US';
 }
 
 function formatDuration(milliseconds: number) {
@@ -2892,6 +2947,51 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.line,
   },
+  teacherReviewCard: {
+    backgroundColor: '#ffffff',
+    borderColor: '#d8eadf',
+    shadowColor: '#16251f',
+    shadowOpacity: 0.08,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 8 },
+  },
+  reviewMeta: {
+    minHeight: 28,
+    borderRadius: 14,
+    paddingHorizontal: 10,
+    paddingTop: 6,
+    color: colors.tealDark,
+    backgroundColor: colors.softTeal,
+    fontSize: 11,
+    lineHeight: 15,
+    fontWeight: '900',
+  },
+  reviewStrip: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  reviewMetric: {
+    minWidth: 92,
+    flex: 1,
+    borderRadius: 16,
+    padding: 11,
+    backgroundColor: '#f7faf7',
+    borderWidth: 1,
+    borderColor: '#e1e9e3',
+  },
+  reviewMetricValue: {
+    color: colors.ink,
+    fontSize: 18,
+    lineHeight: 23,
+    fontWeight: '900',
+  },
+  reviewMetricLabel: {
+    color: colors.muted,
+    fontSize: 11,
+    lineHeight: 16,
+    fontWeight: '900',
+  },
   sectionTitleRow: {
     minHeight: 30,
     flexDirection: 'row',
@@ -3300,11 +3400,49 @@ const styles = StyleSheet.create({
   bulletList: {
     gap: 6,
   },
+  aiPointCard: {
+    minHeight: 50,
+    borderRadius: 16,
+    padding: 11,
+    flexDirection: 'row',
+    gap: 10,
+    backgroundColor: colors.softTeal,
+  },
+  aiPointNumber: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    textAlign: 'center',
+    textAlignVertical: 'center',
+    color: '#ffffff',
+    backgroundColor: colors.tealDark,
+    fontSize: 12,
+    fontWeight: '900',
+  },
   bulletText: {
+    flex: 1,
     color: colors.ink,
     fontSize: 13,
     lineHeight: 20,
     fontWeight: '700',
+  },
+  showMoreButton: {
+    alignSelf: 'flex-start',
+    minHeight: 38,
+    borderRadius: 15,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.ink,
+  },
+  showMoreText: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: '900',
+  },
+  richBold: {
+    color: colors.tealDark,
+    fontWeight: '900',
   },
   quizCard: {
     borderRadius: 15,

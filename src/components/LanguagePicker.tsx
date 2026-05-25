@@ -1,0 +1,225 @@
+import { useState } from 'react';
+import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Languages, X } from 'lucide-react-native';
+
+import { colors } from '../theme/tokens';
+
+export type LanguageOption = {
+  label: string;
+  locale: string;
+};
+
+export const languageOptions: LanguageOption[] = [
+  { label: 'English', locale: 'en-US' },
+  { label: 'French', locale: 'fr-FR' },
+  { label: 'Spanish', locale: 'es-ES' },
+  { label: 'Portuguese', locale: 'pt-BR' },
+  { label: 'Arabic', locale: 'ar' },
+  { label: 'Chinese', locale: 'zh-CN' },
+  { label: 'German', locale: 'de-DE' },
+  { label: 'Italian', locale: 'it-IT' },
+  { label: 'Yoruba', locale: 'yo-NG' },
+  { label: 'Igbo', locale: 'ig-NG' },
+  { label: 'Hausa', locale: 'ha-NG' },
+  { label: 'Hindi', locale: 'hi-IN' },
+  { label: 'Swahili', locale: 'sw' },
+  { label: 'Japanese', locale: 'ja-JP' },
+  { label: 'Korean', locale: 'ko-KR' },
+];
+
+export function LanguagePicker({
+  label = 'Language',
+  value,
+  onChange,
+}: {
+  label?: string;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const selected = languageOptions.find((option) => option.label.toLowerCase() === value.toLowerCase()) ?? languageOptions[0];
+
+  return (
+    <View style={styles.wrap}>
+      <Text style={styles.label}>{label}</Text>
+      <Pressable onPress={() => setOpen(true)} style={styles.trigger}>
+        <View style={styles.triggerIcon}>
+          <Languages size={17} color={colors.tealDark} />
+        </View>
+        <View style={styles.triggerCopy}>
+          <Text style={styles.triggerTitle}>{selected.label}</Text>
+          <Text style={styles.triggerMeta}>{selected.locale}</Text>
+        </View>
+      </Pressable>
+
+      <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
+        <Pressable style={styles.backdrop} onPress={() => setOpen(false)}>
+          <Pressable style={styles.sheet}>
+            <View style={styles.sheetHeader}>
+              <View>
+                <Text style={styles.sheetTitle}>Select language</Text>
+                <Text style={styles.sheetMeta}>Chivo will write and speak in this language.</Text>
+              </View>
+              <Pressable onPress={() => setOpen(false)} style={styles.closeButton}>
+                <X size={18} color={colors.tealDark} />
+              </Pressable>
+            </View>
+
+            <ScrollView contentContainerStyle={styles.languageGrid} showsVerticalScrollIndicator={false}>
+              {languageOptions.map((option) => {
+                const active = option.label === selected.label;
+                return (
+                  <Pressable
+                    key={option.label}
+                    onPress={() => {
+                      onChange(option.label);
+                      setOpen(false);
+                    }}
+                    style={[styles.languageCard, active && styles.languageCardActive]}
+                  >
+                    <Text style={[styles.languageTitle, active && styles.languageTitleActive]}>{option.label}</Text>
+                    <Text style={[styles.languageMeta, active && styles.languageMetaActive]}>{option.locale}</Text>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+          </Pressable>
+        </Pressable>
+      </Modal>
+    </View>
+  );
+}
+
+export function speechLocaleForLanguage(language: string) {
+  const normalized = language.trim().toLowerCase();
+  return languageOptions.find((option) => option.label.toLowerCase() === normalized)?.locale ?? 'en-US';
+}
+
+const styles = StyleSheet.create({
+  wrap: {
+    flex: 1,
+    minWidth: 190,
+    gap: 7,
+  },
+  label: {
+    color: colors.ink,
+    fontSize: 12,
+    fontWeight: '900',
+  },
+  trigger: {
+    minHeight: 48,
+    borderRadius: 15,
+    paddingHorizontal: 11,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: '#f7faf7',
+    borderWidth: 1,
+    borderColor: '#e1e9e3',
+  },
+  triggerIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 13,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.softTeal,
+  },
+  triggerCopy: {
+    flex: 1,
+    minWidth: 0,
+  },
+  triggerTitle: {
+    color: colors.ink,
+    fontSize: 14,
+    lineHeight: 18,
+    fontWeight: '900',
+  },
+  triggerMeta: {
+    color: colors.muted,
+    fontSize: 11,
+    lineHeight: 15,
+    fontWeight: '800',
+  },
+  backdrop: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(7, 12, 10, 0.5)',
+  },
+  sheet: {
+    maxHeight: '82%',
+    margin: 12,
+    borderRadius: 26,
+    padding: 16,
+    gap: 14,
+    backgroundColor: colors.paper,
+    borderWidth: 1,
+    borderColor: colors.line,
+  },
+  sheetHeader: {
+    minHeight: 48,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  sheetTitle: {
+    color: colors.ink,
+    fontSize: 20,
+    lineHeight: 26,
+    fontWeight: '900',
+  },
+  sheetMeta: {
+    color: colors.muted,
+    fontSize: 12,
+    lineHeight: 18,
+    fontWeight: '800',
+  },
+  closeButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.softTeal,
+  },
+  languageGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 9,
+    paddingBottom: 4,
+  },
+  languageCard: {
+    minWidth: 132,
+    flex: 1,
+    minHeight: 58,
+    borderRadius: 17,
+    paddingHorizontal: 12,
+    justifyContent: 'center',
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: colors.line,
+  },
+  languageCardActive: {
+    backgroundColor: colors.tealDark,
+    borderColor: colors.tealDark,
+  },
+  languageTitle: {
+    color: colors.ink,
+    fontSize: 14,
+    lineHeight: 19,
+    fontWeight: '900',
+  },
+  languageTitleActive: {
+    color: '#ffffff',
+  },
+  languageMeta: {
+    color: colors.muted,
+    fontSize: 11,
+    lineHeight: 15,
+    fontWeight: '800',
+  },
+  languageMetaActive: {
+    color: '#dce7e1',
+  },
+});

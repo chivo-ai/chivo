@@ -1,21 +1,31 @@
 import { ReactNode } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 
+import { UniversalTopBar, useTopBarProvided } from '../../components/UniversalTopBar';
 import { colors } from '../../theme/tokens';
 
 export function RouteScreen({ children }: { children: ReactNode }) {
+  const topBarProvided = useTopBarProvided();
+
   return (
-    <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
-      <View style={styles.shell}>{children}</View>
-    </ScrollView>
+    <View style={styles.screen}>
+      {topBarProvided ? null : <UniversalTopBar />}
+      <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+        <View style={styles.shell}>{children}</View>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+    backgroundColor: colors.canvas,
+  },
   scrollContent: {
     flexGrow: 1,
     paddingHorizontal: 16,
-    paddingTop: 36,
+    paddingTop: 18,
     paddingBottom: 92,
     backgroundColor: colors.canvas,
   },

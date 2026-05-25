@@ -18,6 +18,8 @@ type CreateSchoolScreenProps = {
   userId: string;
   values: AccessSchoolValues;
   submitting: AccessSubmitting;
+  creationDisabledReason?: string | null;
+  checkingAvailability?: boolean;
   onChange: {
     setSchoolName: (value: string) => void;
     setSchoolUsername: (value: string) => void;
@@ -35,10 +37,14 @@ export function CreateSchoolScreen({
   userId,
   values,
   submitting,
+  creationDisabledReason,
+  checkingAvailability,
   onChange,
   onCreate,
   onError,
 }: CreateSchoolScreenProps) {
+  const creationDisabled = Boolean(creationDisabledReason) || Boolean(checkingAvailability);
+
   return (
     <ScreenShell>
       <ScreenHeader
@@ -48,6 +54,12 @@ export function CreateSchoolScreen({
       />
 
       <Card>
+        {creationDisabledReason ? (
+          <View style={styles.noticeCard}>
+            <Text style={styles.noticeTitle}>School creation is paused</Text>
+            <Text style={styles.noticeBody}>{creationDisabledReason}</Text>
+          </View>
+        ) : null}
         <Field label="School name" value={values.schoolName} onChangeText={onChange.setSchoolName} placeholder="BestCity Academy" />
         <Field label="School username" value={values.schoolUsername} onChangeText={onChange.setSchoolUsername} placeholder="bestcity-academy" autoCapitalize="none" />
         <View style={styles.formRow}>
@@ -75,7 +87,12 @@ export function CreateSchoolScreen({
           onError={onError}
         />
         <StickerPicker selectedKey={values.schoolStickerKey} onSelect={onChange.setSchoolStickerKey} />
-        <SubmitButton label="Create school" loading={submitting === 'create'} onPress={onCreate} />
+        <SubmitButton
+          label={checkingAvailability ? 'Checking access' : 'Create school'}
+          loading={submitting === 'create'}
+          disabled={creationDisabled}
+          onPress={onCreate}
+        />
       </Card>
     </ScreenShell>
   );
@@ -114,6 +131,26 @@ const styles = StyleSheet.create({
   },
   recordMeta: {
     color: colors.muted,
+    fontSize: 12,
+    lineHeight: 18,
+    fontWeight: '800',
+  },
+  noticeCard: {
+    borderRadius: 18,
+    padding: 14,
+    gap: 5,
+    backgroundColor: colors.softGold,
+    borderWidth: 1,
+    borderColor: '#efd27f',
+  },
+  noticeTitle: {
+    color: colors.ink,
+    fontSize: 14,
+    lineHeight: 20,
+    fontWeight: '900',
+  },
+  noticeBody: {
+    color: '#4b4030',
     fontSize: 12,
     lineHeight: 18,
     fontWeight: '800',

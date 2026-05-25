@@ -11,6 +11,7 @@ type PersonalizeLessonRequest = {
 type GeneratedPersonalLesson = {
   title?: string;
   summary?: string;
+  transcript?: string;
   key_points?: string[];
   study_steps?: string[];
   vocabulary?: Array<{ term: string; meaning: string }>;
@@ -67,13 +68,12 @@ serve(async (request) => {
       return json({ error: 'This lesson is not published yet' }, 400);
     }
 
-    const { data: studentMembership, error: membershipError } = await supabase
+    const { data: requesterMembership, error: membershipError } = await supabase
       .from('school_memberships')
       .select('id, school_id, profile_id, role, status')
       .eq('id', body.studentMembershipId)
       .eq('school_id', lesson.school_id)
       .eq('profile_id', user.id)
-      .eq('role', 'student')
       .eq('status', 'active')
       .maybeSingle();
 
@@ -81,17 +81,20 @@ serve(async (request) => {
       throw membershipError;
     }
 
-    if (!studentMembership) {
-      return json({ error: 'Student access is required' }, 403);
+    if (!requesterMembership) {
+      return json({ error: 'School access is required' }, 403);
     }
 
-    const { data: classMembership, error: classMembershipError } = await supabase
-      .from('class_memberships')
-      .select('id')
-      .eq('class_id', lesson.class_id)
-      .eq('school_membership_id', body.studentMembershipId)
-      .eq('status', 'active')
-      .maybeSingle();
+    const isStaffPreview = ['owner', 'admin', 'teacher'].includes(requesterMembership.role);
+    const { data: classMembership, error: classMembershipError } = isStaffPreview
+      ? { data: { id: 'staff-preview' }, error: null }
+      : await supabase
+          .from('class_memberships')
+          .select('id')
+          .eq('class_id', lesson.class_id)
+          .eq('school_membership_id', body.studentMembershipId)
+          .eq('status', 'active')
+          .maybeSingle();
 
     if (classMembershipError) {
       throw classMembershipError;
@@ -116,6 +119,20 @@ serve(async (request) => {
       return json({ error: 'Lesson materials are not ready yet' }, 400);
     }
 
+    const { data: transcript, error: transcriptError } = await supabase
+      .from('lesson_transcripts')
+      .select('cleaned_text, raw_text')
+      .eq('lesson_id', lesson.id)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (transcriptError) {
+      throw transcriptError;
+    }
+
+    const transcriptText = transcript?.cleaned_text ?? transcript?.raw_text ?? '';
+
     const generated = await generatePersonalLesson({
       title: output.title ?? lesson.title,
       sourceLanguage: lesson.language,
@@ -124,6 +141,7 @@ serve(async (request) => {
       summary: output.summary,
       keyPoints: Array.isArray(output.key_points) ? output.key_points : [],
       content: output.content ?? {},
+      transcript: transcriptText,
     });
 
     const { data: personalization, error: upsertError } = await supabase
@@ -138,6 +156,7 @@ serve(async (request) => {
           summary: generated.summary ?? output.summary,
           content: {
             title: generated.title ?? output.title ?? lesson.title,
+            transcript: generated.transcript ?? transcriptText,
             key_points: generated.key_points ?? [],
             study_steps: generated.study_steps ?? [],
             vocabulary: generated.vocabulary ?? [],
@@ -168,6 +187,7 @@ async function generatePersonalLesson(input: {
   summary: string;
   keyPoints: string[];
   content: Record<string, unknown>;
+  transcript: string;
 }): Promise<GeneratedPersonalLesson> {
   const geminiKey = Deno.env.get('GEMINI_API_KEY');
 
@@ -178,7 +198,8 @@ async function generatePersonalLesson(input: {
   const prompt = [
     'You are Chivo AI, a classroom learning assistant.',
     'Create a personalized study version for one student.',
-    'Return JSON only with: title, summary, key_points, study_steps, vocabulary, quick_check, encouragement.',
+    'Return JSON only with: title, summary, transcript, key_points, study_steps, vocabulary, quick_check, encouragement.',
+    'transcript should be a clean learner-friendly translated transcript in the student language. Keep it faithful to the lesson.',
     'vocabulary should contain term and meaning.',
     'quick_check should contain prompt and answer.',
     `Lesson title: ${input.title}`,
@@ -191,6 +212,8 @@ async function generatePersonalLesson(input: {
     JSON.stringify(input.keyPoints),
     'Master content:',
     JSON.stringify(input.content),
+    'Original transcript:',
+    input.transcript || 'No transcript was provided.',
   ].join('\n\n');
 
   const response = await fetch(
@@ -219,6 +242,7 @@ async function generatePersonalLesson(input: {
   return {
     title: parsed.title ?? input.title,
     summary: parsed.summary ?? input.summary,
+    transcript: parsed.transcript ?? input.transcript,
     key_points: Array.isArray(parsed.key_points) && parsed.key_points.length ? parsed.key_points : input.keyPoints,
     study_steps: Array.isArray(parsed.study_steps) ? parsed.study_steps : [],
     vocabulary: Array.isArray(parsed.vocabulary) ? parsed.vocabulary : [],

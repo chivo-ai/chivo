@@ -1,12 +1,16 @@
 import { Redirect, router } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
-import { BookOpen, DoorOpen } from 'lucide-react-native';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { BookOpen, CheckCircle2, Clock3, DoorOpen, PlayCircle, Sparkles, UserPlus } from 'lucide-react-native';
 
 import { RouteScreen } from '../../../src/features/app/RouteScreen';
 import { useAppSession } from '../../../src/features/app/AppSessionProvider';
-import { SchoolSetupState, fetchSchoolSetupState } from '../../../src/services/school';
-import { Card, CardHeader, ScreenHeader, ScreenShell } from '../../../src/features/onboarding/accessUi';
+import {
+  ClassRow,
+  SchoolSetupState,
+  fetchSchoolSetupState,
+  requestClassAccess,
+} from '../../../src/services/school';
 import { colors } from '../../../src/theme/tokens';
 
 const emptySetup: SchoolSetupState = {
@@ -21,12 +25,43 @@ const emptySetup: SchoolSetupState = {
   joinRequests: [],
 };
 
+const tones = [
+  { background: '#fff4d4', accent: colors.gold },
+  { background: '#e9f6ff', accent: '#4aa6d9' },
+  { background: '#f3eaff', accent: '#8d68d8' },
+  { background: '#e8f8ee', accent: '#39a96b' },
+  { background: '#fff0ed', accent: colors.coral },
+];
+
 export default function ClassesIndexRoute() {
   const { loading, activeMembership } = useAppSession();
   const [setup, setSetup] = useState<SchoolSetupState>(emptySetup);
   const [loadingSetup, setLoadingSetup] = useState(true);
+  const [savingClassId, setSavingClassId] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const isStaff = activeMembership ? ['owner', 'admin', 'teacher'].includes(activeMembership.role) : false;
   const isAdmin = activeMembership ? ['owner', 'admin'].includes(activeMembership.role) : false;
+
+  const joinedClassIds = useMemo(
+    () =>
+      new Set(
+        setup.classMemberships
+          .filter((item) => item.school_membership_id === activeMembership?.id && item.status === 'active')
+          .map((item) => item.class_id)
+      ),
+    [activeMembership?.id, setup.classMemberships]
+  );
+
+  const pendingClassIds = useMemo(
+    () =>
+      new Set(
+        setup.joinRequests
+          .filter((request) => request.status === 'review' && request.class_id)
+          .map((request) => request.class_id as string)
+      ),
+    [setup.joinRequests]
+  );
 
   const loadSetup = useCallback(async () => {
     if (!activeMembership) {
@@ -49,6 +84,33 @@ export default function ClassesIndexRoute() {
       .finally(() => setLoadingSetup(false));
   }, [activeMembership, loadSetup]);
 
+  async function requestClass(schoolClass: ClassRow) {
+    if (!activeMembership) {
+      return;
+    }
+
+    setSavingClassId(schoolClass.id);
+    setError(null);
+    setMessage(null);
+
+    try {
+      const result = await requestClassAccess({
+        schoolId: activeMembership.schoolId,
+        classId: schoolClass.id,
+        schoolMembershipId: activeMembership.id,
+        requestedRole: activeMembership.role === 'guardian' ? 'guardian' : 'student',
+        message: `Request to join ${schoolClass.name}`,
+      });
+
+      setMessage(result.alreadyRequested ? 'Request already sent.' : result.alreadyMember ? 'Class already joined.' : 'Class request sent.');
+      await loadSetup();
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : 'Could not send class request.');
+    } finally {
+      setSavingClassId(null);
+    }
+  }
+
   if (loading) {
     return null;
   }
@@ -57,80 +119,302 @@ export default function ClassesIndexRoute() {
     return <Redirect href="/school/my-school" />;
   }
 
+  const joinedCount = isStaff ? setup.classes.length : joinedClassIds.size;
+
   return (
     <RouteScreen>
-      <ScreenShell>
-        <ScreenHeader
-          icon={<DoorOpen size={25} color="#ffffff" />}
-          title="Classes"
-          body="Open a class inside the active school."
-        />
-        <Card>
-          <CardHeader icon={<BookOpen size={20} color={colors.blue} />} title={activeMembership.school.name} />
-          {error ? <Text style={styles.errorText}>{error}</Text> : null}
-          {loadingSetup ? (
-            <ActivityIndicator color={colors.tealDark} />
-          ) : setup.classes.length ? (
-            <View style={styles.list}>
-              {setup.classes.map((schoolClass) => (
-                <Pressable
-                  key={schoolClass.id}
-                  onPress={() => router.push(`/school/class/${schoolClass.username}` as never)}
-                  style={styles.classRow}
-                >
-                  <View style={styles.classIcon}>
-                    <BookOpen size={19} color={colors.tealDark} />
-                  </View>
-                  <View style={styles.flexText}>
-                    <Text style={styles.className}>{schoolClass.name}</Text>
-                    <Text style={styles.classMeta}>
-                      {schoolClass.username} - {schoolClass.grade_level ?? 'Grade not set'}
-                    </Text>
-                  </View>
-                  <Text style={styles.enterText}>Enter</Text>
-                </Pressable>
-              ))}
+      <View style={styles.screen}>
+        <View style={styles.hero}>
+          <View style={styles.heroCopy}>
+            <View style={styles.heroPill}>
+              <Sparkles size={15} color={colors.ink} />
+              <Text style={styles.heroPillText}>Class map</Text>
             </View>
-          ) : (
-            <Text style={styles.emptyText}>Classes will appear after the school creates them.</Text>
-          )}
-        </Card>
-      </ScreenShell>
+            <Text style={styles.heroTitle}>{activeMembership.school.name}</Text>
+            <Text style={styles.heroBody}>Pick a classroom, then study lessons as audio, notes, quizzes, and cards.</Text>
+          </View>
+          <View style={styles.heroStats}>
+            <MiniStat label="Classes" value={setup.classes.length} tone={tones[0]} />
+            <MiniStat label="Joined" value={joinedCount} tone={tones[3]} />
+            <MiniStat label="Waiting" value={pendingClassIds.size} tone={tones[2]} />
+          </View>
+        </View>
+
+        {message ? <Text style={styles.successText}>{message}</Text> : null}
+        {error ? <Text style={styles.errorText}>{error}</Text> : null}
+
+        {loadingSetup ? (
+          <View style={styles.loadingPanel}>
+            <ActivityIndicator color={colors.tealDark} />
+            <Text style={styles.meta}>Loading classes</Text>
+          </View>
+        ) : setup.classes.length ? (
+          <View style={styles.classGrid}>
+            {setup.classes.map((schoolClass, index) => {
+              const joined = isStaff || joinedClassIds.has(schoolClass.id);
+              const pending = pendingClassIds.has(schoolClass.id);
+              const subjectNames = setup.classSubjects
+                .filter((link) => link.class_id === schoolClass.id)
+                .map((link) => setup.subjects.find((subject) => subject.id === link.subject_id)?.name)
+                .filter(Boolean) as string[];
+
+              return (
+                <ClassMapCard
+                  key={schoolClass.id}
+                  schoolClass={schoolClass}
+                  tone={tones[index % tones.length]}
+                  joined={joined}
+                  pending={pending}
+                  loading={savingClassId === schoolClass.id}
+                  subjectNames={subjectNames}
+                  onEnter={() => router.push(`/school/class/${schoolClass.username}` as never)}
+                  onRequest={() => requestClass(schoolClass)}
+                />
+              );
+            })}
+          </View>
+        ) : (
+          <View style={styles.emptyPanel}>
+            <Text style={styles.emptyTitle}>No classes yet</Text>
+            <Text style={styles.meta}>Classes will appear after the school creates them.</Text>
+          </View>
+        )}
+      </View>
     </RouteScreen>
   );
 }
 
+function ClassMapCard({
+  schoolClass,
+  tone,
+  joined,
+  pending,
+  loading,
+  subjectNames,
+  onEnter,
+  onRequest,
+}: {
+  schoolClass: ClassRow;
+  tone: { background: string; accent: string };
+  joined: boolean;
+  pending: boolean;
+  loading: boolean;
+  subjectNames: string[];
+  onEnter: () => void;
+  onRequest: () => void;
+}) {
+  return (
+    <View style={[styles.classCard, { backgroundColor: tone.background, borderColor: tone.accent }]}>
+      <View style={styles.classTop}>
+        <View style={[styles.classMark, { backgroundColor: tone.accent }]}>
+          {schoolClass.logo_url ? <Image source={{ uri: schoolClass.logo_url }} style={styles.markImage} /> : <Text style={styles.markText}>{initials(schoolClass.name)}</Text>}
+        </View>
+        <StatusPill joined={joined} pending={pending} />
+      </View>
+
+      <Text style={styles.className}>{schoolClass.name}</Text>
+      <Text style={styles.classMeta}>{schoolClass.grade_level ?? 'Learning group'} - {schoolClass.username}</Text>
+
+      <View style={styles.subjectPills}>
+        {subjectNames.length ? subjectNames.slice(0, 3).map((subject) => (
+          <View key={subject} style={styles.subjectPill}>
+            <Text style={styles.subjectPillText}>{subject}</Text>
+          </View>
+        )) : (
+          <View style={styles.subjectPill}>
+            <Text style={styles.subjectPillText}>Subjects soon</Text>
+          </View>
+        )}
+      </View>
+
+      {joined ? (
+        <Pressable onPress={onEnter} style={styles.enterButton}>
+          <PlayCircle size={16} color="#ffffff" />
+          <Text style={styles.buttonText}>Enter class</Text>
+        </Pressable>
+      ) : pending ? (
+        <View style={styles.pendingButton}>
+          <Clock3 size={16} color={colors.tealDark} />
+          <Text style={styles.pendingText}>Waiting</Text>
+        </View>
+      ) : (
+        <Pressable disabled={loading} onPress={onRequest} style={styles.requestButton}>
+          {loading ? <ActivityIndicator color="#ffffff" /> : <UserPlus size={16} color="#ffffff" />}
+          <Text style={styles.buttonText}>Request</Text>
+        </Pressable>
+      )}
+    </View>
+  );
+}
+
+function StatusPill({ joined, pending }: { joined: boolean; pending: boolean }) {
+  if (joined) {
+    return (
+      <View style={styles.statusActive}>
+        <CheckCircle2 size={14} color="#ffffff" />
+        <Text style={styles.statusActiveText}>Joined</Text>
+      </View>
+    );
+  }
+
+  if (pending) {
+    return (
+      <View style={styles.statusSoft}>
+        <Clock3 size={14} color={colors.tealDark} />
+        <Text style={styles.statusSoftText}>Pending</Text>
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.statusSoft}>
+      <DoorOpen size={14} color={colors.tealDark} />
+      <Text style={styles.statusSoftText}>Open</Text>
+    </View>
+  );
+}
+
+function MiniStat({ label, value, tone }: { label: string; value: number; tone: { background: string; accent: string } }) {
+  return (
+    <View style={[styles.statCard, { backgroundColor: tone.background }]}>
+      <View style={[styles.statDot, { backgroundColor: tone.accent }]} />
+      <Text style={styles.statValue}>{value}</Text>
+      <Text style={styles.statLabel}>{label}</Text>
+    </View>
+  );
+}
+
+function initials(value: string) {
+  return value
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join('') || 'CH';
+}
+
 const styles = StyleSheet.create({
-  list: {
+  screen: {
+    gap: 18,
+  },
+  hero: {
+    minHeight: 206,
+    borderRadius: 30,
+    padding: 20,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: 18,
+    backgroundColor: '#101916',
+    borderWidth: 1,
+    borderColor: '#20352f',
+  },
+  heroCopy: {
+    flex: 1.4,
+    minWidth: 270,
     gap: 10,
   },
-  classRow: {
-    minHeight: 68,
-    borderRadius: 18,
-    padding: 12,
+  heroPill: {
+    alignSelf: 'flex-start',
+    minHeight: 34,
+    borderRadius: 17,
+    paddingHorizontal: 11,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    backgroundColor: '#ffffff',
-    borderWidth: 1,
-    borderColor: colors.line,
+    gap: 7,
+    backgroundColor: colors.gold,
   },
-  classIcon: {
-    width: 42,
-    height: 42,
-    borderRadius: 15,
+  heroPillText: {
+    color: colors.ink,
+    fontSize: 12,
+    fontWeight: '900',
+  },
+  heroTitle: {
+    color: '#ffffff',
+    fontSize: 34,
+    lineHeight: 40,
+    fontWeight: '900',
+  },
+  heroBody: {
+    color: '#dce7e1',
+    fontSize: 15,
+    lineHeight: 22,
+    fontWeight: '800',
+  },
+  heroStats: {
+    flex: 1,
+    minWidth: 250,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  statCard: {
+    minWidth: 100,
+    flex: 1,
+    borderRadius: 22,
+    padding: 14,
+    gap: 6,
+    borderWidth: 2,
+    borderColor: '#ffffff',
+  },
+  statDot: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+  },
+  statValue: {
+    color: colors.ink,
+    fontSize: 24,
+    lineHeight: 30,
+    fontWeight: '900',
+  },
+  statLabel: {
+    color: colors.muted,
+    fontSize: 12,
+    fontWeight: '900',
+  },
+  classGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  classCard: {
+    minWidth: 250,
+    flex: 1,
+    borderRadius: 26,
+    padding: 15,
+    gap: 10,
+    borderWidth: 2,
+  },
+  classTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
+  classMark: {
+    overflow: 'hidden',
+    width: 58,
+    height: 58,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.softTeal,
+    borderWidth: 2,
+    borderColor: '#ffffff',
   },
-  flexText: {
-    flex: 1,
-    minWidth: 0,
+  markImage: {
+    width: '100%',
+    height: '100%',
+  },
+  markText: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '900',
   },
   className: {
     color: colors.ink,
-    fontSize: 15,
-    lineHeight: 21,
+    fontSize: 18,
+    lineHeight: 24,
     fontWeight: '900',
   },
   classMeta: {
@@ -139,15 +423,134 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     fontWeight: '800',
   },
-  enterText: {
+  subjectPills: {
+    minHeight: 30,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  subjectPill: {
+    minHeight: 28,
+    borderRadius: 14,
+    paddingHorizontal: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: 'rgba(24, 36, 33, 0.08)',
+  },
+  subjectPillText: {
+    color: colors.tealDark,
+    fontSize: 11,
+    fontWeight: '900',
+  },
+  enterButton: {
+    minHeight: 42,
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 7,
+    backgroundColor: colors.ink,
+  },
+  requestButton: {
+    minHeight: 42,
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 7,
+    backgroundColor: colors.tealDark,
+  },
+  buttonText: {
+    color: '#ffffff',
+    fontSize: 13,
+    fontWeight: '900',
+  },
+  pendingButton: {
+    minHeight: 42,
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 7,
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: colors.line,
+  },
+  pendingText: {
     color: colors.tealDark,
     fontSize: 13,
     fontWeight: '900',
   },
-  emptyText: {
+  statusSoft: {
+    minHeight: 30,
+    borderRadius: 15,
+    paddingHorizontal: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#ffffff',
+  },
+  statusSoftText: {
+    color: colors.tealDark,
+    fontSize: 12,
+    fontWeight: '900',
+  },
+  statusActive: {
+    minHeight: 30,
+    borderRadius: 15,
+    paddingHorizontal: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: colors.tealDark,
+  },
+  statusActiveText: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: '900',
+  },
+  loadingPanel: {
+    minHeight: 130,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: colors.line,
+  },
+  emptyPanel: {
+    minHeight: 130,
+    borderRadius: 24,
+    padding: 16,
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: colors.line,
+  },
+  emptyTitle: {
+    color: colors.ink,
+    fontSize: 20,
+    lineHeight: 26,
+    fontWeight: '900',
+  },
+  meta: {
     color: colors.muted,
-    fontSize: 14,
-    lineHeight: 21,
+    fontSize: 13,
+    lineHeight: 19,
+    fontWeight: '800',
+  },
+  successText: {
+    color: colors.tealDark,
+    fontSize: 13,
+    lineHeight: 19,
+    fontWeight: '900',
   },
   errorText: {
     color: '#9d2e24',

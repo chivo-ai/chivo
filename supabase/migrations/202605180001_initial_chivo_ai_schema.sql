@@ -449,6 +449,26 @@ create table public.audit_logs (
   created_at timestamptz not null default now()
 );
 
+create table public.platform_settings (
+  key text primary key,
+  value jsonb not null default '{}'::jsonb,
+  description text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+insert into public.platform_settings (key, value, description)
+values (
+  'school_creation',
+  '{"enabled": true, "message": null}'::jsonb,
+  'Controls whether new schools can be created from the public app.'
+),
+(
+  'company_branding',
+  '{"name": "Chivo AI", "subtitle": "Learn smarter", "logoUrl": null}'::jsonb,
+  'Controls company branding shown in shared app navigation.'
+);
+
 create index school_memberships_profile_id_idx on public.school_memberships(profile_id);
 create index class_memberships_school_membership_id_idx on public.class_memberships(school_membership_id);
 create index school_join_requests_school_profile_status_idx on public.school_join_requests(school_id, profile_id, status);
@@ -493,6 +513,10 @@ for each row execute function public.set_updated_at();
 
 create trigger subscriptions_set_updated_at
 before update on public.subscriptions
+for each row execute function public.set_updated_at();
+
+create trigger platform_settings_set_updated_at
+before update on public.platform_settings
 for each row execute function public.set_updated_at();
 
 create or replace function public.handle_new_user()
@@ -800,6 +824,11 @@ alter table public.subscriptions enable row level security;
 alter table public.payment_transactions enable row level security;
 alter table public.notifications enable row level security;
 alter table public.audit_logs enable row level security;
+alter table public.platform_settings enable row level security;
+
+create policy "authenticated users read platform settings"
+on public.platform_settings for select
+using (auth.role() = 'authenticated');
 
 create policy "profiles can read own and school profiles"
 on public.profiles for select

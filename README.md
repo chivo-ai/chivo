@@ -23,6 +23,8 @@ Core routes:
 
 Billing belongs to the school admin surface. A school has a subscription, payment transactions, plan status, usage signals, and future upgrade/payment controls.
 
+Future Chivo company controls are a separate platform surface, not the school admin surface. The database now has a `platform_settings` foundation so Chivo staff can later pause global actions such as new school creation and update shared company branding without changing each school.
+
 ## Work Groups
 
 We are building the product in three full groups. Each group includes UI, Supabase logic, Edge Functions where needed, and light checks before moving on.
@@ -75,6 +77,7 @@ Completed in this group so far:
 - learner class request cards after entering a school
 - teacher roster panel for class members and class access
 - admin billing screen for school subscription, plan status, and payment history
+- platform setting foundation for future company-side controls such as pausing school creation and changing the shared company logo
 
 Group 1 can now be tested as a real school admin flow. Further polish can happen after testing reveals what feels slow or unclear.
 
@@ -116,6 +119,10 @@ Completed in this group so far:
 - focused flashcard session view
 - clearer admin console split into profile, academic, classes, subjects, people, invites, and requests
 - student lesson personalization by language and learning mode through `personalize-lesson`
+- standalone student lesson room with Listen, Transcript, Quiz, Cards, progress, and language controls
+- preferred-language transcript output saved inside lesson personalization content
+- real language picker for teacher lesson capture and student translation/listening
+- teacher review polish with trimmed AI output, show-more controls, and student-view preview
 - server-scored quiz attempts through `submit-quiz-attempt`
 - quiz results update student progress and weak areas
 - teacher quiz insight card with attempts, average score, and students who need help
@@ -176,6 +183,8 @@ For quiz progress and teacher attempt insight on an existing early database, run
 For learner class requests and teacher class roster management on an existing early database, run `supabase/group5-class-flow-upgrade.sql`.
 
 For username-based school and class routes on an existing early database, run `supabase/group6-usernames-upgrade.sql`.
+
+For future company-side platform controls on an existing early database, run `supabase/group7-platform-controls-upgrade.sql`.
 
 Edge Functions:
 
