@@ -1,33 +1,31 @@
 # Chivo AI
 
-Chivo AI is a school-first learning platform for turning real lessons into summaries, quizzes, flashcards, audio study, progress insight, and study crews while keeping each school workspace private.
+Chivo AI is a school-first learning platform that turns real lessons into transcript, summary, audio study, quizzes, flashcards, progress insight, and study crews.
 
-## Product Architecture
+The expanded vision is a real onchain education ecosystem, but the current build stays focused on getting the core school, lesson, crew, and billing product working first.
+
+## Current Product
 
 Chivo AI is built around five product surfaces:
 
-- **Access**: sign in, register, account profile, role-aware school access, invite codes, QR scanning, and school requests.
-- **School**: school identity, classes, subjects, members, academic terms, invites, requests, and school-level permissions.
+- **Access**: sign in, register, account profile, invite codes, QR scanning, school requests, and route entry.
+- **School**: school identity, classes, subjects, members, academic terms, invites, requests, and permissions.
 - **Learn**: student class entry, lesson cards, audio, transcript, summaries, quizzes, flashcards, personalization, and progress.
-- **Teach**: teacher class rooms, live lesson recording, upload, AI processing, review, publishing, class roster, and class insight.
+- **Teach**: teacher rooms, live lesson recording, upload, AI processing, review, publishing, class roster, and class insight.
 - **Admin**: school command center, people, academic setup, class setup, billing, payments, requests, and audit visibility.
 
 Core routes:
 
-- `/home`, `/account`, `/create`, `/join`, `/request`, `/crews`
+- `/home`, `/account`, `/create`, `/join`, `/request`, `/crews`, `/crews/[username]`
 - `/school/my-school`, `/school/my-school/[username]`
 - `/school/class`, `/school/class/[username]`
 - `/learn`, `/teach`
 - `/lessons`, `/lessons/[id]`
 - `/admin`, `/admin/profile`, `/admin/academic`, `/admin/classes`, `/admin/subjects`, `/admin/people`, `/admin/invites`, `/admin/requests`, `/admin/billing`
 
-Billing belongs to the school admin surface. A school has a subscription, payment transactions, plan status, usage signals, and future upgrade/payment controls.
+Billing belongs to the school admin surface. Future Chivo company controls are a separate platform surface, not the school admin surface.
 
-Future Chivo company controls are a separate platform surface, not the school admin surface. The database now has a `platform_settings` foundation so Chivo staff can later pause global actions such as new school creation and update shared company branding without changing each school.
-
-## Work Groups
-
-We are building the product in three full groups. Each group includes UI, Supabase logic, Edge Functions where needed, and light checks before moving on.
+## Current Work Groups
 
 ### Group 1: Account, School, and Admin Setup
 
@@ -36,107 +34,33 @@ Status: ready for admin-flow testing.
 Scope:
 
 - account creation and sign in
-- personal account home after login
-- school creation
-- school logo, banner, and sticker identity
-- school joining by invite code
-- school access requests
-- school profile editing
-- school workspace entry
-- school overview
+- school creation, joining, requests, and invite codes
+- school profile, logo, banner, sticker identity, and username routes
 - academic year, term, subject, class, and class-subject setup
-- invite codes
-- member management
-- class access assignment
-- join request approval
-- role-aware school views
-- learner class requests from inside an active school
-- teacher class roster management for assigned classes
-
-Completed in this group so far:
-
-- signed-in home hub for schools, pending access, crews, and account entry
-- standalone personal account screen
-- separate Home, Account, Create, Join, Request, and Crews access screens
-- QR code scanner support for school and class invite codes
-- personal profile editing with direct image upload and sticker identity
-- responsive app navigation with a hover sidebar on web and floating bottom navigation on mobile
-- school cards and workspace headers showing logo/banner/sticker identity
-- Supabase Storage bucket for school, class, crew, and profile media
-- grouped school workspace with Overview, Setup, People, Invites, and Requests
-- guided onboarding checklist for school admins
-- real school creation, invite redemption, access requests, and request review
-- academic setup, class setup, subject assignment, member assignment, and invite code creation
-- clearer join/request errors when a user enters an invite code in the school-code flow
-- Expo Router entry with `(auth)` and `(tabs)` route groups
-- real access routes for `/home`, `/account`, `/create`, `/join`, `/request`, and `/crews`
-- real workspace routes for `/learn`, `/teach`, and `/admin` on mobile and web
-- real admin routes for `/admin/profile`, `/admin/academic`, `/admin/classes`, `/admin/subjects`, `/admin/people`, `/admin/invites`, `/admin/requests`, and `/admin/billing`
-- real school routes for `/school/my-school`, `/school/my-school/[username]`, `/school/class`, and `/school/class/[username]`
-- school and class username editing for clean public routes
-- learner class request cards after entering a school
-- teacher roster panel for class members and class access
-- admin billing screen for school subscription, plan status, and payment history
-- platform setting foundation for future company-side controls such as pausing school creation and changing the shared company logo
-
-Group 1 can now be tested as a real school admin flow. Further polish can happen after testing reveals what feels slow or unclear.
+- member management, class access assignment, and request approval
+- responsive navigation with mobile bottom nav and desktop hover sidebar
+- admin profile, academic, classes, subjects, people, invites, requests, and billing screens
 
 ### Group 2: Lessons, Gemini AI, and Student Learning
 
-Status: in progress.
+Status: ready for end-to-end product testing.
 
 Scope:
 
 - teacher lesson recording/upload
-- lesson storage
-- Gemini transcription and generation
-- teacher review and publish flow
-- student lesson view
-- summaries, quizzes, flashcards, and audio study
-- personalization by language and learning mode
-- progress and weak-area tracking
+- Gemini transcription, summary, quiz, and flashcard generation
+- teacher review, show-more AI output, publish flow, and student-view preview
+- student lesson library and `/lessons/[id]` lesson room
+- Listen, Transcript, Quiz, and Cards tabs
+- preferred-language lesson personalization and translated audio playback
+- language picker instead of manual language typing
+- quiz attempts, progress tracking, weak areas, and teacher class insight
 
-Completed in this group so far:
-
-- Lessons section inside each school workspace
-- teacher/admin lesson creation from transcript text
-- class and subject selection for lessons
-- Gemini study-pack processing through `process-lesson`
-- generated master summary stored in `lesson_outputs`
-- generated quiz stored in `quizzes` and `quiz_questions`
-- generated flashcards stored in `flashcards`
-- teacher publish action
-- students only see published lessons in the app
-- function-level staff permission check before Gemini processing
-- class-first lesson room with separate Live, Review, Published, Quiz, and Cards areas
-- lesson library screen before opening an individual lesson
-- real lesson routes for `/lessons` and `/lessons/[id]`
-- lesson filters for date window, year, time of day, and sort order
-- browser live transcript capture where supported
-- native lesson audio recording path through `expo-audio`
-- lesson audio storage bucket and Gemini audio processing path
-- interactive quiz attempts saved to `quiz_attempts`
-- focused flashcard session view
-- clearer admin console split into profile, academic, classes, subjects, people, invites, and requests
-- student lesson personalization by language and learning mode through `personalize-lesson`
-- standalone student lesson room with Listen, Transcript, Quiz, Cards, progress, and language controls
-- preferred-language transcript output saved inside lesson personalization content
-- real language picker for teacher lesson capture and student translation/listening
-- teacher review polish with trimmed AI output, show-more controls, and student-view preview
-- server-scored quiz attempts through `submit-quiz-attempt`
-- quiz results update student progress and weak areas
-- teacher quiz insight card with attempts, average score, and students who need help
-- teacher Class Insight section across published lessons
-
-Current focus:
-
-- testing class requests, roster management, lesson recording, AI processing, publishing, quiz attempts, and student viewing against Supabase
-
-Group 2 is done when a teacher can publish a lesson and a student can learn from it end to end.
+Group 2 is ready to close when one teacher and one student can complete the full lesson loop on mobile and web.
 
 ### Group 3: Crews, Billing, Payments, and Experience Layer
 
-Status: not started.
+Status: started.
 
 Scope:
 
@@ -149,7 +73,62 @@ Scope:
 - audit visibility
 - final mobile and web polish
 
+Completed in this group so far:
+
+- quick class creation from inside a school workspace
+- real `/crews` hub instead of placeholder screen
+- real `/crews/[username]` crew room route
+- crew cards route by username slug
+- crew creation and joining moved into focused modals
+- crew creation tied to an active school membership
+- crew invite-code joining
+- crew message thread
+- crew shared study notes
+- Supabase RPC foundation for safe crew creation and joining
+
 Group 3 is done when the product feels connected, memorable, and ready for broader school rollout.
+
+## Expanded Onchain Vision
+
+These are future ecosystem groups. They stay out of the current product build until the school, lesson, crew, and billing flows are stable.
+
+### Future Group 4: Paid Schools, Paid Classes, and Payment Rails
+
+- free and paid schools
+- free and paid classes inside schools
+- school entry fees and automatic join after payment
+- weekly, monthly, yearly, and one-time class access
+- school revenue from student payments
+- Chivo platform share on school/class access payments
+- crypto rails including BNB, Solana, Base, and future EVM chains
+- traditional rails such as cards, bank transfer, and mobile payments
+
+### Future Group 5: Public Profiles, Publishing, and Discovery
+
+- public and private school profiles
+- public personal profiles
+- follow system for profiles and schools
+- studies, lessons, research, educational articles, and public slugs
+- public article audio playback, summaries, translation, and language selection
+- classroom lessons kept separate from public publishing
+
+### Future Group 6: Company Review, Verification, and Rewards
+
+- approved-by-Chivo feed and open public feed
+- AI moderation and company review queue
+- profile verification and school verification
+- verification fees and subscription plans
+- donations for public articles and research
+- monthly AI-assisted creator rewards
+
+### Future Expansion
+
+- advanced AI tutors
+- offline learning
+- onchain certificates or achievements
+- scholarships and research funding pools
+- education marketplace
+- advanced analytics for schools and creators
 
 ## Backend Pieces
 
@@ -168,23 +147,18 @@ Database migration includes:
 - subscriptions, payment transactions, notifications, audit logs
 - `chivo-media` storage bucket for public logo, banner, class, crew, and profile images
 
-If you already ran part of the migration manually and see an error like `type "school_role" already exists`, run `supabase/dev-reset.sql` only on an early development database, then run the migration again. Do not run the reset script on a database that contains data you need to keep.
+Use upgrade files for existing databases:
 
-If your existing early database already has the older Group 1 schema, run `supabase/group1-upgrade.sql`.
+- `supabase/group1-upgrade.sql`: Group 1 media/profile upgrade
+- `supabase/group2-upgrade.sql`: first Group 2 lesson workflow
+- `supabase/group3-audio-upgrade.sql`: native/mobile lesson audio
+- `supabase/group4-progress-upgrade.sql`: quiz progress and teacher attempt insight
+- `supabase/group5-class-flow-upgrade.sql`: learner class requests and teacher roster management
+- `supabase/group6-usernames-upgrade.sql`: username-based school and class routes
+- `supabase/group7-platform-controls-upgrade.sql`: future company-side platform controls
+- `supabase/group8-crews-upgrade.sql`: quick class creation, crew slugs, real crew creation, and invite-code joining
 
-For a database that already has Chivo tables or enum types, use `supabase/group1-upgrade.sql` for this media/profile upgrade instead of running the full initial migration again.
-
-For the first Group 2 lesson workflow on an existing early database, run `supabase/group2-upgrade.sql`.
-
-For native/mobile lesson audio on an existing early database, run `supabase/group3-audio-upgrade.sql`.
-
-For quiz progress and teacher attempt insight on an existing early database, run `supabase/group4-progress-upgrade.sql`.
-
-For learner class requests and teacher class roster management on an existing early database, run `supabase/group5-class-flow-upgrade.sql`.
-
-For username-based school and class routes on an existing early database, run `supabase/group6-usernames-upgrade.sql`.
-
-For future company-side platform controls on an existing early database, run `supabase/group7-platform-controls-upgrade.sql`.
+Do not run `supabase/dev-reset.sql` on a database that contains live data.
 
 Edge Functions:
 
@@ -212,7 +186,7 @@ GEMINI_API_KEY=your-gemini-api-key
 SERVICE_ROLE_KEY=your-service-role-key
 ```
 
-Supabase reserves the `SUPABASE_` prefix for platform-provided variables. The Edge Functions read `SERVICE_ROLE_KEY` first, with `SUPABASE_SERVICE_ROLE_KEY` kept only as a fallback for local/default environments.
+Supabase reserves the `SUPABASE_` prefix for platform-provided variables. Edge Functions read `SERVICE_ROLE_KEY` first, with `SUPABASE_SERVICE_ROLE_KEY` kept only as a fallback for local/default environments.
 
 ## Run
 
@@ -220,42 +194,3 @@ Supabase reserves the `SUPABASE_` prefix for platform-provided variables. The Ed
 npm install
 npm run web
 ```
-
-
-1.
-    SCHOOLS , CAN CUSTOMISE/GATE THEIR SCHOOL WITH A FEE FOR THEIR SCHHOLS, THEN ENTRY FEE..
-    E.G THEY CAN ADD SOMETHING LIKE, PAY TO ENTER, THEN WHEN USER PAIYS, THEY AUTOMATICALLY JOINS THE SCHOOL, THEN INSIDE THE SCHHOL, SCHOOL CAN ALSO DECIDE TO ADD MONTHLY FEE, YEARLY R WEEKLLY FEE FOR THE CALLS, SO STUDENT NEEDS TO PAY TO BE ACCESSING SUBJECTS
-    
-    OUTSIDE THE SUBSCRIPTION FEE SCHOOL PAYS TO CREATE A SCHOOL, THEY ALSO EARN FROM STUDENT WHO JOINS THEIR SCHOOL, THEY CAN DIECIDE WHAT THEIR PRICES..
-    ALL IN CRYPTO,  BNB/SOLANA/BASE, AND SUPORT FOR EVERY OTHER EVM TO BE INCLUDED IN THE FUTURE!
-
-ALSO FROM THE SUBSRICPTION SCHOOL EARNS, WE THE PLATFORM HAVE SHARE OF 0.5% FEE OUTSIED THE SUBSCRIPTION THEY DO!
-
-THERE ARE FREE CLASSES, THERE ARE ALSO GATED/PAID CLASSESD., THEIR ARE FREE SCHHOLS . THERE ARE ALSO GATED/PAID SCHOOL
-THERE CAN BE FREE SCHOOL AND GATED CLASS, YOU CAN JOIN THE SCHOOL, BUT THEIR ARE CLASSED YOU CANT JOIN, UNLESS YOU PAY
-THEY CAN BE PAID/GATED SCHOOLS AND FREE CLASSES!
-
-AT SCHOOL CREATION/ CLASS CREATION ADMIN OR USER CAN CUTOMISE HOW THEY WANT IT TO BE, WEATHER FREE OR PAID! FOR BOTH CLASS AND SCHOOL.
-
-ALL THESE FEATURES IS ALSO POSSIBLE WITH TRADITIONAL FINANCE MODULE, SO TEACHERS/ADMIN, SCHOOL CREATORS, AND STUDENTS CAN DETERMINE THEIR PREFERED PAYMENT RAIL...
-
-SO THIS IS A FULL SYSTEM.
-
-
-
-2.
-SCHOOL CAN DECIDE TO MAKE THEIR PROFILE PUBLIC SO, THE GLOBAL WORLD CAN SEE IT, AND REQUEST JOIN OR PAY TO JOIN AUTOMATICALLY FOR GATED, OR JOIN AUTOMATICALLY FOR NONE GATED FREE PUBLIC SCHOOL..
-
-THERE SHOULD ALSO BE A SECTION, FOR PUBLIC PROFILES AND SCHOOL PROFILES, WHERE THEY PUBLISH STUDIES, LESSONS, RESEARCH, ETC..
-THIS CAN BE INFORM OF SLUG.. SO PERSONAL PROFILES IS PUBLIC, AND THEY CAN PUBLISH STUDIES, LESSON, ETC, ANY PROFILE CAN FOLLOW ANOTHER PROFILE, PUBLISH SCHOOL PRIFILE CAN PUBLISH LESSONS, THIS IS SPERATE FROM CLASS ROOM LESSONS FOR A GROUP OF MEMBERS.. SCHOOLS CAN BE FOLLOWED BY SCHOOLS OR PERSONAL PROFILES, EACH PUBSLISHED ARTICLE CAN HAVEAI SUMMAROIES, AUDIO PLAYBACK, LANGUAGE SELECTION ETC..
-
-THERE SHOULD BE 2 KINDS OF SECTION FOR THIS, APPROVED ONES BY CHIVO AI COMPOANY, AND PUBLIC , NOT APPREOVED BY US.
-
-SO PERSONAL ACCOUNT CAN DECIDE TO POST, AND LEAVE IT FOR REBVIEW , THEN WE RECEIVE THE POST FROM /COMPANY SIDE AND USE AI TO REVIEWM, IF THE SUBJECT IS VALID AND NOT MISS LEADING, WE CAN APRIOVE IT, AND IT IS AUTOMATICALLY PUBKLISHED FOR PUBLIC VIEW, FROM THE SIDE OF APPROVED ARTICLE..
-
-THERE ARE ALSO VERIFUCATION PROCESS, WHERE ANYONE/ SCHOOL CAN VERIFY THEIR 0PROFILE WITH REAL IDENTITY, FOR PERSONAL ACCOUNTS, IT SHOULD BE IDENTITY VERIFICATION AND PAY VERIFICATION FEE, IT HAS MONTHLY AND YEARLY FEE (FULLY CUSTOMISABLE BY COMPANY)..
-FOR SCHOOL, (I DONT KNOW HOW THEY WILL VERIFY IT TO BECOME VERIFIED SCHHOLS)
-
-THEN EACH ARTIOCLE PUBLSIHED CAN HAVE DONATE TO THIS , WHERE THE PERSON WHO PUBLSIEDH A RESEARCH, STUDY , LESSON ETC, EARNS REAL REWARD, ALSO FROM THE COMPNAY SIDE,WE WILL USE AI TO REVIEW THE BEST ARTICLE OFF THE MONTH AND REWARD EACH WINNER, EVERY MONTH!
-
-THESE ARE FUTURE PLANS.. include it in the group edit, but these should be group 4, lets get the product working first

@@ -355,24 +355,21 @@ export async function createSubject(input: CreateSubjectInput) {
 
 export async function createClass(input: CreateClassInput) {
   requireFields([['Class name', input.name]]);
-  const createdBy = await getCurrentUserId();
-  const username = cleanUsername(input.username || input.name);
 
-  const { error } = await (client() as any).from('classes').insert({
-    school_id: input.schoolId,
-    academic_term_id: input.academicTermId,
-    name: input.name.trim(),
-    username,
-    grade_level: input.gradeLevel.trim() || null,
-    logo_url: cleanUrl(input.logoUrl),
-    banner_url: cleanUrl(input.bannerUrl),
-    sticker_key: input.stickerKey?.trim() || null,
-    created_by: createdBy,
+  const { error } = await (client() as any).rpc('create_class_for_school', {
+    school_id_input: input.schoolId,
+    class_name: input.name.trim(),
+    academic_term_id_input: input.academicTermId,
+    class_username_input: input.username?.trim() || null,
+    grade_level_input: input.gradeLevel.trim() || null,
+    logo_url_input: cleanUrl(input.logoUrl),
+    banner_url_input: cleanUrl(input.bannerUrl),
+    sticker_key_input: input.stickerKey?.trim() || null,
   });
 
   if (error) {
-    if (error.code === '23505') {
-      throw new Error('A class in this school already uses that username.');
+    if (error.code === '23505' || error.message?.toLowerCase().includes('already uses')) {
+      throw new Error('A class in this school already uses that name or username.');
     }
     throw error;
   }

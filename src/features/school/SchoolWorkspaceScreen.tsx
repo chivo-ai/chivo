@@ -2,19 +2,21 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
+  Modal,
   Pressable,
   RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native';
 import { router } from 'expo-router';
-import { ArrowLeft, BookOpen, GraduationCap, LogOut, ShieldCheck } from 'lucide-react-native';
+import { ArrowLeft, BookOpen, GraduationCap, LogOut, Plus, ShieldCheck, X } from 'lucide-react-native';
 
 import { AppNavigation, AppNavItem } from '../../components/AppNavigation';
 import { signOut } from '../../services/auth';
-import { fetchSchoolSetupState, SchoolSetupState } from '../../services/school';
+import { createClass, fetchSchoolSetupState, SchoolSetupState } from '../../services/school';
 import { colors } from '../../theme/tokens';
 import { ActiveSchoolMembership } from '../../types';
 import { LearnerScreen } from '../learner/LearnerScreen';
@@ -53,6 +55,12 @@ export function SchoolWorkspaceScreen({
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
+  const [classModalOpen, setClassModalOpen] = useState(false);
+  const [className, setClassName] = useState('');
+  const [classUsername, setClassUsername] = useState('');
+  const [gradeLevel, setGradeLevel] = useState('');
+  const [creatingClass, setCreatingClass] = useState(false);
+  const [classError, setClassError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const school = membership.school;
@@ -147,6 +155,33 @@ export function SchoolWorkspaceScreen({
     }
   }
 
+  async function handleCreateClass() {
+    setCreatingClass(true);
+    setClassError(null);
+
+    try {
+      await createClass({
+        schoolId: membership.schoolId,
+        academicTermId: null,
+        name: className,
+        username: classUsername,
+        gradeLevel,
+        logoUrl: '',
+        bannerUrl: '',
+        stickerKey: 'orbit',
+      });
+      setClassName('');
+      setClassUsername('');
+      setGradeLevel('');
+      setClassModalOpen(false);
+      await loadWorkspace();
+    } catch (caught) {
+      setClassError(caught instanceof Error ? caught.message : 'Could not create class.');
+    } finally {
+      setCreatingClass(false);
+    }
+  }
+
   function selectSurface(id: string) {
     if (id === 'admin') {
       router.push('/admin');
@@ -186,6 +221,13 @@ export function SchoolWorkspaceScreen({
                 {schoolUsername || schoolPlace || formatRole(membership.role)}
               </Text>
             </View>
+
+            {canTeach ? (
+              <Pressable onPress={() => setClassModalOpen(true)} style={styles.createClassButton}>
+                <Plus size={17} color="#ffffff" />
+                <Text style={styles.createClassText}>Class</Text>
+              </Pressable>
+            ) : null}
 
             <Pressable onPress={handleSignOut} style={styles.signOutButton}>
               {signingOut ? (
@@ -237,9 +279,111 @@ export function SchoolWorkspaceScreen({
           ) : (
             <LearnerScreen membership={membership} setup={setup} onWorkspaceChanged={loadWorkspace} />
           )}
+
+          <QuickClassModal
+            visible={classModalOpen}
+            className={className}
+            classUsername={classUsername}
+            gradeLevel={gradeLevel}
+            saving={creatingClass}
+            error={classError}
+            onName={setClassName}
+            onUsername={setClassUsername}
+            onGradeLevel={setGradeLevel}
+            onClose={() => setClassModalOpen(false)}
+            onSubmit={handleCreateClass}
+          />
         </View>
       </ScrollView>
     </AppNavigation>
+  );
+}
+
+function QuickClassModal({
+  visible,
+  className,
+  classUsername,
+  gradeLevel,
+  saving,
+  error,
+  onName,
+  onUsername,
+  onGradeLevel,
+  onClose,
+  onSubmit,
+}: {
+  visible: boolean;
+  className: string;
+  classUsername: string;
+  gradeLevel: string;
+  saving: boolean;
+  error: string | null;
+  onName: (value: string) => void;
+  onUsername: (value: string) => void;
+  onGradeLevel: (value: string) => void;
+  onClose: () => void;
+  onSubmit: () => void;
+}) {
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <Pressable style={styles.modalBackdrop} onPress={onClose}>
+        <Pressable style={styles.modalSheet}>
+          <View style={styles.modalHeader}>
+            <View style={styles.modalIcon}>
+              <Plus size={21} color="#ffffff" />
+            </View>
+            <View style={styles.flexText}>
+              <Text style={styles.modalTitle}>Create class</Text>
+              <Text style={styles.modalMeta}>Add another class to this school.</Text>
+            </View>
+            <Pressable onPress={onClose} style={styles.modalClose}>
+              <X size={18} color={colors.tealDark} />
+            </Pressable>
+          </View>
+
+          {error ? <Text style={styles.errorText}>{error}</Text> : null}
+
+          <View style={styles.modalField}>
+            <Text style={styles.modalLabel}>Class name</Text>
+            <TextInput
+              value={className}
+              onChangeText={onName}
+              placeholder="JSS 2 Blue"
+              placeholderTextColor="#87938e"
+              style={styles.modalInput}
+            />
+          </View>
+
+          <View style={styles.modalField}>
+            <Text style={styles.modalLabel}>Username</Text>
+            <TextInput
+              value={classUsername}
+              onChangeText={onUsername}
+              placeholder="jss-2-blue"
+              placeholderTextColor="#87938e"
+              autoCapitalize="none"
+              style={styles.modalInput}
+            />
+          </View>
+
+          <View style={styles.modalField}>
+            <Text style={styles.modalLabel}>Grade level</Text>
+            <TextInput
+              value={gradeLevel}
+              onChangeText={onGradeLevel}
+              placeholder="Junior secondary"
+              placeholderTextColor="#87938e"
+              style={styles.modalInput}
+            />
+          </View>
+
+          <Pressable disabled={saving || !className.trim()} onPress={onSubmit} style={[styles.modalPrimary, (saving || !className.trim()) && styles.disabledButton]}>
+            {saving ? <ActivityIndicator color="#ffffff" /> : <Plus size={17} color="#ffffff" />}
+            <Text style={styles.modalPrimaryText}>Create class</Text>
+          </Pressable>
+        </Pressable>
+      </Pressable>
+    </Modal>
   );
 }
 
@@ -343,6 +487,21 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '900',
   },
+  createClassButton: {
+    minHeight: 42,
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 7,
+    backgroundColor: colors.tealDark,
+  },
+  createClassText: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: '900',
+  },
   heroPanel: {
     overflow: 'hidden',
     borderRadius: 24,
@@ -437,5 +596,93 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 19,
     fontWeight: '800',
+  },
+  modalBackdrop: {
+    flex: 1,
+    justifyContent: 'center',
+    padding: 16,
+    backgroundColor: 'rgba(7, 12, 10, 0.56)',
+  },
+  modalSheet: {
+    width: '100%',
+    maxWidth: 520,
+    alignSelf: 'center',
+    borderRadius: 26,
+    padding: 18,
+    gap: 14,
+    backgroundColor: colors.paper,
+    borderWidth: 1,
+    borderColor: colors.line,
+  },
+  modalHeader: {
+    minHeight: 48,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  modalIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.tealDark,
+  },
+  modalTitle: {
+    color: colors.ink,
+    fontSize: 21,
+    lineHeight: 27,
+    fontWeight: '900',
+  },
+  modalMeta: {
+    color: colors.muted,
+    fontSize: 12,
+    lineHeight: 18,
+    fontWeight: '800',
+  },
+  modalClose: {
+    width: 38,
+    height: 38,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.softTeal,
+  },
+  modalField: {
+    gap: 7,
+  },
+  modalLabel: {
+    color: colors.ink,
+    fontSize: 12,
+    fontWeight: '900',
+  },
+  modalInput: {
+    minHeight: 48,
+    borderRadius: 15,
+    paddingHorizontal: 13,
+    color: colors.ink,
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: colors.line,
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  modalPrimary: {
+    minHeight: 48,
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: colors.tealDark,
+  },
+  modalPrimaryText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '900',
+  },
+  disabledButton: {
+    opacity: 0.55,
   },
 });
