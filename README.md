@@ -2,6 +2,27 @@
 
 Chivo AI is a school-first learning platform for turning real lessons into summaries, quizzes, flashcards, audio study, progress insight, and study crews while keeping each school workspace private.
 
+## Product Architecture
+
+Chivo AI is built around five product surfaces:
+
+- **Access**: sign in, register, account profile, role-aware school access, invite codes, QR scanning, and school requests.
+- **School**: school identity, classes, subjects, members, academic terms, invites, requests, and school-level permissions.
+- **Learn**: student class entry, lesson cards, audio, transcript, summaries, quizzes, flashcards, personalization, and progress.
+- **Teach**: teacher class rooms, live lesson recording, upload, AI processing, review, publishing, class roster, and class insight.
+- **Admin**: school command center, people, academic setup, class setup, billing, payments, requests, and audit visibility.
+
+Core routes:
+
+- `/home`, `/account`, `/create`, `/join`, `/request`, `/crews`
+- `/school/my-school`, `/school/my-school/[username]`
+- `/school/class`, `/school/class/[username]`
+- `/learn`, `/teach`
+- `/lessons`, `/lessons/[id]`
+- `/admin`, `/admin/profile`, `/admin/academic`, `/admin/classes`, `/admin/subjects`, `/admin/people`, `/admin/invites`, `/admin/requests`, `/admin/billing`
+
+Billing belongs to the school admin surface. A school has a subscription, payment transactions, plan status, usage signals, and future upgrade/payment controls.
+
 ## Work Groups
 
 We are building the product in three full groups. Each group includes UI, Supabase logic, Edge Functions where needed, and light checks before moving on.
@@ -48,11 +69,12 @@ Completed in this group so far:
 - Expo Router entry with `(auth)` and `(tabs)` route groups
 - real access routes for `/home`, `/account`, `/create`, `/join`, `/request`, and `/crews`
 - real workspace routes for `/learn`, `/teach`, and `/admin` on mobile and web
-- real admin routes for `/admin/profile`, `/admin/academic`, `/admin/classes`, `/admin/subjects`, `/admin/people`, `/admin/invites`, and `/admin/requests`
+- real admin routes for `/admin/profile`, `/admin/academic`, `/admin/classes`, `/admin/subjects`, `/admin/people`, `/admin/invites`, `/admin/requests`, and `/admin/billing`
 - real school routes for `/school/my-school`, `/school/my-school/[username]`, `/school/class`, and `/school/class/[username]`
 - school and class username editing for clean public routes
 - learner class request cards after entering a school
 - teacher roster panel for class members and class access
+- admin billing screen for school subscription, plan status, and payment history
 
 Group 1 can now be tested as a real school admin flow. Further polish can happen after testing reveals what feels slow or unclear.
 
@@ -105,7 +127,7 @@ Current focus:
 
 Group 2 is done when a teacher can publish a lesson and a student can learn from it end to end.
 
-### Group 3: Crews, Payments, and Experience Layer
+### Group 3: Crews, Billing, Payments, and Experience Layer
 
 Status: not started.
 
@@ -116,7 +138,7 @@ Scope:
 - crew resources and messages
 - guardian experience
 - notifications
-- subscriptions and crypto payment tracking
+- billing controls, subscriptions, invoices, plan limits, and crypto payment tracking
 - audit visibility
 - final mobile and web polish
 

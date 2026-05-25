@@ -16,19 +16,23 @@ import {
   CalendarDays,
   CheckCircle2,
   ClipboardList,
+  CreditCard,
   DoorOpen,
   GraduationCap,
   ImagePlus,
   Link2,
   QrCode,
+  Receipt,
   ShieldCheck,
   Sparkles,
   UserPlus,
   Users,
+  Wallet,
 } from 'lucide-react-native';
 
 import { AppNavigation, AppNavItem } from '../../components/AppNavigation';
 import { ImageUploadButton } from '../../components/ImageUploadButton';
+import { fetchSchoolBilling, SchoolBillingState } from '../../services/billing';
 import { useAppSession } from '../app/AppSessionProvider';
 import { BootScreen } from '../app/BootScreen';
 import {
@@ -59,7 +63,7 @@ import {
 import { colors } from '../../theme/tokens';
 import { SchoolMembershipRole } from '../../types';
 
-export type AdminSection = 'overview' | 'profile' | 'academic' | 'classes' | 'subjects' | 'people' | 'invites' | 'requests';
+export type AdminSection = 'overview' | 'profile' | 'academic' | 'classes' | 'subjects' | 'people' | 'invites' | 'requests' | 'billing';
 
 type CountState = {
   activeMembers: number;
@@ -92,6 +96,11 @@ const emptySetup: SchoolSetupState = {
   joinRequests: [],
 };
 
+const emptyBilling: SchoolBillingState = {
+  subscription: null,
+  payments: [],
+};
+
 const stickerPack = [
   { key: 'spark', label: 'Spark', accent: colors.gold },
   { key: 'orbit', label: 'Orbit', accent: colors.blue },
@@ -108,6 +117,7 @@ const adminRoutes: Record<AdminSection, string> = {
   people: '/admin/people',
   invites: '/admin/invites',
   requests: '/admin/requests',
+  billing: '/admin/billing',
 };
 
 const inviteRoles: SchoolMembershipRole[] = ['student', 'teacher', 'admin'];
@@ -115,6 +125,7 @@ const inviteRoles: SchoolMembershipRole[] = ['student', 'teacher', 'admin'];
 export function AdminConsoleRoute({ section }: { section: AdminSection }) {
   const { loading, activeMembership } = useAppSession();
   const [setup, setSetup] = useState<SchoolSetupState>(emptySetup);
+  const [billing, setBilling] = useState<SchoolBillingState>(emptyBilling);
   const [loadingSetup, setLoadingSetup] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [saving, setSaving] = useState<string | null>(null);
@@ -196,8 +207,12 @@ export function AdminConsoleRoute({ section }: { section: AdminSection }) {
     }
 
     setError(null);
-    const nextSetup = await fetchSchoolSetupState(activeMembership.schoolId, true);
+    const [nextSetup, nextBilling] = await Promise.all([
+      fetchSchoolSetupState(activeMembership.schoolId, true),
+      fetchSchoolBilling(activeMembership.schoolId),
+    ]);
     setSetup(nextSetup);
+    setBilling(nextBilling);
     setSelectedYearId((current) => current ?? nextSetup.academicYears[0]?.id ?? null);
     setSelectedTermId((current) => current ?? nextSetup.academicTerms[0]?.id ?? null);
     setSelectedClassId((current) => current ?? nextSetup.classes[0]?.id ?? null);
@@ -592,6 +607,15 @@ export function AdminConsoleRoute({ section }: { section: AdminSection }) {
               }
             />
           ) : null}
+
+          {section === 'billing' ? (
+            <BillingSection
+              billing={billing}
+              schoolStatus={activeMembership.school.subscriptionStatus ?? 'trial'}
+              members={counts.activeMembers}
+              classes={counts.classes}
+            />
+          ) : null}
         </View>
       </ScrollView>
     </AppNavigation>
@@ -610,6 +634,7 @@ function adminNavItems(section: AdminSection, counts: CountState): AppNavItem[] 
     { id: 'people', label: 'People', description: `${counts.activeMembers} active`, group: 'Access', icon: <Users size={19} color={color('people')} /> },
     { id: 'invites', label: 'Invites', description: `${counts.activeInvites} active`, group: 'Access', icon: <QrCode size={19} color={color('invites')} /> },
     { id: 'requests', label: 'Requests', description: `${counts.pendingRequests} waiting`, group: 'Access', icon: <UserPlus size={19} color={color('requests')} /> },
+    { id: 'billing', label: 'Billing', description: 'Plan and payments', group: 'Operations', icon: <CreditCard size={19} color={color('billing')} /> },
   ];
 }
 
@@ -682,6 +707,7 @@ function OverviewSection({
             { label: 'School profile', icon: <ShieldCheck size={17} color="#ffffff" />, onPress: () => onOpen('profile') },
             { label: 'Add class', icon: <BookOpen size={17} color="#ffffff" />, onPress: () => onOpen('classes') },
             { label: 'Invite people', icon: <QrCode size={17} color="#ffffff" />, onPress: () => onOpen('invites') },
+            { label: 'Billing', icon: <CreditCard size={17} color="#ffffff" />, onPress: () => onOpen('billing') },
           ]}
         />
       </Panel>
@@ -1085,6 +1111,107 @@ function RequestsSection({
   );
 }
 
+function BillingSection({
+  billing,
+  schoolStatus,
+  members,
+  classes,
+}: {
+  billing: SchoolBillingState;
+  schoolStatus: string;
+  members: number;
+  classes: number;
+}) {
+  const subscription = billing.subscription;
+  const planName = subscription?.plan_name ?? 'Trial School';
+  const status = subscription?.status ?? schoolStatus;
+  const monthly = formatMoney(subscription?.monthly_usd ?? 0);
+  const confirmedTotal = billing.payments
+    .filter((payment) => payment.status === 'confirmed')
+    .reduce((sum, payment) => sum + Number(payment.amount_usd || 0), 0);
+
+  return (
+    <View style={styles.grid}>
+      <Panel wide>
+        <PanelTitle icon={<CreditCard size={21} color={colors.teal} />} title="School plan" />
+        <View style={styles.billingHero}>
+          <View style={styles.flexText}>
+            <Text style={styles.billingPlan}>{planName}</Text>
+            <Text style={styles.billingMeta}>{formatRole(status)} - {monthly}/month</Text>
+          </View>
+          <View style={styles.billingBadge}>
+            <Text style={styles.billingBadgeText}>{formatRole(status)}</Text>
+          </View>
+        </View>
+
+        <View style={styles.metricGrid}>
+          <MetricTile label="Members" value={members} tone="teal" />
+          <MetricTile label="Classes" value={classes} tone="blue" />
+          <MetricTile label="Paid USD" value={Math.round(confirmedTotal)} tone="gold" />
+        </View>
+
+        <View style={styles.billingPeriod}>
+          <Text style={styles.recordTitle}>Current period</Text>
+          <Text style={styles.recordMeta}>
+            {formatDate(subscription?.current_period_start)} - {formatDate(subscription?.current_period_end)}
+          </Text>
+        </View>
+      </Panel>
+
+      <Panel>
+        <PanelTitle icon={<Wallet size={21} color={colors.gold} />} title="Plan ladder" />
+        <View style={styles.recordGrid}>
+          <PlanCard name="Pilot School" price="$0" detail="Trial access for early school setup." active={planName.toLowerCase().includes('pilot')} />
+          <PlanCard name="Growth School" price="$49" detail="Live lessons, AI packs, quiz tracking, and crews." active={planName.toLowerCase().includes('growth')} />
+          <PlanCard name="Network" price="Custom" detail="Multi-school controls, support, audit, and payment routing." active={planName.toLowerCase().includes('network')} />
+        </View>
+      </Panel>
+
+      <Panel wide>
+        <PanelTitle icon={<Receipt size={21} color={colors.blue} />} title="Payment history" />
+        <View style={styles.recordGrid}>
+          {billing.payments.length ? billing.payments.map((payment) => (
+            <View key={payment.id} style={styles.paymentCard}>
+              <View style={styles.flexText}>
+                <Text style={styles.recordTitle}>{formatMoney(payment.amount_usd)} - {formatChain(payment.chain)}</Text>
+                <Text style={styles.recordMeta}>{formatRole(payment.status)} - {formatDate(payment.paid_at ?? payment.created_at)}</Text>
+                <Text style={styles.paymentHash} numberOfLines={1}>{payment.tx_hash}</Text>
+              </View>
+              <View style={[styles.paymentStatus, payment.status === 'confirmed' && styles.paymentStatusConfirmed]}>
+                <Text style={[styles.paymentStatusText, payment.status === 'confirmed' && styles.paymentStatusTextConfirmed]}>
+                  {formatRole(payment.status)}
+                </Text>
+              </View>
+            </View>
+          )) : <Text style={styles.emptyText}>No payment records yet.</Text>}
+        </View>
+      </Panel>
+    </View>
+  );
+}
+
+function PlanCard({
+  name,
+  price,
+  detail,
+  active,
+}: {
+  name: string;
+  price: string;
+  detail: string;
+  active: boolean;
+}) {
+  return (
+    <View style={[styles.planCard, active && styles.planCardActive]}>
+      <View style={styles.flexText}>
+        <Text style={styles.recordTitle}>{name}</Text>
+        <Text style={styles.recordMeta}>{detail}</Text>
+      </View>
+      <Text style={styles.planPrice}>{price}</Text>
+    </View>
+  );
+}
+
 function Panel({ children, wide }: { children: ReactNode; wide?: boolean }) {
   return <View style={[styles.panel, wide && styles.panelWide]}>{children}</View>;
 }
@@ -1267,8 +1394,43 @@ function sectionTitle(section: AdminSection) {
     people: 'People and access',
     invites: 'Invite codes',
     requests: 'Join requests',
+    billing: 'Billing and plans',
   };
   return labels[section];
+}
+
+function formatMoney(value: number | string) {
+  const amount = Number(value || 0);
+  if (!Number.isFinite(amount)) {
+    return '$0';
+  }
+
+  return `$${amount.toLocaleString(undefined, {
+    minimumFractionDigits: amount % 1 === 0 ? 0 : 2,
+    maximumFractionDigits: 2,
+  })}`;
+}
+
+function formatDate(value?: string | null) {
+  if (!value) {
+    return 'Not set';
+  }
+
+  return new Date(value).toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+}
+
+function formatChain(value: string) {
+  const labels: Record<string, string> = {
+    solana: 'Solana',
+    base: 'Base',
+    bnb: 'BNB',
+  };
+
+  return labels[value] ?? formatRole(value);
 }
 
 function formatRole(value: string) {
@@ -1800,6 +1962,104 @@ const styles = StyleSheet.create({
     fontSize: 20,
     lineHeight: 26,
     fontWeight: '900',
+  },
+  billingHero: {
+    minHeight: 96,
+    borderRadius: 20,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: '#101916',
+  },
+  billingPlan: {
+    color: '#ffffff',
+    fontSize: 24,
+    lineHeight: 30,
+    fontWeight: '900',
+  },
+  billingMeta: {
+    color: '#dce7e1',
+    fontSize: 13,
+    lineHeight: 19,
+    fontWeight: '800',
+  },
+  billingBadge: {
+    minHeight: 34,
+    borderRadius: 17,
+    paddingHorizontal: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.gold,
+  },
+  billingBadgeText: {
+    color: colors.ink,
+    fontSize: 12,
+    fontWeight: '900',
+  },
+  billingPeriod: {
+    minHeight: 60,
+    borderRadius: 17,
+    padding: 12,
+    backgroundColor: '#f7faf7',
+    borderWidth: 1,
+    borderColor: '#e1e9e3',
+  },
+  planCard: {
+    minHeight: 72,
+    borderRadius: 18,
+    padding: 13,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: '#f7faf7',
+    borderWidth: 1,
+    borderColor: '#e1e9e3',
+  },
+  planCardActive: {
+    backgroundColor: colors.softTeal,
+    borderColor: colors.teal,
+  },
+  planPrice: {
+    color: colors.tealDark,
+    fontSize: 16,
+    fontWeight: '900',
+  },
+  paymentCard: {
+    minHeight: 76,
+    borderRadius: 18,
+    padding: 13,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: '#f7faf7',
+    borderWidth: 1,
+    borderColor: '#e1e9e3',
+  },
+  paymentHash: {
+    color: colors.muted,
+    fontSize: 11,
+    lineHeight: 16,
+    fontWeight: '800',
+  },
+  paymentStatus: {
+    minHeight: 30,
+    borderRadius: 15,
+    paddingHorizontal: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.softGold,
+  },
+  paymentStatusConfirmed: {
+    backgroundColor: colors.tealDark,
+  },
+  paymentStatusText: {
+    color: colors.ink,
+    fontSize: 11,
+    fontWeight: '900',
+  },
+  paymentStatusTextConfirmed: {
+    color: '#ffffff',
   },
   requestCard: {
     minHeight: 86,
