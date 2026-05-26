@@ -53,6 +53,23 @@ export type CrewResource = {
   createdAt: string;
 };
 
+export type CrewAiPack = {
+  title: string;
+  summary: string;
+  keyPoints: string[];
+  quiz: Array<{
+    prompt: string;
+    options: string[];
+    answer: string;
+    explanation: string;
+  }>;
+  flashcards: Array<{
+    front: string;
+    back: string;
+  }>;
+  studyTasks: string[];
+};
+
 export type CrewRoom = {
   crew: Crew;
   viewerProfileId: string;
@@ -304,6 +321,61 @@ export async function addCrewResource(input: {
   }
 }
 
+export async function processCrewStudyPack(crewId: string): Promise<CrewResource> {
+  if (!supabase) {
+    throw new Error('Supabase is not configured.');
+  }
+
+  const { data, error } = await supabase.functions.invoke('process-crew-study-pack', {
+    body: { crewId },
+  });
+
+  if (error) {
+    throw new Error(await readableFunctionError(error));
+  }
+
+  const payload = data as { resource?: CrewResourceRow };
+
+  if (!payload.resource) {
+    throw new Error('Crew AI pack was not returned.');
+  }
+
+  return mapResource(payload.resource);
+}
+
+export function crewAiPackFromResource(resource: CrewResource): CrewAiPack | null {
+  if (resource.resourceType !== 'ai_pack') {
+    return null;
+  }
+
+  const content = resource.content;
+  const quiz = Array.isArray(content.quiz) ? content.quiz : [];
+  const flashcards = Array.isArray(content.flashcards) ? content.flashcards : [];
+
+  return {
+    title: asText(content.title) || resource.title,
+    summary: asText(content.summary),
+    keyPoints: asTextArray(content.key_points),
+    quiz: quiz.map((item) => {
+      const question = item as Record<string, unknown>;
+      return {
+        prompt: asText(question.prompt),
+        options: asTextArray(question.options),
+        answer: asText(question.answer),
+        explanation: asText(question.explanation),
+      };
+    }).filter((item) => item.prompt),
+    flashcards: flashcards.map((item) => {
+      const card = item as Record<string, unknown>;
+      return {
+        front: asText(card.front),
+        back: asText(card.back),
+      };
+    }).filter((item) => item.front || item.back),
+    studyTasks: asTextArray(content.study_tasks),
+  };
+}
+
 async function countActiveMembers(crewIds: string[]) {
   const counts = new Map<string, number>();
 
@@ -408,4 +480,42 @@ function mapResource(row: CrewResourceRow): CrewResource {
     content: row.content ?? {},
     createdAt: row.created_at,
   };
+}
+
+async function readableFunctionError(error: { message?: string; context?: unknown }) {
+  const fallback = error.message ?? 'Crew AI request failed.';
+  const context = error.context as { json?: () => Promise<unknown>; text?: () => Promise<string> } | undefined;
+
+  try {
+    if (context?.json) {
+      const payload = await context.json();
+      if (payload && typeof payload === 'object' && 'error' in payload) {
+        return String((payload as { error?: unknown }).error || fallback);
+      }
+    }
+
+    if (context?.text) {
+      const text = await context.text();
+      if (text) {
+        try {
+          const parsed = JSON.parse(text) as { error?: unknown };
+          return String(parsed.error || text || fallback);
+        } catch {
+          return text;
+        }
+      }
+    }
+  } catch {
+    return fallback;
+  }
+
+  return fallback;
+}
+
+function asText(value: unknown) {
+  return typeof value === 'string' ? value : '';
+}
+
+function asTextArray(value: unknown) {
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : [];
 }

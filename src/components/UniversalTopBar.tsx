@@ -1,7 +1,8 @@
-import { router } from 'expo-router';
+import { router, usePathname } from 'expo-router';
 import { createContext, ReactNode, useContext, useEffect, useMemo, useState } from 'react';
 import { Image, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import {
+  Bell,
   BookOpen,
   Building2,
   GraduationCap,
@@ -17,6 +18,7 @@ import {
 } from 'lucide-react-native';
 
 import { useAppSession } from '../features/app/AppSessionProvider';
+import { fetchUnreadNotificationCount } from '../services/notifications';
 import { fetchPlatformBranding, PlatformBranding } from '../services/platform';
 import { colors } from '../theme/tokens';
 
@@ -39,8 +41,10 @@ export function useTopBarProvided() {
 }
 
 export function UniversalTopBar() {
-  const { activeMembership } = useAppSession();
+  const pathname = usePathname();
+  const { activeMembership, user } = useAppSession();
   const [open, setOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
   const [branding, setBranding] = useState<PlatformBranding>({
     name: 'Chivo AI',
     subtitle: 'Learn smarter',
@@ -51,6 +55,7 @@ export function UniversalTopBar() {
 
   const routes = useMemo<TopRoute[]>(() => [
     { label: 'Home', route: '/home', icon: <Home size={18} color={colors.tealDark} /> },
+    { label: 'Activity', route: '/notifications', icon: <Bell size={18} color={colors.coral} /> },
     { label: 'Learn', route: '/learn', icon: <BookOpen size={18} color={colors.blue} />, visible: Boolean(activeMembership) },
     { label: 'Teach', route: '/teach', icon: <GraduationCap size={18} color={colors.gold} />, visible: canTeach },
     { label: 'Admin', route: '/admin', icon: <ShieldCheck size={18} color={colors.teal} />, visible: canAdmin },
@@ -89,6 +94,33 @@ export function UniversalTopBar() {
     };
   }, []);
 
+  useEffect(() => {
+    let isMounted = true;
+
+    if (!user) {
+      setUnreadCount(0);
+      return () => {
+        isMounted = false;
+      };
+    }
+
+    fetchUnreadNotificationCount()
+      .then((count) => {
+        if (isMounted) {
+          setUnreadCount(count);
+        }
+      })
+      .catch(() => {
+        if (isMounted) {
+          setUnreadCount(0);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [pathname, user?.id]);
+
   return (
     <View style={styles.wrap}>
       <Pressable onPress={() => setOpen(true)} style={styles.menuButton}>
@@ -111,6 +143,15 @@ export function UniversalTopBar() {
             {activeMembership?.school.name ?? branding.subtitle ?? 'Learn smarter'}
           </Text>
         </View>
+      </Pressable>
+
+      <Pressable onPress={() => go('/notifications')} style={styles.notificationButton}>
+        <Bell size={22} color="#ffffff" />
+        {unreadCount ? (
+          <View style={styles.badge}>
+            <Text style={styles.badgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
+          </View>
+        ) : null}
       </Pressable>
 
       <Pressable onPress={() => go('/account')} style={styles.accountButton}>
@@ -209,6 +250,37 @@ const styles = StyleSheet.create({
     fontSize: 10,
     lineHeight: 14,
     fontWeight: '800',
+  },
+  notificationButton: {
+    position: 'relative',
+    width: 40,
+    height: 40,
+    borderRadius: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#222a21',
+    borderWidth: 1,
+    borderColor: '#3d4738',
+  },
+  badge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    paddingHorizontal: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.coral,
+    borderWidth: 2,
+    borderColor: '#111710',
+  },
+  badgeText: {
+    color: '#ffffff',
+    fontSize: 9,
+    lineHeight: 12,
+    fontWeight: '900',
   },
   accountButton: {
     width: 40,

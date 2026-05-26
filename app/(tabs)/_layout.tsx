@@ -1,15 +1,16 @@
 import { Redirect, Slot, router, usePathname } from 'expo-router';
-import { Building2, Home, QrCode, UserCircle, UserPlus, Users } from 'lucide-react-native';
+import { Bell, Building2, Home, QrCode, UserCircle, UserPlus, Users } from 'lucide-react-native';
 
 import { AppNavigation, AppNavItem } from '../../src/components/AppNavigation';
 import { BootScreen } from '../../src/features/app/BootScreen';
 import { useAppSession } from '../../src/features/app/AppSessionProvider';
 import { colors } from '../../src/theme/tokens';
 
-type AccessRoute = 'home' | 'account' | 'create' | 'join' | 'request' | 'crews';
+type AccessRoute = 'home' | 'notifications' | 'account' | 'create' | 'join' | 'request' | 'crews';
 
 const routeById: Record<AccessRoute, string> = {
   home: '/home',
+  notifications: '/notifications',
   account: '/account',
   create: '/create',
   join: '/join',
@@ -17,7 +18,7 @@ const routeById: Record<AccessRoute, string> = {
   crews: '/crews',
 };
 
-const accessRoutes: AccessRoute[] = ['home', 'account', 'create', 'join', 'request', 'crews'];
+const accessRoutes: AccessRoute[] = ['home', 'notifications', 'account', 'create', 'join', 'request', 'crews'];
 
 export default function TabsLayout() {
   const pathname = usePathname();
@@ -61,6 +62,13 @@ function accessNavItems(activeId: AccessRoute): AppNavItem[] {
       description: 'Schools and access',
       group: 'Access',
       icon: <Home size={19} color={iconColor('home')} />,
+    },
+    {
+      id: 'notifications',
+      label: 'Activity',
+      description: 'Alerts and updates',
+      group: 'Access',
+      icon: <Bell size={19} color={iconColor('notifications')} />,
     },
     {
       id: 'account',

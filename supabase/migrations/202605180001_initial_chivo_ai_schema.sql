@@ -435,6 +435,7 @@ create table public.notifications (
   type text not null,
   title text not null,
   body text,
+  data jsonb not null default '{}'::jsonb,
   read_at timestamptz,
   created_at timestamptz not null default now()
 );

@@ -16,7 +16,7 @@ Chivo AI is built around five product surfaces:
 
 Core routes:
 
-- `/home`, `/account`, `/create`, `/join`, `/request`, `/crews`, `/crews/[username]`
+- `/home`, `/notifications`, `/account`, `/create`, `/join`, `/request`, `/crews`, `/crews/[username]`
 - `/school/my-school`, `/school/my-school/[username]`
 - `/school/class`, `/school/class/[username]`
 - `/learn`, `/teach`
@@ -84,6 +84,8 @@ Completed in this group so far:
 - crew invite-code joining
 - crew message thread
 - crew shared study notes
+- shared crew AI study pack with summary, quiz, flashcards, and group tasks
+- notification center with unread badge and crew AI alerts
 - Supabase RPC foundation for safe crew creation and joining
 
 Group 3 is done when the product feels connected, memorable, and ready for broader school rollout.
@@ -157,6 +159,7 @@ Use upgrade files for existing databases:
 - `supabase/group6-usernames-upgrade.sql`: username-based school and class routes
 - `supabase/group7-platform-controls-upgrade.sql`: future company-side platform controls
 - `supabase/group8-crews-upgrade.sql`: quick class creation, crew slugs, real crew creation, and invite-code joining
+- `supabase/group9-activity-upgrade.sql`: notification payloads for activity badges and deep links
 
 Do not run `supabase/dev-reset.sql` on a database that contains live data.
 
@@ -169,6 +172,7 @@ Edge Functions:
 - `process-lesson`: Gemini lesson processing foundation.
 - `personalize-lesson`: creates a student-specific lesson version by language and learning mode.
 - `submit-quiz-attempt`: scores student quiz attempts and updates progress signals.
+- `process-crew-study-pack`: creates one shared crew AI study pack from crew messages and notes.
 
 ## Environment
 

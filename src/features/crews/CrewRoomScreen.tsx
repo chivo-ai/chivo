@@ -15,8 +15,11 @@ import {
 
 import {
   addCrewResource,
+  crewAiPackFromResource,
+  CrewAiPack,
   CrewRoom,
   fetchCrewRoom,
+  processCrewStudyPack,
   sendCrewMessage,
 } from '../../services/crews';
 import { colors } from '../../theme/tokens';
@@ -27,12 +30,24 @@ export function CrewRoomScreen({ crewId }: { crewId: string }) {
   const [resourceTitle, setResourceTitle] = useState('');
   const [resourceNote, setResourceNote] = useState('');
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState<'message' | 'resource' | null>(null);
+  const [saving, setSaving] = useState<'message' | 'resource' | 'ai' | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const activeMembers = useMemo(
     () => room?.members.filter((member) => member.status === 'active') ?? [],
     [room?.members]
+  );
+  const aiResources = useMemo(
+    () => room?.resources.filter((resource) => resource.resourceType === 'ai_pack') ?? [],
+    [room?.resources]
+  );
+  const noteResources = useMemo(
+    () => room?.resources.filter((resource) => resource.resourceType !== 'ai_pack') ?? [],
+    [room?.resources]
+  );
+  const latestAiPack = useMemo(
+    () => aiResources.map(crewAiPackFromResource).find(Boolean) ?? null,
+    [aiResources]
   );
 
   const load = useCallback(async () => {
@@ -100,6 +115,24 @@ export function CrewRoomScreen({ crewId }: { crewId: string }) {
     }
   }
 
+  async function generateSharedAiPack() {
+    if (!room) {
+      return;
+    }
+
+    setSaving('ai');
+    setError(null);
+
+    try {
+      await processCrewStudyPack(room.crew.id);
+      await load();
+    } catch (generateError) {
+      setError(generateError instanceof Error ? generateError.message : 'Unable to generate crew AI pack.');
+    } finally {
+      setSaving(null);
+    }
+  }
+
   if (loading && !room) {
     return (
       <View style={styles.centerPanel}>
@@ -133,12 +166,17 @@ export function CrewRoomScreen({ crewId }: { crewId: string }) {
             <Text style={styles.heroPillText}>{room.crew.scope === 'cross_school' ? 'Cross-school crew' : 'School crew'}</Text>
           </View>
           <Text style={styles.heroTitle}>{room.crew.name}</Text>
-          <Text style={styles.heroBody}>Message, share notes, and keep lesson questions together.</Text>
+          <Text style={styles.heroBody}>Message, share notes, and create a shared AI study pack for the whole crew.</Text>
+          <Pressable disabled={saving === 'ai'} onPress={generateSharedAiPack} style={[styles.aiHeroButton, saving === 'ai' && styles.buttonDisabled]}>
+            {saving === 'ai' ? <ActivityIndicator color="#ffffff" /> : <Sparkles size={17} color="#ffffff" />}
+            <Text style={styles.aiHeroButtonText}>Generate AI pack</Text>
+          </Pressable>
         </View>
 
         <View style={styles.heroStats}>
           <StatBox icon={<Users size={20} color={colors.ink} />} label="Members" value={activeMembers.length} />
-          <StatBox icon={<BookOpen size={20} color={colors.ink} />} label="Notes" value={room.resources.length} />
+          <StatBox icon={<BookOpen size={20} color={colors.ink} />} label="Notes" value={noteResources.length} />
+          <StatBox icon={<Sparkles size={20} color={colors.ink} />} label="AI packs" value={aiResources.length} />
           <View style={styles.inviteBox}>
             <Copy size={17} color={colors.ink} />
             <View style={styles.flexText}>
@@ -188,6 +226,24 @@ export function CrewRoomScreen({ crewId }: { crewId: string }) {
         </View>
 
         <View style={styles.sideStack}>
+          <View style={styles.aiPanel}>
+            <PanelTitle icon={<Sparkles size={20} color={colors.gold} />} title="Shared Chivo AI pack" />
+            {latestAiPack ? (
+              <CrewAiPackView pack={latestAiPack} />
+            ) : (
+              <View style={styles.aiEmpty}>
+                <Sparkles size={24} color={colors.tealDark} />
+                <Text style={styles.emptyMeta}>Generate one shared summary, quiz, and flashcard set from crew notes and messages.</Text>
+              </View>
+            )}
+            <PrimaryAction
+              label={latestAiPack ? 'Regenerate shared pack' : 'Generate shared pack'}
+              icon={<Sparkles size={17} color="#ffffff" />}
+              loading={saving === 'ai'}
+              onPress={generateSharedAiPack}
+            />
+          </View>
+
           <View style={styles.resourcePanel}>
             <PanelTitle icon={<Plus size={20} color={colors.blue} />} title="Add study note" />
             <TextInput
@@ -216,7 +272,7 @@ export function CrewRoomScreen({ crewId }: { crewId: string }) {
 
           <View style={styles.resourcePanel}>
             <PanelTitle icon={<BookOpen size={20} color={colors.gold} />} title="Shared notes" />
-            {room.resources.length ? room.resources.map((resource) => (
+            {noteResources.length ? noteResources.map((resource) => (
               <View key={resource.id} style={styles.resourceCard}>
                 <Text style={styles.resourceTitle}>{resource.title}</Text>
                 <Text style={styles.resourceBody}>{resourceNoteText(resource.content)}</Text>
@@ -238,6 +294,65 @@ function PanelTitle({ icon, title, action }: { icon: ReactNode; title: string; a
       <View style={styles.panelTitleIcon}>{icon}</View>
       <Text style={styles.panelTitle}>{title}</Text>
       {action}
+    </View>
+  );
+}
+
+function CrewAiPackView({ pack }: { pack: CrewAiPack }) {
+  return (
+    <View style={styles.aiPack}>
+      <View style={styles.aiPackHeader}>
+        <Text style={styles.aiPackTitle}>{pack.title}</Text>
+        <Text style={styles.aiPackBadge}>Shared</Text>
+      </View>
+
+      {pack.summary ? <Text style={styles.aiSummary}>{pack.summary}</Text> : null}
+
+      {pack.keyPoints.length ? (
+        <View style={styles.aiBlock}>
+          <Text style={styles.aiBlockTitle}>Summary points</Text>
+          {pack.keyPoints.slice(0, 5).map((point, index) => (
+            <View key={`${point}-${index}`} style={styles.aiPoint}>
+              <Text style={styles.aiPointNumber}>{index + 1}</Text>
+              <Text style={styles.aiPointText}>{point}</Text>
+            </View>
+          ))}
+        </View>
+      ) : null}
+
+      {pack.quiz.length ? (
+        <View style={styles.aiBlock}>
+          <Text style={styles.aiBlockTitle}>Crew quiz</Text>
+          {pack.quiz.slice(0, 3).map((question, index) => (
+            <View key={`${question.prompt}-${index}`} style={styles.quizCard}>
+              <Text style={styles.quizPrompt}>{index + 1}. {question.prompt}</Text>
+              {question.options.length ? <Text style={styles.quizOptions}>{question.options.join(' / ')}</Text> : null}
+              {question.answer ? <Text style={styles.quizAnswer}>Answer: {question.answer}</Text> : null}
+            </View>
+          ))}
+        </View>
+      ) : null}
+
+      {pack.flashcards.length ? (
+        <View style={styles.aiBlock}>
+          <Text style={styles.aiBlockTitle}>Flashcards</Text>
+          {pack.flashcards.slice(0, 4).map((card, index) => (
+            <View key={`${card.front}-${index}`} style={styles.flashcard}>
+              <Text style={styles.flashFront}>{card.front}</Text>
+              <Text style={styles.flashBack}>{card.back}</Text>
+            </View>
+          ))}
+        </View>
+      ) : null}
+
+      {pack.studyTasks.length ? (
+        <View style={styles.aiBlock}>
+          <Text style={styles.aiBlockTitle}>Group tasks</Text>
+          {pack.studyTasks.slice(0, 4).map((task, index) => (
+            <Text key={`${task}-${index}`} style={styles.taskText}>{index + 1}. {task}</Text>
+          ))}
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -352,6 +467,22 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     fontWeight: '800',
   },
+  aiHeroButton: {
+    alignSelf: 'flex-start',
+    minHeight: 42,
+    borderRadius: 16,
+    paddingHorizontal: 13,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: colors.tealDark,
+  },
+  aiHeroButtonText: {
+    color: '#ffffff',
+    fontSize: 13,
+    fontWeight: '900',
+  },
   heroStats: {
     flex: 1,
     minWidth: 250,
@@ -444,6 +575,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.line,
   },
+  aiPanel: {
+    borderRadius: 26,
+    padding: 16,
+    gap: 12,
+    backgroundColor: '#fff8df',
+    borderWidth: 1,
+    borderColor: '#f2d995',
+  },
   panelTitleRow: {
     minHeight: 38,
     flexDirection: 'row',
@@ -517,6 +656,131 @@ const styles = StyleSheet.create({
     backgroundColor: '#f8fbf8',
     borderWidth: 1,
     borderColor: colors.line,
+  },
+  aiEmpty: {
+    minHeight: 124,
+    borderRadius: 22,
+    padding: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#f2d995',
+  },
+  aiPack: {
+    gap: 12,
+  },
+  aiPackHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  aiPackTitle: {
+    flex: 1,
+    color: colors.ink,
+    fontSize: 17,
+    lineHeight: 23,
+    fontWeight: '900',
+  },
+  aiPackBadge: {
+    overflow: 'hidden',
+    borderRadius: 13,
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+    color: '#ffffff',
+    backgroundColor: colors.tealDark,
+    fontSize: 10,
+    fontWeight: '900',
+  },
+  aiSummary: {
+    color: '#443d26',
+    fontSize: 13,
+    lineHeight: 20,
+    fontWeight: '800',
+  },
+  aiBlock: {
+    gap: 8,
+  },
+  aiBlockTitle: {
+    color: colors.ink,
+    fontSize: 14,
+    lineHeight: 19,
+    fontWeight: '900',
+  },
+  aiPoint: {
+    borderRadius: 17,
+    padding: 11,
+    flexDirection: 'row',
+    gap: 9,
+    backgroundColor: '#ffffff',
+  },
+  aiPointNumber: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    overflow: 'hidden',
+    textAlign: 'center',
+    color: '#ffffff',
+    backgroundColor: colors.tealDark,
+    fontSize: 12,
+    lineHeight: 24,
+    fontWeight: '900',
+  },
+  aiPointText: {
+    flex: 1,
+    color: colors.ink,
+    fontSize: 12,
+    lineHeight: 18,
+    fontWeight: '800',
+  },
+  quizCard: {
+    borderRadius: 17,
+    padding: 11,
+    gap: 5,
+    backgroundColor: '#ffffff',
+  },
+  quizPrompt: {
+    color: colors.ink,
+    fontSize: 12,
+    lineHeight: 18,
+    fontWeight: '900',
+  },
+  quizOptions: {
+    color: colors.muted,
+    fontSize: 11,
+    lineHeight: 16,
+    fontWeight: '800',
+  },
+  quizAnswer: {
+    color: colors.tealDark,
+    fontSize: 11,
+    lineHeight: 16,
+    fontWeight: '900',
+  },
+  flashcard: {
+    borderRadius: 17,
+    padding: 11,
+    gap: 5,
+    backgroundColor: '#ffffff',
+  },
+  flashFront: {
+    color: colors.ink,
+    fontSize: 12,
+    lineHeight: 18,
+    fontWeight: '900',
+  },
+  flashBack: {
+    color: '#443d26',
+    fontSize: 12,
+    lineHeight: 18,
+    fontWeight: '800',
+  },
+  taskText: {
+    color: '#443d26',
+    fontSize: 12,
+    lineHeight: 18,
+    fontWeight: '800',
   },
   composer: {
     minHeight: 54,

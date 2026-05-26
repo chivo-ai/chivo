@@ -1,0 +1,422 @@
+import { router } from 'expo-router';
+import { ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Bell, BellRing, BookOpen, CheckCheck, MessageCircle, Sparkles, Users } from 'lucide-react-native';
+
+import {
+  AppNotification,
+  fetchNotifications,
+  markAllNotificationsRead,
+  markNotificationRead,
+  notificationTargetRoute,
+} from '../../services/notifications';
+import { colors } from '../../theme/tokens';
+
+const tones = [
+  { background: '#fff4d4', accent: colors.gold },
+  { background: '#e9f6ff', accent: '#4aa6d9' },
+  { background: '#f3eaff', accent: '#8d68d8' },
+  { background: '#e8f8ee', accent: '#39a96b' },
+];
+
+export function NotificationsScreen() {
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+
+  const unreadCount = useMemo(() => notifications.filter((item) => !item.readAt).length, [notifications]);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setMessage(null);
+
+    try {
+      setNotifications(await fetchNotifications());
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Unable to load notifications.');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  async function openNotification(notification: AppNotification) {
+    const route = notificationTargetRoute(notification);
+
+    try {
+      if (!notification.readAt) {
+        await markNotificationRead(notification.id);
+        setNotifications((items) => items.map((item) => (
+          item.id === notification.id ? { ...item, readAt: new Date().toISOString() } : item
+        )));
+      }
+
+      if (route) {
+        router.push(route as never);
+      }
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Unable to update notification.');
+    }
+  }
+
+  async function markEveryNotificationRead() {
+    setSaving(true);
+    setMessage(null);
+
+    try {
+      await markAllNotificationsRead();
+      const now = new Date().toISOString();
+      setNotifications((items) => items.map((item) => ({ ...item, readAt: item.readAt ?? now })));
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Unable to mark notifications read.');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <View style={styles.screen}>
+      <View style={styles.hero}>
+        <View style={styles.heroCopy}>
+          <View style={styles.heroPill}>
+            <BellRing size={15} color={colors.ink} />
+            <Text style={styles.heroPillText}>Activity center</Text>
+          </View>
+          <Text style={styles.heroTitle}>Stay on top of every school move</Text>
+          <Text style={styles.heroBody}>Crew AI packs, class updates, requests, lesson events, and billing alerts land here.</Text>
+        </View>
+
+        <View style={styles.heroStats}>
+          <StatCard icon={<Bell size={21} color={colors.ink} />} label="Unread" value={unreadCount} tone={tones[0]} />
+          <StatCard icon={<Sparkles size={21} color={colors.ink} />} label="Total" value={notifications.length} tone={tones[3]} />
+        </View>
+      </View>
+
+      <View style={styles.sectionHeading}>
+        <View>
+          <Text style={styles.sectionTitle}>Notifications</Text>
+          <Text style={styles.sectionMeta}>{unreadCount ? `${unreadCount} unread update${unreadCount === 1 ? '' : 's'}` : 'Everything is caught up'}</Text>
+        </View>
+        <Pressable disabled={!unreadCount || saving} onPress={markEveryNotificationRead} style={[styles.readButton, (!unreadCount || saving) && styles.disabledButton]}>
+          {saving ? <ActivityIndicator color="#ffffff" /> : <CheckCheck size={17} color="#ffffff" />}
+          <Text style={styles.readButtonText}>Mark read</Text>
+        </Pressable>
+      </View>
+
+      {message ? <Text style={styles.errorText}>{message}</Text> : null}
+
+      <View style={styles.list}>
+        {loading ? (
+          <View style={styles.emptyPanel}>
+            <ActivityIndicator color={colors.tealDark} />
+            <Text style={styles.emptyMeta}>Loading activity...</Text>
+          </View>
+        ) : notifications.length ? notifications.map((notification, index) => (
+          <NotificationCard
+            key={notification.id}
+            notification={notification}
+            tone={tones[index % tones.length]}
+            onPress={() => openNotification(notification)}
+          />
+        )) : (
+          <View style={styles.emptyPanel}>
+            <Bell size={30} color={colors.tealDark} />
+            <Text style={styles.emptyTitle}>No activity yet</Text>
+            <Text style={styles.emptyMeta}>When crews, lessons, classes, or requests move, they will appear here.</Text>
+          </View>
+        )}
+      </View>
+    </View>
+  );
+}
+
+function NotificationCard({
+  notification,
+  tone,
+  onPress,
+}: {
+  notification: AppNotification;
+  tone: { background: string; accent: string };
+  onPress: () => void;
+}) {
+  const unread = !notification.readAt;
+  const target = notificationTargetRoute(notification);
+
+  return (
+    <Pressable onPress={onPress} style={[styles.notificationCard, { backgroundColor: tone.background, borderColor: unread ? tone.accent : colors.line }]}>
+      <View style={[styles.notificationIcon, { backgroundColor: tone.accent }]}>
+        {iconForType(notification.type)}
+      </View>
+      <View style={styles.notificationCopy}>
+        <View style={styles.notificationTitleRow}>
+          <Text style={styles.notificationTitle} numberOfLines={2}>{notification.title}</Text>
+          {unread ? <View style={styles.unreadDot} /> : null}
+        </View>
+        {notification.body ? <Text style={styles.notificationBody} numberOfLines={3}>{notification.body}</Text> : null}
+        <View style={styles.metaRow}>
+          <Text style={styles.notificationMeta}>{formatDate(notification.createdAt)}</Text>
+          {target ? <Text style={styles.openMeta}>Open</Text> : null}
+        </View>
+      </View>
+    </Pressable>
+  );
+}
+
+function StatCard({ icon, label, value, tone }: { icon: ReactNode; label: string; value: number; tone: { background: string; accent: string } }) {
+  return (
+    <View style={[styles.statCard, { backgroundColor: tone.background }]}>
+      <View style={[styles.statIcon, { backgroundColor: tone.accent }]}>{icon}</View>
+      <Text style={styles.statValue}>{value}</Text>
+      <Text style={styles.statLabel}>{label}</Text>
+    </View>
+  );
+}
+
+function iconForType(type: string) {
+  if (type.startsWith('crew.')) {
+    return <Users size={21} color="#ffffff" />;
+  }
+
+  if (type.startsWith('lesson.')) {
+    return <BookOpen size={21} color="#ffffff" />;
+  }
+
+  if (type.startsWith('request.')) {
+    return <MessageCircle size={21} color="#ffffff" />;
+  }
+
+  return <Sparkles size={21} color="#ffffff" />;
+}
+
+function formatDate(value: string) {
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return '';
+  }
+
+  return date.toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+const styles = StyleSheet.create({
+  screen: {
+    gap: 18,
+  },
+  hero: {
+    minHeight: 220,
+    borderRadius: 30,
+    padding: 20,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: 18,
+    backgroundColor: '#101916',
+    borderWidth: 1,
+    borderColor: '#20352f',
+  },
+  heroCopy: {
+    flex: 1.5,
+    minWidth: 260,
+    gap: 11,
+  },
+  heroPill: {
+    alignSelf: 'flex-start',
+    minHeight: 34,
+    borderRadius: 17,
+    paddingHorizontal: 11,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    backgroundColor: colors.gold,
+  },
+  heroPillText: {
+    color: colors.ink,
+    fontSize: 12,
+    fontWeight: '900',
+  },
+  heroTitle: {
+    color: '#ffffff',
+    fontSize: 36,
+    lineHeight: 42,
+    fontWeight: '900',
+  },
+  heroBody: {
+    color: '#dce7e1',
+    fontSize: 15,
+    lineHeight: 23,
+    fontWeight: '800',
+  },
+  heroStats: {
+    flex: 1,
+    minWidth: 220,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  statCard: {
+    minWidth: 108,
+    flex: 1,
+    borderRadius: 24,
+    padding: 14,
+    gap: 7,
+    borderWidth: 2,
+    borderColor: '#ffffff',
+  },
+  statIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  statValue: {
+    color: colors.ink,
+    fontSize: 25,
+    lineHeight: 31,
+    fontWeight: '900',
+  },
+  statLabel: {
+    color: colors.muted,
+    fontSize: 12,
+    fontWeight: '900',
+  },
+  sectionHeading: {
+    minHeight: 46,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  sectionTitle: {
+    color: colors.ink,
+    fontSize: 22,
+    lineHeight: 28,
+    fontWeight: '900',
+  },
+  sectionMeta: {
+    color: colors.muted,
+    fontSize: 13,
+    lineHeight: 19,
+    fontWeight: '800',
+  },
+  readButton: {
+    minHeight: 42,
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 7,
+    backgroundColor: colors.tealDark,
+  },
+  readButtonText: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: '900',
+  },
+  disabledButton: {
+    opacity: 0.5,
+  },
+  list: {
+    gap: 10,
+  },
+  notificationCard: {
+    minHeight: 94,
+    borderRadius: 24,
+    padding: 14,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    borderWidth: 2,
+  },
+  notificationIcon: {
+    width: 46,
+    height: 46,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#ffffff',
+  },
+  notificationCopy: {
+    flex: 1,
+    minWidth: 0,
+    gap: 5,
+  },
+  notificationTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  notificationTitle: {
+    flex: 1,
+    color: colors.ink,
+    fontSize: 16,
+    lineHeight: 22,
+    fontWeight: '900',
+  },
+  unreadDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: colors.coral,
+  },
+  notificationBody: {
+    color: colors.muted,
+    fontSize: 13,
+    lineHeight: 19,
+    fontWeight: '800',
+  },
+  metaRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  notificationMeta: {
+    color: '#76837e',
+    fontSize: 11,
+    fontWeight: '900',
+  },
+  openMeta: {
+    color: colors.tealDark,
+    fontSize: 11,
+    fontWeight: '900',
+  },
+  emptyPanel: {
+    minHeight: 160,
+    borderRadius: 26,
+    padding: 18,
+    justifyContent: 'center',
+    gap: 10,
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: colors.line,
+  },
+  emptyTitle: {
+    color: colors.ink,
+    fontSize: 20,
+    lineHeight: 26,
+    fontWeight: '900',
+  },
+  emptyMeta: {
+    color: colors.muted,
+    fontSize: 13,
+    lineHeight: 19,
+    fontWeight: '800',
+  },
+  errorText: {
+    color: '#a13c33',
+    fontSize: 13,
+    lineHeight: 19,
+    fontWeight: '900',
+  },
+});
