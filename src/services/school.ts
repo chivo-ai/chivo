@@ -342,15 +342,21 @@ export async function createAcademicTerm(input: CreateAcademicTermInput) {
 export async function createSubject(input: CreateSubjectInput) {
   requireFields([['Subject name', input.name]]);
 
-  const { error } = await (client() as any).from('subjects').insert({
-    school_id: input.schoolId,
-    name: input.name.trim(),
-    department: input.department.trim() || null,
-  });
+  const { data, error } = await (client() as any)
+    .from('subjects')
+    .insert({
+      school_id: input.schoolId,
+      name: input.name.trim(),
+      department: input.department.trim() || null,
+    })
+    .select('id, name, department')
+    .single();
 
   if (error) {
     throw error;
   }
+
+  return data as SubjectRow;
 }
 
 export async function createClass(input: CreateClassInput) {

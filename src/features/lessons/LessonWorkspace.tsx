@@ -93,6 +93,7 @@ type LessonWorkspaceProps = {
   mode?: 'learn' | 'teach';
   initialClassId?: string | null;
   initialLessonId?: string | null;
+  classPanel?: 'all' | 'studio' | 'library';
 };
 
 type LessonRoomSection = 'live' | 'review' | 'published' | 'quiz' | 'cards' | 'insight';
@@ -108,6 +109,7 @@ export function LessonWorkspace({
   mode,
   initialClassId,
   initialLessonId,
+  classPanel = 'all',
 }: LessonWorkspaceProps) {
   const [lessons, setLessons] = useState<LessonRow[]>([]);
   const [detail, setDetail] = useState<LessonDetail | null>(null);
@@ -127,7 +129,7 @@ export function LessonWorkspace({
 
   const [title, setTitle] = useState('');
   const [language, setLanguage] = useState('English');
-  const [activeClassId, setActiveClassId] = useState<string | null>(null);
+  const [activeClassId, setActiveClassId] = useState<string | null>(initialClassId ?? null);
   const [selectedSubjectId, setSelectedSubjectId] = useState<string | null>(null);
   const [transcript, setTranscript] = useState('');
   const [liveWords, setLiveWords] = useState('');
@@ -137,6 +139,9 @@ export function LessonWorkspace({
   const [capturedAudio, setCapturedAudio] = useState<LessonRecordingUpload | null>(null);
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
   const listeningRef = useRef(false);
+  const transcriptRef = useRef('');
+  const liveWordsRef = useRef('');
+  const speechBaseTranscriptRef = useRef('');
   const initialLessonOpenedRef = useRef<string | null>(null);
   const audioRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const audioState = useAudioRecorderState(audioRecorder);
@@ -145,6 +150,9 @@ export function LessonWorkspace({
   const activeMode = mode ?? (canTeach ? 'teach' : 'learn');
   const isTeacher = canTeach && activeMode === 'teach';
   const canPersonalize = !canTeach && activeMode === 'learn';
+  const classRouteFocus = Boolean(initialClassId);
+  const studioPanel = classPanel === 'studio';
+  const libraryPanel = classPanel === 'library';
   const teacherMembershipId = setup.members.find((member) => member.id === membership.id)?.id ?? membership.id;
 
   const visibleClasses = useMemo(() => {
@@ -201,8 +209,8 @@ export function LessonWorkspace({
   }, [membership.schoolId, activeMode]);
 
   useEffect(() => {
-    setRoomSection(isTeacher ? 'live' : 'published');
-  }, [isTeacher]);
+    setRoomSection(libraryPanel ? 'published' : isTeacher ? 'live' : 'published');
+  }, [isTeacher, libraryPanel]);
 
   useEffect(() => {
     if (activeClassId && !visibleClasses.some((schoolClass) => schoolClass.id === activeClassId)) {
@@ -305,16 +313,43 @@ export function LessonWorkspace({
     [audioRecorder]
   );
 
-  function appendTranscript(value: string) {
-    const text = value.trim();
-    if (!text) {
-      return;
-    }
+  function cleanTranscriptText(value: string) {
+    return value.replace(/\s+/g, ' ').trim();
+  }
 
-    setTranscript((current) => {
-      const clean = current.trim();
-      return clean ? `${clean} ${text}` : text;
-    });
+  function mergeTranscriptParts(...parts: string[]) {
+    return parts.map(cleanTranscriptText).filter(Boolean).join(' ');
+  }
+
+  function setTranscriptText(value: string) {
+    transcriptRef.current = value;
+    setTranscript(value);
+  }
+
+  function setLiveWordsText(value: string) {
+    const clean = cleanTranscriptText(value);
+    liveWordsRef.current = clean;
+    setLiveWords(clean);
+  }
+
+  function clearTranscriptDraft() {
+    setTranscriptText('');
+    setLiveWordsText('');
+    speechBaseTranscriptRef.current = '';
+  }
+
+  function flushSpeechWords() {
+    const merged = mergeTranscriptParts(transcriptRef.current, liveWordsRef.current);
+    setTranscriptText(merged);
+    setLiveWordsText('');
+    speechBaseTranscriptRef.current = merged;
+    return merged;
+  }
+
+  function syncSpeechTranscript(finalText: string, interimText: string) {
+    const merged = mergeTranscriptParts(speechBaseTranscriptRef.current, finalText);
+    setTranscriptText(merged);
+    setLiveWordsText(interimText);
   }
 
   function startSpeechCapture() {
@@ -324,6 +359,8 @@ export function LessonWorkspace({
     }
 
     stopSpeechCapture();
+    speechBaseTranscriptRef.current = transcriptRef.current;
+    setLiveWordsText('');
 
     const Recognition = window.SpeechRecognition ?? window.webkitSpeechRecognition;
     if (!Recognition) {
@@ -340,7 +377,7 @@ export function LessonWorkspace({
       let finalText = '';
       let interimText = '';
 
-      for (let index = event.resultIndex; index < event.results.length; index += 1) {
+      for (let index = 0; index < event.results.length; index += 1) {
         const result = event.results[index];
         const text = result[0]?.transcript ?? '';
 
@@ -351,11 +388,7 @@ export function LessonWorkspace({
         }
       }
 
-      if (finalText.trim()) {
-        appendTranscript(finalText);
-      }
-
-      setLiveWords(interimText.trim());
+      syncSpeechTranscript(finalText, interimText);
     };
 
     recognition.onerror = (event) => {
@@ -370,6 +403,7 @@ export function LessonWorkspace({
     recognition.onend = () => {
       if (recognitionRef.current === recognition && listeningRef.current) {
         try {
+          speechBaseTranscriptRef.current = flushSpeechWords();
           recognition.start();
           setListening(true);
           return;
@@ -398,11 +432,11 @@ export function LessonWorkspace({
 
   function stopSpeechCapture() {
     const recognition = recognitionRef.current;
+    const flushedTranscript = flushSpeechWords();
     recognitionRef.current = null;
     listeningRef.current = false;
     setListening(false);
     setCaptureMode(null);
-    setLiveWords('');
 
     if (recognition) {
       recognition.onend = null;
@@ -414,6 +448,8 @@ export function LessonWorkspace({
         // The browser may already have stopped listening.
       }
     }
+
+    return flushedTranscript;
   }
 
   async function startAudioCapture() {
@@ -536,8 +572,7 @@ export function LessonWorkspace({
     setSelectedSubjectId(null);
     setSelectedLessonId(null);
     setDetail(null);
-    setTranscript('');
-    setLiveWords('');
+    clearTranscriptDraft();
     setTitle('');
     setCapturedAudio(null);
   }
@@ -583,6 +618,11 @@ export function LessonWorkspace({
     setError(null);
     setMessage(null);
     try {
+      if (recognitionRef.current) {
+        stopSpeechCapture();
+      }
+
+      const transcriptText = transcriptRef.current.trim();
       const lessonId = await createLesson({
         schoolId: membership.schoolId,
         classId: activeClassId ?? '',
@@ -590,10 +630,10 @@ export function LessonWorkspace({
         teacherMembershipId,
         title,
         language,
-        transcript,
+        transcript: transcriptText,
       });
       setTitle('');
-      setTranscript('');
+      clearTranscriptDraft();
       setMessage('Lesson saved. Create study materials when ready.');
       setSelectedLessonId(lessonId);
       await loadLessons();
@@ -628,7 +668,7 @@ export function LessonWorkspace({
         language,
       });
       setTitle('');
-      setTranscript('');
+      clearTranscriptDraft();
       setCapturedAudio(null);
       setMessage('Lesson started.');
       setSelectedLessonId(lessonId);
@@ -649,7 +689,7 @@ export function LessonWorkspace({
     setMessage(null);
     try {
       const recording = await stopLiveCapture();
-      const transcriptText = transcript.trim();
+      const transcriptText = transcriptRef.current.trim();
 
       await endLessonSession({
         lessonId,
@@ -657,7 +697,7 @@ export function LessonWorkspace({
         transcript: transcriptText,
         recording,
       });
-      setTranscript('');
+      clearTranscriptDraft();
       setCapturedAudio(null);
 
       if (transcriptText || recording?.uri) {
@@ -683,10 +723,14 @@ export function LessonWorkspace({
     setError(null);
     setMessage(null);
     try {
-      const transcriptText = transcript.trim();
+      if (recognitionRef.current) {
+        stopSpeechCapture();
+      }
+
+      const transcriptText = transcriptRef.current.trim();
       if (transcriptText) {
         await addLessonTranscript(lessonId, lessonLanguage, transcriptText);
-        setTranscript('');
+        clearTranscriptDraft();
       }
 
       await processLesson(lessonId);
@@ -772,7 +816,12 @@ export function LessonWorkspace({
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
       {message ? <Text style={styles.successText}>{message}</Text> : null}
 
-      {!activeClass ? (
+      {!activeClass && classRouteFocus ? (
+        <View style={styles.card}>
+          <ActivityIndicator color={colors.tealDark} />
+          <Text style={styles.cardBody}>Opening class lessons.</Text>
+        </View>
+      ) : !activeClass ? (
         <View style={styles.card}>
           <SectionTitle
             icon={<DoorOpen size={22} color={colors.teal} />}
@@ -803,20 +852,22 @@ export function LessonWorkspace({
         </View>
       ) : (
         <>
-          <View style={styles.roomHeader}>
-            <Pressable onPress={leaveClass} style={styles.backButton}>
-              <ArrowLeft size={18} color={colors.tealDark} />
-              <Text style={styles.backButtonText}>Classes</Text>
-            </Pressable>
-            <View style={styles.flexText}>
-              <Text style={styles.roomTitle}>{activeClass.name}</Text>
-              <Text style={styles.recordMeta}>{activeClass.grade_level ?? 'Grade not set'}</Text>
+          {!classRouteFocus ? (
+            <View style={styles.roomHeader}>
+              <Pressable onPress={leaveClass} style={styles.backButton}>
+                <ArrowLeft size={18} color={colors.tealDark} />
+                <Text style={styles.backButtonText}>Classes</Text>
+              </Pressable>
+              <View style={styles.flexText}>
+                <Text style={styles.roomTitle}>{activeClass.name}</Text>
+                <Text style={styles.recordMeta}>{activeClass.grade_level ?? 'Grade not set'}</Text>
+              </View>
+              <View style={styles.roomStats}>
+                <Text style={styles.roomStat}>{activeClassSubjects.length} subjects</Text>
+                <Text style={styles.roomStat}>{lessons.filter((lesson) => lesson.class_id === activeClass.id).length} lessons</Text>
+              </View>
             </View>
-            <View style={styles.roomStats}>
-              <Text style={styles.roomStat}>{activeClassSubjects.length} subjects</Text>
-              <Text style={styles.roomStat}>{lessons.filter((lesson) => lesson.class_id === activeClass.id).length} lessons</Text>
-            </View>
-          </View>
+          ) : null}
 
           <View style={styles.card}>
             <SectionTitle icon={<ClipboardList size={22} color={colors.blue} />} title="Subjects" />
@@ -844,18 +895,21 @@ export function LessonWorkspace({
             )}
           </View>
 
-          <RoomSectionNav
-            isTeacher={isTeacher}
-            activeSection={roomSection}
-            lessonCounts={lessonSectionCounts(filteredLessons)}
-            onSelect={(section) => {
-              setRoomSection(section);
-              setSelectedLessonId(null);
-              setDetail(null);
-            }}
-          />
+          {!studioPanel ? (
+            <RoomSectionNav
+              isTeacher={isTeacher}
+              activeSection={roomSection}
+              lessonCounts={lessonSectionCounts(filteredLessons)}
+              variant={libraryPanel ? 'library' : 'full'}
+              onSelect={(section) => {
+                setRoomSection(section);
+                setSelectedLessonId(null);
+                setDetail(null);
+              }}
+            />
+          ) : null}
 
-          {isTeacher && roomSection === 'live' ? (
+          {isTeacher && roomSection === 'live' && !libraryPanel ? (
             <View style={styles.lessonLaunch}>
               <View style={styles.launchIntro}>
                 <View style={[styles.launchIcon, listening && styles.launchIconListening]}>
@@ -905,7 +959,7 @@ export function LessonWorkspace({
                 <Field
                   label="Transcript"
                   value={transcript}
-                  onChangeText={setTranscript}
+                  onChangeText={setTranscriptText}
                   placeholder={
                     isAudioCapture
                       ? 'Audio is being recorded. You can also add notes here'
@@ -934,7 +988,7 @@ export function LessonWorkspace({
             </View>
           ) : null}
 
-          {isTeacher && roomSection === 'insight' ? (
+          {isTeacher && roomSection === 'insight' && !studioPanel ? (
             <TeacherInsightDashboard lessons={insightLessons} insights={teacherInsights} />
           ) : selectedLessonId ? (
             <View style={styles.lessonRoute}>
@@ -969,7 +1023,7 @@ export function LessonWorkspace({
                   canPersonalize={canPersonalize}
                   saving={saving}
                   transcript={transcript}
-                  onTranscriptChange={setTranscript}
+                  onTranscriptChange={setTranscriptText}
                   openLiveLessonId={openLiveLesson?.id ?? null}
                   listening={listening}
                   liveWords={liveWords}
@@ -995,6 +1049,15 @@ export function LessonWorkspace({
                   <Text style={styles.cardBody}>This lesson could not be opened.</Text>
                 </View>
               )}
+            </View>
+          ) : studioPanel ? (
+            <View style={styles.card}>
+              <SectionTitle icon={<Sparkles size={22} color={colors.gold} />} title="Lesson studio ready" />
+              <Text style={styles.cardBody}>
+                {isTeacher
+                  ? 'Choose a subject, start a live lesson, then end it for Chivo AI to prepare the class materials.'
+                  : 'Published lessons for this class are in the lesson library.'}
+              </Text>
             </View>
           ) : (
             <View style={styles.lessonLibrary}>
@@ -1054,14 +1117,21 @@ function RoomSectionNav({
   isTeacher,
   activeSection,
   lessonCounts,
+  variant = 'full',
   onSelect,
 }: {
   isTeacher: boolean;
   activeSection: LessonRoomSection;
   lessonCounts: Record<LessonRoomSection, number>;
+  variant?: 'full' | 'library';
   onSelect: (section: LessonRoomSection) => void;
 }) {
-  const sections: Array<{ id: LessonRoomSection; label: string; count: number }> = isTeacher
+  const sections: Array<{ id: LessonRoomSection; label: string; count: number }> = variant === 'library'
+    ? [
+        { id: 'published', label: 'Published', count: lessonCounts.published },
+        { id: 'live', label: 'Live', count: lessonCounts.live },
+      ]
+    : isTeacher
     ? [
         { id: 'live', label: 'Live', count: lessonCounts.live },
         { id: 'review', label: 'Review', count: lessonCounts.review },
@@ -2188,7 +2258,7 @@ function lessonSectionCounts(lessons: LessonRow[]): Record<LessonRoomSection, nu
 
 function lessonsForRoomSection(lessons: LessonRow[], isTeacher: boolean, section: LessonRoomSection) {
   if (section === 'live') {
-    return isTeacher ? lessons.filter((lesson) => lesson.status === 'recording') : [];
+    return lessons.filter((lesson) => lesson.status === 'recording');
   }
 
   if (section === 'review') {

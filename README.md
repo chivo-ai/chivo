@@ -89,6 +89,8 @@ Completed in this group so far:
 - Supabase RPC foundation for safe crew creation and joining
 - crew room tabs for chat, shared AI, notes, voice, live sessions, and members
 - crew voice-note storage, Gemini voice transcription, and live study floor state
+- classroom study room tabs for chat, shared AI, notes, voice, live sessions, and members
+- classroom voice-note storage, Gemini voice transcription, and shared class study packs
 
 Group 3 is done when the product feels connected, memorable, and ready for broader school rollout.
 
@@ -163,6 +165,7 @@ Use upgrade files for existing databases:
 - `supabase/group8-crews-upgrade.sql`: quick class creation, crew slugs, real crew creation, and invite-code joining
 - `supabase/group9-activity-upgrade.sql`: notification payloads for activity badges and deep links
 - `supabase/group10-crew-study-upgrade.sql`: crew audio storage, voice notes, and live study resource updates
+- `supabase/group11-classroom-study-upgrade.sql`: class chat, resources, audio storage, voice notes, and live class study
 
 Do not run `supabase/dev-reset.sql` on a database that contains live data.
 
@@ -177,6 +180,8 @@ Edge Functions:
 - `submit-quiz-attempt`: scores student quiz attempts and updates progress signals.
 - `process-crew-study-pack`: creates one shared crew AI study pack from crew messages and notes.
 - `process-crew-voice-note`: transcribes and summarizes a crew voice note for shared study.
+- `process-class-study-pack`: creates one shared class AI study pack from class messages, notes, and voice transcripts.
+- `process-class-voice-note`: transcribes and summarizes a class voice note for shared study.
 
 ## Environment
 

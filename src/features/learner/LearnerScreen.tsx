@@ -72,6 +72,7 @@ export function LearnerScreen({ membership, setup, onWorkspaceChanged }: Learner
     () => (isStaff ? setup.classes : setup.classes.filter((schoolClass) => joinedClassIds.has(schoolClass.id))),
     [isStaff, joinedClassIds, setup.classes]
   );
+  const firstLearnerClassId = learnerClasses[0]?.id ?? null;
 
   const subjectCount = useMemo(() => {
     const classIds = new Set(learnerClasses.map((schoolClass) => schoolClass.id));
@@ -133,12 +134,6 @@ export function LearnerScreen({ membership, setup, onWorkspaceChanged }: Learner
         onRequest={requestClass}
       />
 
-      <LearnerClassList
-        classes={learnerClasses}
-        subjects={setup.subjects}
-        classSubjects={setup.classSubjects}
-      />
-
       <StudyTools />
 
       <View style={styles.libraryHeader}>
@@ -151,60 +146,13 @@ export function LearnerScreen({ membership, setup, onWorkspaceChanged }: Learner
         </View>
       </View>
 
-      <LessonWorkspace membership={membership} setup={setup} onLessonsChanged={onWorkspaceChanged} mode="learn" />
-    </View>
-  );
-}
-
-function LearnerClassList({
-  classes,
-  subjects,
-  classSubjects,
-}: {
-  classes: ClassRow[];
-  subjects: SubjectRow[];
-  classSubjects: SchoolSetupState['classSubjects'];
-}) {
-  return (
-    <View style={styles.classListPanel}>
-      <View style={styles.sectionHeadingRow}>
-        <View>
-          <Text style={styles.sectionTitle}>Your classes</Text>
-          <Text style={styles.sectionMeta}>Open a class directly with its clean class link.</Text>
-        </View>
-      </View>
-
-      {classes.length ? (
-        <View style={styles.classListStack}>
-          {classes.map((schoolClass) => {
-            const subjectNames = classSubjects
-              .filter((link) => link.class_id === schoolClass.id)
-              .map((link) => subjects.find((subject) => subject.id === link.subject_id)?.name)
-              .filter(Boolean) as string[];
-
-            return (
-              <Pressable
-                key={schoolClass.id}
-                onPress={() => router.push(`/school/class/${schoolClass.username}` as never)}
-                style={styles.classListItem}
-              >
-                <View style={styles.classListIcon}>
-                  <BookOpen size={18} color="#ffffff" />
-                </View>
-                <View style={styles.flexText}>
-                  <Text style={styles.classListTitle}>{schoolClass.name}</Text>
-                  <Text style={styles.classListMeta}>/{schoolClass.username} - {subjectNames.slice(0, 3).join(', ') || 'Subjects soon'}</Text>
-                </View>
-                <View style={styles.classListButton}>
-                  <Text style={styles.classListButtonText}>Enter</Text>
-                </View>
-              </Pressable>
-            );
-          })}
-        </View>
-      ) : (
-        <Text style={styles.sectionMeta}>Join a class to see direct class links here.</Text>
-      )}
+      <LessonWorkspace
+        membership={membership}
+        setup={setup}
+        onLessonsChanged={onWorkspaceChanged}
+        mode="learn"
+        initialClassId={firstLearnerClassId}
+      />
     </View>
   );
 }

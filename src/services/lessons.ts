@@ -182,7 +182,7 @@ export async function fetchLessons(schoolId: string, includeDrafts = false): Pro
     .order('created_at', { ascending: false });
 
   if (!includeDrafts) {
-    query = query.eq('status', 'published');
+    query = query.in('status', ['published', 'recording']);
   }
 
   const { data, error } = await query;

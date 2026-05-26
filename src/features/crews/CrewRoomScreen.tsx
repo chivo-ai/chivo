@@ -145,6 +145,9 @@ export function CrewRoomScreen({ crewId }: { crewId: string }) {
   const [speechState, setSpeechState] = useState<SpeechState>('idle');
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
   const listeningRef = useRef(false);
+  const voiceDraftRef = useRef('');
+  const voiceBaseDraftRef = useRef('');
+  const voiceInterimRef = useRef('');
   const audioRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const audioState = useAudioRecorderState(audioRecorder);
 
@@ -337,6 +340,33 @@ export function CrewRoomScreen({ crewId }: { crewId: string }) {
     }
   }
 
+  function cleanVoiceText(value: string) {
+    return value.replace(/\s+/g, ' ').trim();
+  }
+
+  function mergeVoiceParts(...parts: string[]) {
+    return parts.map(cleanVoiceText).filter(Boolean).join(' ');
+  }
+
+  function setVoiceDraftText(value: string) {
+    voiceDraftRef.current = value;
+    setVoiceDraft(value);
+  }
+
+  function flushVoiceInterim() {
+    const merged = mergeVoiceParts(voiceDraftRef.current, voiceInterimRef.current);
+    setVoiceDraftText(merged);
+    voiceInterimRef.current = '';
+    voiceBaseDraftRef.current = merged;
+    return merged;
+  }
+
+  function syncVoiceSpeech(finalText: string, interimText: string) {
+    const merged = mergeVoiceParts(voiceBaseDraftRef.current, finalText);
+    setVoiceDraftText(merged);
+    voiceInterimRef.current = cleanVoiceText(interimText);
+  }
+
   function startSpeechCapture() {
     if (!speechCaptureAvailable) {
       setSpeechNotice('Speech-to-text is available in supported web browsers. On mobile, record voice instead.');
@@ -344,6 +374,8 @@ export function CrewRoomScreen({ crewId }: { crewId: string }) {
     }
 
     stopSpeechCapture();
+    voiceBaseDraftRef.current = voiceDraftRef.current;
+    voiceInterimRef.current = '';
 
     const Recognition = window.SpeechRecognition ?? window.webkitSpeechRecognition;
     if (!Recognition) {
@@ -358,22 +390,20 @@ export function CrewRoomScreen({ crewId }: { crewId: string }) {
 
     recognition.onresult = (event) => {
       let finalText = '';
+      let interimText = '';
 
-      for (let index = event.resultIndex; index < event.results.length; index += 1) {
+      for (let index = 0; index < event.results.length; index += 1) {
         const result = event.results[index];
         const text = result[0]?.transcript ?? '';
 
         if (result.isFinal) {
           finalText = `${finalText} ${text}`;
+        } else {
+          interimText = `${interimText} ${text}`;
         }
       }
 
-      if (finalText.trim()) {
-        setVoiceDraft((current) => {
-          const clean = current.trim();
-          return clean ? `${clean} ${finalText.trim()}` : finalText.trim();
-        });
-      }
+      syncVoiceSpeech(finalText, interimText);
     };
 
     recognition.onerror = (event) => {
@@ -385,6 +415,7 @@ export function CrewRoomScreen({ crewId }: { crewId: string }) {
     recognition.onend = () => {
       if (recognitionRef.current === recognition && listeningRef.current) {
         try {
+          voiceBaseDraftRef.current = flushVoiceInterim();
           recognition.start();
           setListening(true);
           return;
@@ -410,6 +441,7 @@ export function CrewRoomScreen({ crewId }: { crewId: string }) {
 
   function stopSpeechCapture() {
     const recognition = recognitionRef.current;
+    flushVoiceInterim();
     recognitionRef.current = null;
     listeningRef.current = false;
     setListening(false);
@@ -428,7 +460,13 @@ export function CrewRoomScreen({ crewId }: { crewId: string }) {
   }
 
   async function saveVoiceStudy() {
-    if (!room || (!capturedAudio && !voiceDraft.trim())) {
+    if (recognitionRef.current) {
+      stopSpeechCapture();
+    }
+
+    const finalVoiceDraft = voiceDraftRef.current.trim();
+
+    if (!room || (!capturedAudio && !finalVoiceDraft)) {
       return;
     }
 
@@ -444,21 +482,23 @@ export function CrewRoomScreen({ crewId }: { crewId: string }) {
         });
       }
 
-      if (voiceDraft.trim()) {
+      if (finalVoiceDraft) {
         await addCrewResource({
           crewId: room.crew.id,
           title: `${voiceTitle || 'Crew voice transcript'} transcript`,
           resourceType: 'voice_transcript',
           content: {
-            transcript: voiceDraft.trim(),
+            transcript: finalVoiceDraft,
             language: voiceLanguage,
-            note: voiceDraft.trim(),
+            note: finalVoiceDraft,
           },
         });
       }
 
       setCapturedAudio(null);
-      setVoiceDraft('');
+      setVoiceDraftText('');
+      voiceInterimRef.current = '';
+      voiceBaseDraftRef.current = '';
       setSpeechNotice('Voice study saved.');
       await load();
     } catch (voiceError) {
@@ -735,7 +775,7 @@ export function CrewRoomScreen({ crewId }: { crewId: string }) {
           audioDurationLabel={audioDurationLabel}
           speechCaptureAvailable={speechCaptureAvailable}
           onChangeTitle={setVoiceTitle}
-          onChangeDraft={setVoiceDraft}
+          onChangeDraft={setVoiceDraftText}
           onChangeLanguage={setVoiceLanguage}
           onStartAudio={startAudioCapture}
           onStopAudio={stopAudioCapture}
