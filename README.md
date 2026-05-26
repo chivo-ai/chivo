@@ -87,6 +87,8 @@ Completed in this group so far:
 - shared crew AI study pack with summary, quiz, flashcards, and group tasks
 - notification center with unread badge and crew AI alerts
 - Supabase RPC foundation for safe crew creation and joining
+- crew room tabs for chat, shared AI, notes, voice, live sessions, and members
+- crew voice-note storage, Gemini voice transcription, and live study floor state
 
 Group 3 is done when the product feels connected, memorable, and ready for broader school rollout.
 
@@ -160,6 +162,7 @@ Use upgrade files for existing databases:
 - `supabase/group7-platform-controls-upgrade.sql`: future company-side platform controls
 - `supabase/group8-crews-upgrade.sql`: quick class creation, crew slugs, real crew creation, and invite-code joining
 - `supabase/group9-activity-upgrade.sql`: notification payloads for activity badges and deep links
+- `supabase/group10-crew-study-upgrade.sql`: crew audio storage, voice notes, and live study resource updates
 
 Do not run `supabase/dev-reset.sql` on a database that contains live data.
 
@@ -173,6 +176,7 @@ Edge Functions:
 - `personalize-lesson`: creates a student-specific lesson version by language and learning mode.
 - `submit-quiz-attempt`: scores student quiz attempts and updates progress signals.
 - `process-crew-study-pack`: creates one shared crew AI study pack from crew messages and notes.
+- `process-crew-voice-note`: transcribes and summarizes a crew voice note for shared study.
 
 ## Environment
 

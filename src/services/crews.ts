@@ -53,6 +53,12 @@ export type CrewResource = {
   createdAt: string;
 };
 
+export type CrewRecordingUpload = {
+  uri: string;
+  mimeType?: string;
+  durationSeconds?: number | null;
+};
+
 export type CrewAiPack = {
   title: string;
   summary: string;
@@ -249,7 +255,7 @@ export async function fetchCrewRoom(identifier: string): Promise<CrewRoom> {
       .select('id, crew_id, created_by, lesson_id, title, resource_type, content, created_at')
       .eq('crew_id', crew.id)
       .order('created_at', { ascending: false })
-      .limit(30),
+      .limit(80),
   ]);
 
   if (membersResult.error) {
@@ -300,21 +306,139 @@ export async function sendCrewMessage(crewId: string, body: string) {
 export async function addCrewResource(input: {
   crewId: string;
   title: string;
-  note: string;
+  note?: string;
+  resourceType?: string;
+  content?: Record<string, unknown>;
 }) {
   if (!supabase) {
     throw new Error('Supabase is not configured.');
   }
 
   const createdBy = await getCurrentUserId();
+  const content = input.content ?? { note: input.note?.trim() ?? '' };
 
   const { error } = await (supabase as any).from('crew_resources').insert({
     crew_id: input.crewId,
     created_by: createdBy,
     title: input.title.trim(),
-    resource_type: 'note',
-    content: { note: input.note.trim() },
+    resource_type: input.resourceType ?? 'note',
+    content,
   });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+}
+
+export async function uploadCrewVoiceNote(input: {
+  crewId: string;
+  title: string;
+  recording: CrewRecordingUpload;
+}): Promise<CrewResource> {
+  if (!supabase) {
+    throw new Error('Supabase is not configured.');
+  }
+
+  const createdBy = await getCurrentUserId();
+  const audio = await readAudioFile(input.recording);
+  const path = `${input.crewId}/${createdBy}/${Date.now()}-${Math.random()
+    .toString(36)
+    .slice(2)}.${audio.extension}`;
+
+  const { error: uploadError } = await (supabase as any).storage.from('chivo-crew-audio').upload(path, audio.file, {
+    contentType: audio.mimeType,
+    upsert: false,
+  });
+
+  if (uploadError) {
+    throw new Error(uploadError.message);
+  }
+
+  const { data, error } = await (supabase as any)
+    .from('crew_resources')
+    .insert({
+      crew_id: input.crewId,
+      created_by: createdBy,
+      title: input.title.trim() || 'Crew voice note',
+      resource_type: 'voice_note',
+      content: {
+        storage_path: path,
+        mime_type: audio.mimeType,
+        size_bytes: audio.sizeBytes,
+        duration_seconds: input.recording.durationSeconds ?? null,
+      },
+    })
+    .select('id, crew_id, created_by, lesson_id, title, resource_type, content, created_at')
+    .single();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return mapResource(data as CrewResourceRow);
+}
+
+export async function createCrewLiveSession(input: {
+  crewId: string;
+  title?: string;
+}): Promise<CrewResource> {
+  if (!supabase) {
+    throw new Error('Supabase is not configured.');
+  }
+
+  const createdBy = await getCurrentUserId();
+
+  const { data, error } = await (supabase as any)
+    .from('crew_resources')
+    .insert({
+      crew_id: input.crewId,
+      created_by: createdBy,
+      title: input.title?.trim() || 'Live study circle',
+      resource_type: 'live_session',
+      content: {
+        status: 'live',
+        speaker_profile_id: createdBy,
+        started_at: new Date().toISOString(),
+        rule: 'one_speaker',
+      },
+    })
+    .select('id, crew_id, created_by, lesson_id, title, resource_type, content, created_at')
+    .single();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return mapResource(data as CrewResourceRow);
+}
+
+export async function endCrewLiveSession(resourceId: string) {
+  if (!supabase) {
+    throw new Error('Supabase is not configured.');
+  }
+
+  const { data: existing, error: fetchError } = await (supabase as any)
+    .from('crew_resources')
+    .select('content')
+    .eq('id', resourceId)
+    .single();
+
+  if (fetchError) {
+    throw new Error(fetchError.message);
+  }
+
+  const content = (existing?.content ?? {}) as Record<string, unknown>;
+
+  const { error } = await (supabase as any)
+    .from('crew_resources')
+    .update({
+      content: {
+        ...content,
+        status: 'ended',
+        ended_at: new Date().toISOString(),
+      },
+    })
+    .eq('id', resourceId);
 
   if (error) {
     throw new Error(error.message);
@@ -338,6 +462,34 @@ export async function processCrewStudyPack(crewId: string): Promise<CrewResource
 
   if (!payload.resource) {
     throw new Error('Crew AI pack was not returned.');
+  }
+
+  return mapResource(payload.resource);
+}
+
+export async function processCrewVoiceNote(input: {
+  resourceId: string;
+  language?: string;
+}): Promise<CrewResource> {
+  if (!supabase) {
+    throw new Error('Supabase is not configured.');
+  }
+
+  const { data, error } = await supabase.functions.invoke('process-crew-voice-note', {
+    body: {
+      resourceId: input.resourceId,
+      language: input.language ?? 'English',
+    },
+  });
+
+  if (error) {
+    throw new Error(await readableFunctionError(error));
+  }
+
+  const payload = data as { resource?: CrewResourceRow };
+
+  if (!payload.resource) {
+    throw new Error('Crew voice note was not returned.');
   }
 
   return mapResource(payload.resource);
@@ -518,4 +670,70 @@ function asText(value: unknown) {
 
 function asTextArray(value: unknown) {
   return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : [];
+}
+
+async function readAudioFile(recording: CrewRecordingUpload) {
+  const response = await fetch(recording.uri);
+  const file = await response.arrayBuffer();
+  const mimeType = recording.mimeType ?? response.headers.get('content-type') ?? audioMimeTypeFromUri(recording.uri);
+
+  return {
+    file,
+    mimeType,
+    extension: audioExtension(mimeType, recording.uri),
+    sizeBytes: file.byteLength,
+  };
+}
+
+function audioMimeTypeFromUri(uri: string) {
+  const lower = uri.split('?')[0]?.toLowerCase() ?? '';
+
+  if (lower.endsWith('.webm')) {
+    return 'audio/webm';
+  }
+
+  if (lower.endsWith('.wav')) {
+    return 'audio/wav';
+  }
+
+  if (lower.endsWith('.mp3')) {
+    return 'audio/mpeg';
+  }
+
+  if (lower.endsWith('.aac')) {
+    return 'audio/aac';
+  }
+
+  if (lower.endsWith('.3gp')) {
+    return 'audio/3gpp';
+  }
+
+  return 'audio/mp4';
+}
+
+function audioExtension(mimeType: string, uri: string) {
+  const lower = uri.split('?')[0]?.toLowerCase() ?? '';
+  const fromName = lower.split('.').pop();
+
+  if (fromName && ['m4a', 'mp4', 'webm', 'wav', 'mp3', 'aac', '3gp'].includes(fromName)) {
+    return fromName;
+  }
+
+  if (mimeType.includes('webm')) {
+    return 'webm';
+  }
+
+  if (mimeType.includes('wav')) {
+    return 'wav';
+  }
+
+  if (mimeType.includes('mpeg')) {
+    return 'mp3';
+  }
+
+  if (mimeType.includes('aac')) {
+    return 'aac';
+  }
+
+  return 'm4a';
 }
