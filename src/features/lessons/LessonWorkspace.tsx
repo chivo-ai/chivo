@@ -172,6 +172,7 @@ export function LessonWorkspace({
     () => subjectsForClass(setup.classSubjects, setup.subjects, activeClassId),
     [activeClassId, setup.classSubjects, setup.subjects]
   );
+  const effectiveSubjectId = selectedSubjectId ?? activeClassSubjects[0]?.id ?? null;
   const baseFilteredLessons = lessons.filter((lesson) => {
     const inClass = activeClassId ? lesson.class_id === activeClassId : true;
     const inSubject = selectedSubjectId ? lesson.subject_id === selectedSubjectId : true;
@@ -188,7 +189,7 @@ export function LessonWorkspace({
     (lesson) =>
       lesson.status === 'recording' &&
       lesson.class_id === activeClassId &&
-      lesson.subject_id === selectedSubjectId
+      lesson.subject_id === effectiveSubjectId
   );
   const speechCaptureAvailable =
     Platform.OS === 'web' &&
@@ -626,7 +627,7 @@ export function LessonWorkspace({
       const lessonId = await createLesson({
         schoolId: membership.schoolId,
         classId: activeClassId ?? '',
-        subjectId: selectedSubjectId,
+        subjectId: effectiveSubjectId,
         teacherMembershipId,
         title,
         language,
@@ -662,7 +663,7 @@ export function LessonWorkspace({
       const lessonId = await startLessonSession({
         schoolId: membership.schoolId,
         classId: activeClassId ?? '',
-        subjectId: selectedSubjectId,
+        subjectId: effectiveSubjectId,
         teacherMembershipId,
         title,
         language,
@@ -750,6 +751,15 @@ export function LessonWorkspace({
     setError(null);
     setMessage(null);
     try {
+      const currentDetail = detail?.lesson.id === lessonId ? detail : null;
+
+      if (currentDetail && !currentDetail.output && ['uploaded', 'failed'].includes(currentDetail.lesson.status)) {
+        setSaving(`process-${lessonId}`);
+        await processLesson(lessonId);
+        await loadLessonDetail(lessonId);
+        setSaving(`publish-${lessonId}`);
+      }
+
       await publishLesson(lessonId);
       setMessage('Lesson published.');
       await loadLessons();
@@ -918,21 +928,26 @@ export function LessonWorkspace({
                 <View style={styles.flexText}>
                   <Text style={styles.launchTitle}>{liveStatusTitle}</Text>
                   <Text style={styles.launchMeta}>
-                    {selectedSubjectId
-                      ? `${subjectName(setup.subjects, selectedSubjectId)} - ${activeClass.name}`
-                      : activeClass.name}
+                    {effectiveSubjectId
+                      ? `${subjectName(setup.subjects, effectiveSubjectId)} - ${activeClass.name}`
+                      : `General lesson - ${activeClass.name}`}
                   </Text>
                 </View>
-                {listening ? (
-                  <Pressable onPress={pauseLiveCapture} style={styles.listenButton}>
-                    <MicOff size={17} color="#ffffff" />
-                    <Text style={styles.listenButtonText}>Pause</Text>
-                  </Pressable>
-                ) : openLiveLesson ? (
-                  <Pressable onPress={startLiveCapture} style={styles.listenButton}>
-                    <Mic size={17} color="#ffffff" />
-                    <Text style={styles.listenButtonText}>{captureActionLabel}</Text>
-                  </Pressable>
+                {openLiveLesson ? (
+                  <View style={styles.liveControlGroup}>
+                    <Pressable onPress={listening ? pauseLiveCapture : startLiveCapture} style={styles.listenButton}>
+                      {listening ? <MicOff size={16} color="#ffffff" /> : <Mic size={16} color="#ffffff" />}
+                      <Text style={styles.listenButtonText}>{listening ? 'Pause' : 'Resume'}</Text>
+                    </Pressable>
+                    <Pressable
+                      disabled={saving === `end-${openLiveLesson.id}` || saving === `process-${openLiveLesson.id}`}
+                      onPress={() => handleEndLesson(openLiveLesson.id, openLiveLesson.language)}
+                      style={[styles.listenButton, styles.endLiveButton, (saving === `end-${openLiveLesson.id}` || saving === `process-${openLiveLesson.id}`) && styles.disabledButton]}
+                    >
+                      <Square size={14} color={colors.ink} />
+                      <Text style={styles.endLiveButtonText}>End</Text>
+                    </Pressable>
+                  </View>
                 ) : null}
               </View>
               <View style={styles.launchFields}>
@@ -970,17 +985,24 @@ export function LessonWorkspace({
                   multiline
                 />
                 <View style={styles.actionRow}>
-                <SubmitButton
-                  label={openLiveLesson ? 'Live lesson open' : 'Start live lesson'}
-                  loading={saving === 'start'}
-                  onPress={handleStartLesson}
-                  disabled={!activeClassId || !selectedSubjectId || Boolean(openLiveLesson)}
-                />
+                {!openLiveLesson ? (
+                  <SubmitButton
+                    label="Start live lesson"
+                    loading={saving === 'start'}
+                    onPress={handleStartLesson}
+                    disabled={!activeClassId || !title.trim()}
+                  />
+                ) : (
+                  <View style={styles.liveOpenPill}>
+                    <Mic size={14} color={colors.tealDark} />
+                    <Text style={styles.liveOpenPillText}>Live session open</Text>
+                  </View>
+                )}
                   <SubmitButton
                     label="Prepare past lesson"
                     loading={saving === 'create'}
                     onPress={handleCreateLesson}
-                    disabled={!activeClassId || !selectedSubjectId || !transcript.trim()}
+                    disabled={!activeClassId || !title.trim() || !transcript.trim()}
                     tone="gold"
                   />
                 </View>
@@ -1444,6 +1466,9 @@ function LessonDetailView({
   const [activeStudySection, setActiveStudySection] = useState<StudySection>(studySection);
   const canEndLesson = detail.lesson.status === 'recording';
   const canCreateMaterials = ['uploaded', 'failed'].includes(detail.lesson.status);
+  const canPublishLesson = detail.lesson.status !== 'recording'
+    && detail.lesson.status !== 'published'
+    && (Boolean(detail.output) || canCreateMaterials || detail.lesson.status === 'review');
   const differentLiveLessonOpen = Boolean(openLiveLessonId && openLiveLessonId !== detail.lesson.id);
   const canAddTranscript = isTeacher && (canEndLesson || (canCreateMaterials && !detail.output));
 
@@ -1512,7 +1537,7 @@ function LessonDetailView({
             {canEndLesson ? (
               <>
                 <SubmitButton
-                  label={listening ? 'Pause' : captureActionLabel}
+                  label={listening ? 'Pause' : 'Resume live'}
                   loading={false}
                   onPress={listening ? onStopListening : onStartListening}
                 />
@@ -1532,10 +1557,10 @@ function LessonDetailView({
               />
             )}
             <SubmitButton
-              label="Publish"
-              loading={saving === `publish-${detail.lesson.id}`}
+              label={!detail.output && canCreateMaterials ? 'Prepare and publish' : detail.lesson.status === 'published' ? 'Published' : 'Publish'}
+              loading={saving === `publish-${detail.lesson.id}` || saving === `process-${detail.lesson.id}`}
               onPress={() => onPublish(detail.lesson.id)}
-              disabled={!detail.output || differentLiveLessonOpen}
+              disabled={!canPublishLesson || differentLiveLessonOpen}
               tone="gold"
             />
             {detail.lesson.status === 'published' ? (
@@ -2517,38 +2542,38 @@ function formatDuration(milliseconds: number) {
 
 const styles = StyleSheet.create({
   stack: {
-    gap: 16,
+    gap: 12,
   },
   layout: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 16,
+    gap: 12,
   },
   lessonLibrary: {
-    gap: 16,
+    gap: 12,
   },
   lessonRoute: {
-    gap: 16,
+    gap: 12,
   },
   lessonRouteHeader: {
-    minHeight: 68,
-    borderRadius: 20,
+    minHeight: 58,
+    borderRadius: 16,
     padding: 14,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 10,
     backgroundColor: colors.paper,
     borderWidth: 1,
     borderColor: colors.line,
   },
   lessonRouteTitle: {
     color: colors.ink,
-    fontSize: 20,
-    lineHeight: 26,
-    fontWeight: '900',
+    fontSize: 18,
+    lineHeight: 23,
+    fontWeight: '700',
   },
   lessonFilters: {
-    gap: 12,
+    gap: 10,
   },
   filterGroup: {
     gap: 7,
@@ -2563,7 +2588,7 @@ const styles = StyleSheet.create({
     color: colors.ink,
     fontSize: 12,
     lineHeight: 17,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   filterPillRow: {
     flexDirection: 'row',
@@ -2587,7 +2612,7 @@ const styles = StyleSheet.create({
   filterPillText: {
     color: colors.tealDark,
     fontSize: 12,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   filterPillTextActive: {
     color: '#ffffff',
@@ -2595,12 +2620,12 @@ const styles = StyleSheet.create({
   lessonLibraryGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 12,
+    gap: 10,
   },
   lessonLibraryCard: {
     minWidth: 230,
     flex: 1,
-    borderRadius: 20,
+    borderRadius: 16,
     padding: 14,
     gap: 10,
     backgroundColor: '#ffffff',
@@ -2629,14 +2654,14 @@ const styles = StyleSheet.create({
   lessonLibraryTitle: {
     color: colors.ink,
     fontSize: 16,
-    lineHeight: 22,
-    fontWeight: '900',
+    lineHeight: 20,
+    fontWeight: '700',
   },
   lessonLibraryMeta: {
     color: colors.muted,
     fontSize: 12,
     lineHeight: 18,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   lessonLibraryFooter: {
     minHeight: 28,
@@ -2653,19 +2678,19 @@ const styles = StyleSheet.create({
     backgroundColor: colors.softTeal,
     fontSize: 11,
     lineHeight: 15,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   classGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 12,
+    gap: 10,
   },
   classCard: {
     minWidth: 240,
     flex: 1,
-    borderRadius: 20,
-    padding: 16,
-    gap: 12,
+    borderRadius: 16,
+    padding: 12,
+    gap: 10,
     backgroundColor: '#ffffff',
     borderWidth: 1,
     borderColor: '#e1e9e3',
@@ -2684,9 +2709,9 @@ const styles = StyleSheet.create({
   },
   classTitle: {
     color: colors.ink,
-    fontSize: 17,
-    lineHeight: 23,
-    fontWeight: '900',
+    fontSize: 16,
+    lineHeight: 21,
+    fontWeight: '700',
   },
   classStats: {
     flexDirection: 'row',
@@ -2705,19 +2730,19 @@ const styles = StyleSheet.create({
   classStatValue: {
     color: colors.tealDark,
     fontSize: 16,
-    lineHeight: 20,
-    fontWeight: '900',
+    lineHeight: 18,
+    fontWeight: '700',
   },
   classStatText: {
     color: colors.muted,
     fontSize: 12,
     lineHeight: 17,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   enterButton: {
     minHeight: 42,
     borderRadius: 14,
-    paddingHorizontal: 14,
+    paddingHorizontal: 12,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -2727,15 +2752,15 @@ const styles = StyleSheet.create({
   enterButtonText: {
     color: '#ffffff',
     fontSize: 13,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   roomHeader: {
-    minHeight: 64,
-    borderRadius: 20,
+    minHeight: 55,
+    borderRadius: 16,
     padding: 14,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 10,
     backgroundColor: colors.paper,
     borderWidth: 1,
     borderColor: colors.line,
@@ -2757,13 +2782,13 @@ const styles = StyleSheet.create({
   backButtonText: {
     color: colors.tealDark,
     fontSize: 13,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   roomTitle: {
     color: colors.ink,
-    fontSize: 22,
-    lineHeight: 28,
-    fontWeight: '900',
+    fontSize: 20,
+    lineHeight: 25,
+    fontWeight: '700',
   },
   roomStats: {
     flexDirection: 'row',
@@ -2780,7 +2805,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.softTeal,
     fontSize: 12,
     lineHeight: 16,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   roomSectionGrid: {
     flexDirection: 'row',
@@ -2788,12 +2813,12 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   roomSectionButton: {
-    minHeight: 58,
+    minHeight: 50,
     minWidth: 118,
     flex: 1,
-    borderRadius: 18,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
+    borderRadius: 15,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
     justifyContent: 'center',
     gap: 3,
     backgroundColor: '#ffffff',
@@ -2808,16 +2833,16 @@ const styles = StyleSheet.create({
     color: colors.ink,
     fontSize: 13,
     lineHeight: 18,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   roomSectionLabelActive: {
     color: '#ffffff',
   },
   roomSectionCount: {
     color: colors.tealDark,
-    fontSize: 18,
-    lineHeight: 23,
-    fontWeight: '900',
+    fontSize: 17,
+    lineHeight: 21,
+    fontWeight: '700',
   },
   roomSectionCountActive: {
     color: colors.gold,
@@ -2851,8 +2876,8 @@ const styles = StyleSheet.create({
     flex: 1,
     color: colors.tealDark,
     fontSize: 15,
-    lineHeight: 21,
-    fontWeight: '900',
+    lineHeight: 19,
+    fontWeight: '700',
   },
   subjectTitleActive: {
     color: '#ffffff',
@@ -2866,7 +2891,7 @@ const styles = StyleSheet.create({
     color: colors.tealDark,
     backgroundColor: '#ffffff',
     fontSize: 12,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   subjectCountActive: {
     color: colors.tealDark,
@@ -2882,7 +2907,7 @@ const styles = StyleSheet.create({
     color: colors.muted,
     fontSize: 12,
     lineHeight: 17,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   subjectTeacherTextActive: {
     color: '#ffffff',
@@ -2897,27 +2922,27 @@ const styles = StyleSheet.create({
   },
   lessonLaunch: {
     overflow: 'hidden',
-    borderRadius: 22,
+    borderRadius: 16,
     backgroundColor: '#ffffff',
     borderWidth: 1,
-    borderColor: colors.line,
+    borderColor: '#d5e5de',
     shadowColor: '#16251f',
     shadowOpacity: 0.09,
     shadowRadius: 20,
     shadowOffset: { width: 0, height: 10 },
   },
   launchIntro: {
-    minHeight: 88,
-    padding: 18,
+    minHeight: 62,
+    padding: 11,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 14,
-    backgroundColor: colors.ink,
+    gap: 10,
+    backgroundColor: '#0d201b',
   },
   launchIcon: {
-    width: 52,
-    height: 52,
-    borderRadius: 18,
+    width: 42,
+    height: 42,
+    borderRadius: 13,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.teal,
@@ -2927,48 +2952,80 @@ const styles = StyleSheet.create({
   },
   launchTitle: {
     color: '#ffffff',
-    fontSize: 22,
-    lineHeight: 28,
-    fontWeight: '900',
+    fontSize: 17,
+    lineHeight: 21,
+    fontWeight: '700',
   },
   launchMeta: {
     color: '#dce7e1',
-    fontSize: 13,
-    lineHeight: 19,
-    fontWeight: '800',
+    fontSize: 12,
+    lineHeight: 17,
+    fontWeight: '700',
   },
   launchFields: {
-    padding: 18,
-    gap: 14,
+    padding: 11,
+    gap: 10,
+  },
+  liveControlGroup: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'flex-end',
+    gap: 7,
   },
   listenButton: {
-    minHeight: 40,
-    borderRadius: 14,
-    paddingHorizontal: 12,
+    minHeight: 34,
+    borderRadius: 12,
+    paddingHorizontal: 10,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 7,
+    gap: 6,
     backgroundColor: 'rgba(255,255,255,0.16)',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.25)',
   },
+  endLiveButton: {
+    backgroundColor: colors.gold,
+    borderColor: colors.gold,
+  },
   listenButtonText: {
     color: '#ffffff',
-    fontSize: 13,
-    fontWeight: '900',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  endLiveButtonText: {
+    color: colors.ink,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  liveOpenPill: {
+    minHeight: 38,
+    borderRadius: 14,
+    paddingHorizontal: 11,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: colors.softTeal,
+    borderWidth: 1,
+    borderColor: '#d4e8df',
+  },
+  liveOpenPillText: {
+    color: colors.tealDark,
+    fontSize: 12,
+    fontWeight: '700',
   },
   listenNotice: {
     color: colors.tealDark,
     fontSize: 13,
     lineHeight: 19,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   audioBox: {
     minHeight: 52,
     borderRadius: 16,
     paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingVertical: 9,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
@@ -2980,13 +3037,13 @@ const styles = StyleSheet.create({
     color: colors.ink,
     fontSize: 13,
     lineHeight: 18,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   audioBoxText: {
     color: colors.muted,
     fontSize: 12,
     lineHeight: 17,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   liveWordsBox: {
     borderRadius: 16,
@@ -3000,19 +3057,19 @@ const styles = StyleSheet.create({
     color: colors.tealDark,
     fontSize: 11,
     lineHeight: 15,
-    fontWeight: '900',
+    fontWeight: '700',
     textTransform: 'uppercase',
   },
   liveWordsText: {
     color: colors.ink,
     fontSize: 15,
-    lineHeight: 22,
-    fontWeight: '800',
+    lineHeight: 20,
+    fontWeight: '700',
   },
   card: {
-    borderRadius: 22,
-    padding: 18,
-    gap: 14,
+    borderRadius: 17,
+    padding: 14,
+    gap: 12,
     backgroundColor: colors.paper,
     borderWidth: 1,
     borderColor: colors.line,
@@ -3034,7 +3091,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.softTeal,
     fontSize: 11,
     lineHeight: 15,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   reviewStrip: {
     flexDirection: 'row',
@@ -3052,15 +3109,15 @@ const styles = StyleSheet.create({
   },
   reviewMetricValue: {
     color: colors.ink,
-    fontSize: 18,
-    lineHeight: 23,
-    fontWeight: '900',
+    fontSize: 17,
+    lineHeight: 21,
+    fontWeight: '700',
   },
   reviewMetricLabel: {
     color: colors.muted,
     fontSize: 11,
     lineHeight: 16,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   sectionTitleRow: {
     minHeight: 30,
@@ -3071,14 +3128,14 @@ const styles = StyleSheet.create({
   cardTitle: {
     flex: 1,
     color: colors.ink,
-    fontSize: 18,
-    lineHeight: 24,
-    fontWeight: '900',
+    fontSize: 17,
+    lineHeight: 22,
+    fontWeight: '700',
   },
   cardBody: {
     color: '#33413b',
     fontSize: 14,
-    lineHeight: 21,
+    lineHeight: 19,
   },
   formRow: {
     flexDirection: 'row',
@@ -3093,12 +3150,12 @@ const styles = StyleSheet.create({
   fieldLabel: {
     color: colors.ink,
     fontSize: 13,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   input: {
     minHeight: 48,
     borderRadius: 14,
-    paddingHorizontal: 14,
+    paddingHorizontal: 12,
     color: colors.ink,
     backgroundColor: '#ffffff',
     borderWidth: 1,
@@ -3106,13 +3163,13 @@ const styles = StyleSheet.create({
     fontSize: 15,
   },
   textarea: {
-    minHeight: 140,
+    minHeight: 93,
     paddingTop: 12,
   },
   submitButton: {
     minHeight: 46,
     borderRadius: 15,
-    paddingHorizontal: 16,
+    paddingHorizontal: 14,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.tealDark,
@@ -3123,7 +3180,7 @@ const styles = StyleSheet.create({
   submitButtonText: {
     color: '#ffffff',
     fontSize: 14,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   disabledButton: {
     opacity: 0.55,
@@ -3137,10 +3194,10 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   lessonRow: {
-    minHeight: 58,
+    minHeight: 50,
     borderRadius: 15,
     paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingVertical: 9,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
@@ -3154,7 +3211,7 @@ const styles = StyleSheet.create({
   },
   studyTabs: {
     minHeight: 52,
-    borderRadius: 18,
+    borderRadius: 15,
     padding: 5,
     flexDirection: 'row',
     gap: 5,
@@ -3175,7 +3232,7 @@ const styles = StyleSheet.create({
   studyTabText: {
     color: colors.tealDark,
     fontSize: 13,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   studyTabTextActive: {
     color: '#ffffff',
@@ -3194,7 +3251,7 @@ const styles = StyleSheet.create({
     color: '#9d2e24',
     fontSize: 13,
     lineHeight: 19,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   statusBadge: {
     minHeight: 28,
@@ -3226,7 +3283,7 @@ const styles = StyleSheet.create({
     color: colors.tealDark,
     fontSize: 11,
     lineHeight: 15,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   statusBadgeTextStrong: {
     color: '#ffffff',
@@ -3238,8 +3295,8 @@ const styles = StyleSheet.create({
   recordTitle: {
     color: colors.ink,
     fontSize: 14,
-    lineHeight: 20,
-    fontWeight: '900',
+    lineHeight: 18,
+    fontWeight: '700',
   },
   recordMeta: {
     color: colors.muted,
@@ -3248,9 +3305,9 @@ const styles = StyleSheet.create({
   },
   personalCard: {
     overflow: 'hidden',
-    borderRadius: 22,
-    padding: 18,
-    gap: 14,
+    borderRadius: 17,
+    padding: 14,
+    gap: 12,
     backgroundColor: '#101916',
     borderWidth: 1,
     borderColor: '#20352f',
@@ -3258,7 +3315,7 @@ const styles = StyleSheet.create({
   personalHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 10,
   },
   personalIcon: {
     width: 48,
@@ -3270,9 +3327,9 @@ const styles = StyleSheet.create({
   },
   personalTitle: {
     color: '#ffffff',
-    fontSize: 20,
-    lineHeight: 26,
-    fontWeight: '900',
+    fontSize: 18,
+    lineHeight: 23,
+    fontWeight: '700',
   },
   personalMeta: {
     color: '#dce7e1',
@@ -3282,12 +3339,12 @@ const styles = StyleSheet.create({
   personalFieldLabel: {
     color: '#ffffff',
     fontSize: 13,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   personalInput: {
     minHeight: 48,
     borderRadius: 14,
-    paddingHorizontal: 14,
+    paddingHorizontal: 12,
     color: colors.ink,
     backgroundColor: '#ffffff',
     borderWidth: 1,
@@ -3302,10 +3359,10 @@ const styles = StyleSheet.create({
   modeCard: {
     minWidth: 120,
     flex: 1,
-    minHeight: 62,
+    minHeight: 53,
     borderRadius: 16,
     paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingVertical: 9,
     justifyContent: 'center',
     gap: 3,
     backgroundColor: 'rgba(255,255,255,0.08)',
@@ -3320,7 +3377,7 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 13,
     lineHeight: 18,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   modeTitleActive: {
     color: colors.ink,
@@ -3329,22 +3386,22 @@ const styles = StyleSheet.create({
     color: '#aebcb6',
     fontSize: 11,
     lineHeight: 15,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   modeBodyActive: {
     color: '#4b3a18',
   },
   personalOutput: {
-    borderRadius: 18,
+    borderRadius: 15,
     padding: 14,
-    gap: 12,
+    gap: 10,
     backgroundColor: '#ffffff',
   },
   personalOutputTitle: {
     color: colors.ink,
-    fontSize: 18,
-    lineHeight: 24,
-    fontWeight: '900',
+    fontSize: 17,
+    lineHeight: 22,
+    fontWeight: '700',
   },
   speechControls: {
     flexDirection: 'row',
@@ -3364,7 +3421,7 @@ const styles = StyleSheet.create({
   speechButtonStrongText: {
     color: '#ffffff',
     fontSize: 13,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   speechButton: {
     minHeight: 42,
@@ -3381,24 +3438,24 @@ const styles = StyleSheet.create({
   speechButtonText: {
     color: colors.tealDark,
     fontSize: 13,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   speechMessage: {
     color: '#9d2e24',
     fontSize: 12,
     lineHeight: 18,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   personalSummary: {
     color: '#33413b',
     fontSize: 15,
-    lineHeight: 23,
+    lineHeight: 21,
   },
   personalBullet: {
     color: colors.ink,
     fontSize: 13,
-    lineHeight: 20,
-    fontWeight: '800',
+    lineHeight: 18,
+    fontWeight: '700',
   },
   studyStepList: {
     gap: 8,
@@ -3422,14 +3479,14 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     backgroundColor: colors.tealDark,
     fontSize: 12,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   studyStepText: {
     flex: 1,
     color: colors.ink,
     fontSize: 13,
     lineHeight: 19,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   vocabGrid: {
     flexDirection: 'row',
@@ -3448,24 +3505,24 @@ const styles = StyleSheet.create({
     color: colors.ink,
     fontSize: 13,
     lineHeight: 18,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   vocabMeaning: {
     color: colors.muted,
     fontSize: 12,
     lineHeight: 18,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   encouragement: {
     color: colors.tealDark,
     fontSize: 13,
-    lineHeight: 20,
-    fontWeight: '900',
+    lineHeight: 18,
+    fontWeight: '700',
   },
   summaryText: {
     color: '#33413b',
     fontSize: 15,
-    lineHeight: 23,
+    lineHeight: 21,
   },
   bulletList: {
     gap: 6,
@@ -3487,13 +3544,13 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     backgroundColor: colors.tealDark,
     fontSize: 12,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   bulletText: {
     flex: 1,
     color: colors.ink,
     fontSize: 13,
-    lineHeight: 20,
+    lineHeight: 18,
     fontWeight: '700',
   },
   showMoreButton: {
@@ -3508,11 +3565,11 @@ const styles = StyleSheet.create({
   showMoreText: {
     color: '#ffffff',
     fontSize: 12,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   richBold: {
     color: colors.tealDark,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   quizCard: {
     borderRadius: 15,
@@ -3529,7 +3586,7 @@ const styles = StyleSheet.create({
     minHeight: 44,
     borderRadius: 14,
     paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingVertical: 9,
     justifyContent: 'center',
     backgroundColor: '#ffffff',
     borderWidth: 1,
@@ -3551,13 +3608,13 @@ const styles = StyleSheet.create({
     color: colors.ink,
     fontSize: 13,
     lineHeight: 19,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   optionTextSelected: {
     color: colors.tealDark,
   },
   resultBox: {
-    borderRadius: 18,
+    borderRadius: 15,
     padding: 14,
     backgroundColor: colors.softGold,
     borderWidth: 1,
@@ -3565,52 +3622,52 @@ const styles = StyleSheet.create({
   },
   resultTitle: {
     color: colors.ink,
-    fontSize: 28,
-    lineHeight: 34,
-    fontWeight: '900',
+    fontSize: 22,
+    lineHeight: 28,
+    fontWeight: '700',
   },
   resultText: {
     color: colors.muted,
     fontSize: 13,
     lineHeight: 18,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   insightDashboard: {
-    gap: 14,
+    gap: 12,
   },
   insightHero: {
-    minHeight: 104,
-    borderRadius: 22,
-    padding: 18,
+    minHeight: 79,
+    borderRadius: 17,
+    padding: 14,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 14,
+    gap: 12,
     backgroundColor: colors.ink,
   },
   insightHeroIcon: {
     width: 54,
     height: 54,
-    borderRadius: 18,
+    borderRadius: 15,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.tealDark,
   },
   insightHeroTitle: {
     color: '#ffffff',
-    fontSize: 22,
-    lineHeight: 28,
-    fontWeight: '900',
+    fontSize: 20,
+    lineHeight: 25,
+    fontWeight: '700',
   },
   insightHeroBody: {
     color: '#dce7e1',
     fontSize: 13,
     lineHeight: 19,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   insightBox: {
-    borderRadius: 18,
+    borderRadius: 15,
     padding: 12,
-    gap: 12,
+    gap: 10,
     backgroundColor: colors.softBlue,
     borderWidth: 1,
     borderColor: '#d7e4ef',
@@ -3629,15 +3686,15 @@ const styles = StyleSheet.create({
   },
   insightValue: {
     color: colors.ink,
-    fontSize: 20,
-    lineHeight: 25,
-    fontWeight: '900',
+    fontSize: 18,
+    lineHeight: 23,
+    fontWeight: '700',
   },
   insightLabel: {
     color: colors.muted,
     fontSize: 11,
     lineHeight: 16,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   attemptList: {
     gap: 6,
@@ -3657,24 +3714,24 @@ const styles = StyleSheet.create({
     color: colors.ink,
     fontSize: 12,
     lineHeight: 17,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   attemptScore: {
     color: colors.tealDark,
     fontSize: 12,
     lineHeight: 17,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   insightLessonList: {
     gap: 10,
   },
   insightLessonCard: {
-    minHeight: 74,
-    borderRadius: 18,
+    minHeight: 59,
+    borderRadius: 15,
     padding: 14,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 10,
     backgroundColor: colors.paper,
     borderWidth: 1,
     borderColor: colors.line,
@@ -3682,14 +3739,14 @@ const styles = StyleSheet.create({
   insightLessonTitle: {
     color: colors.ink,
     fontSize: 15,
-    lineHeight: 21,
-    fontWeight: '900',
+    lineHeight: 19,
+    fontWeight: '700',
   },
   insightLessonMeta: {
     color: colors.muted,
     fontSize: 12,
     lineHeight: 18,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   insightStatusPill: {
     minHeight: 34,
@@ -3709,7 +3766,7 @@ const styles = StyleSheet.create({
     color: '#6f5520',
     fontSize: 11,
     lineHeight: 15,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   insightStatusTextActive: {
     color: colors.tealDark,
@@ -3718,7 +3775,7 @@ const styles = StyleSheet.create({
     color: colors.tealDark,
     fontSize: 12,
     lineHeight: 18,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   flashGrid: {
     flexDirection: 'row',
@@ -3737,28 +3794,28 @@ const styles = StyleSheet.create({
     color: colors.muted,
     fontSize: 12,
     lineHeight: 17,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   flashSessionCard: {
-    minHeight: 190,
-    borderRadius: 22,
-    padding: 18,
+    minHeight: 115,
+    borderRadius: 17,
+    padding: 14,
     justifyContent: 'center',
-    gap: 12,
+    gap: 10,
     backgroundColor: colors.ink,
   },
   flashFaceLabel: {
     color: colors.gold,
     fontSize: 12,
     lineHeight: 17,
-    fontWeight: '900',
+    fontWeight: '700',
     textTransform: 'uppercase',
   },
   flashFaceText: {
     color: '#ffffff',
-    fontSize: 20,
-    lineHeight: 29,
-    fontWeight: '900',
+    fontSize: 18,
+    lineHeight: 26,
+    fontWeight: '700',
   },
   flashNavRow: {
     flexDirection: 'row',
@@ -3786,12 +3843,12 @@ const styles = StyleSheet.create({
   flashNavText: {
     color: colors.tealDark,
     fontSize: 13,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   flashNavTextStrong: {
     color: '#ffffff',
     fontSize: 13,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   emptyText: {
     color: colors.muted,
@@ -3802,12 +3859,12 @@ const styles = StyleSheet.create({
     color: '#9d2e24',
     fontSize: 13,
     lineHeight: 19,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   successText: {
     color: colors.tealDark,
     fontSize: 13,
     lineHeight: 19,
-    fontWeight: '800',
+    fontWeight: '700',
   },
 });

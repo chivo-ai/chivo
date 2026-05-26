@@ -460,6 +460,38 @@ create table public.notifications (
   created_at timestamptz not null default now()
 );
 
+create table public.ai_chat_threads (
+  id uuid primary key default gen_random_uuid(),
+  profile_id uuid not null references public.profiles(id) on delete cascade,
+  scope text not null default 'home_guide',
+  school_id uuid references public.schools(id) on delete cascade,
+  class_id uuid references public.classes(id) on delete cascade,
+  lesson_id uuid references public.lessons(id) on delete cascade,
+  crew_id uuid references public.lesson_crews(id) on delete cascade,
+  title text not null default 'Chivo AI guide',
+  language text not null default 'English',
+  metadata jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  constraint ai_chat_threads_scope_check check (
+    scope in ('home_guide', 'lesson_tutor', 'class_tutor', 'crew_tutor', 'school_guide')
+  )
+);
+
+create table public.ai_chat_messages (
+  id uuid primary key default gen_random_uuid(),
+  thread_id uuid not null references public.ai_chat_threads(id) on delete cascade,
+  profile_id uuid not null references public.profiles(id) on delete cascade,
+  role text not null,
+  content text not null,
+  input_type text not null default 'text',
+  audio_path text,
+  metadata jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now(),
+  constraint ai_chat_messages_role_check check (role in ('user', 'assistant', 'system')),
+  constraint ai_chat_messages_input_type_check check (input_type in ('text', 'voice'))
+);
+
 create table public.audit_logs (
   id uuid primary key default gen_random_uuid(),
   school_id uuid references public.schools(id) on delete cascade,
@@ -499,6 +531,8 @@ create index lesson_personalizations_student_idx on public.lesson_personalizatio
 create index crew_memberships_profile_id_idx on public.crew_memberships(profile_id);
 create unique index lesson_crews_username_idx on public.lesson_crews(username);
 create index notifications_profile_read_idx on public.notifications(profile_id, read_at);
+create index ai_chat_threads_profile_scope_idx on public.ai_chat_threads(profile_id, scope, updated_at desc);
+create index ai_chat_messages_thread_created_idx on public.ai_chat_messages(thread_id, created_at);
 
 create or replace function public.set_updated_at()
 returns trigger
@@ -540,6 +574,10 @@ for each row execute function public.set_updated_at();
 
 create trigger platform_settings_set_updated_at
 before update on public.platform_settings
+for each row execute function public.set_updated_at();
+
+create trigger ai_chat_threads_set_updated_at
+before update on public.ai_chat_threads
 for each row execute function public.set_updated_at();
 
 create or replace function public.handle_new_user()
@@ -1344,6 +1382,8 @@ alter table public.crew_messages enable row level security;
 alter table public.subscriptions enable row level security;
 alter table public.payment_transactions enable row level security;
 alter table public.notifications enable row level security;
+alter table public.ai_chat_threads enable row level security;
+alter table public.ai_chat_messages enable row level security;
 alter table public.audit_logs enable row level security;
 alter table public.platform_settings enable row level security;
 
@@ -1842,6 +1882,43 @@ create policy "users update own notifications"
 on public.notifications for update
 using (profile_id = auth.uid())
 with check (profile_id = auth.uid());
+
+create policy "users read own ai chat threads"
+on public.ai_chat_threads for select
+using (profile_id = auth.uid());
+
+create policy "users create own ai chat threads"
+on public.ai_chat_threads for insert
+with check (profile_id = auth.uid());
+
+create policy "users update own ai chat threads"
+on public.ai_chat_threads for update
+using (profile_id = auth.uid())
+with check (profile_id = auth.uid());
+
+create policy "users read own ai chat messages"
+on public.ai_chat_messages for select
+using (
+  exists (
+    select 1
+    from public.ai_chat_threads thread
+    where thread.id = ai_chat_messages.thread_id
+      and thread.profile_id = auth.uid()
+  )
+);
+
+create policy "users create own ai chat messages"
+on public.ai_chat_messages for insert
+with check (
+  profile_id = auth.uid()
+  and role = 'user'
+  and exists (
+    select 1
+    from public.ai_chat_threads thread
+    where thread.id = ai_chat_messages.thread_id
+      and thread.profile_id = auth.uid()
+  )
+);
 
 create policy "school admins read audit logs"
 on public.audit_logs for select

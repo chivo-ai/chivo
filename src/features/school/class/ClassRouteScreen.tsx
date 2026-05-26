@@ -99,13 +99,11 @@ export function SchoolClassRouteScreen({
 
   return (
     <View style={styles.stack}>
-      <View style={[styles.hero, { backgroundColor: tone.background, borderColor: tone.accent }]}>
-        <View style={[styles.banner, { backgroundColor: tone.accent }]}>
-          {schoolClass?.banner_url ? <Image source={{ uri: schoolClass.banner_url }} style={styles.bannerImage} /> : null}
-        </View>
-
+      <View style={styles.hero}>
+        {schoolClass?.banner_url ? <Image source={{ uri: schoolClass.banner_url }} style={styles.heroImage} /> : null}
+        <View style={styles.heroShade} />
         <View style={styles.heroBody}>
-          <View style={[styles.classMark, { backgroundColor: tone.accent }]}>
+          <View style={[styles.classMark, { backgroundColor: tone.accent, borderColor: tone.background }]}>
             {schoolClass?.logo_url ? (
               <Image source={{ uri: schoolClass.logo_url }} style={styles.markImage} />
             ) : (
@@ -115,20 +113,35 @@ export function SchoolClassRouteScreen({
 
           <View style={styles.flexText}>
             <View style={styles.heroPill}>
-              <Sparkles size={14} color={colors.ink} />
-              <Text style={styles.heroPillText}>{mode === 'teach' ? 'Teaching room' : 'Learning room'}</Text>
+              <Sparkles size={12} color={colors.ink} />
+              <Text style={styles.heroPillText}>{mode === 'teach' ? 'Teacher studio' : 'Student classroom'}</Text>
             </View>
             <Text style={styles.title}>{schoolClass?.name ?? 'Class'}</Text>
             <Text style={styles.meta}>{schoolClass?.grade_level ?? 'Learning group'} - {membership.school.name}</Text>
+            <View style={styles.classChips}>
+              <Text style={styles.classChip}>{subjectNames.length} subjects</Text>
+              <Text style={styles.classChip}>{classMemberCount} members</Text>
+              <Text style={styles.classChip}>{schoolClass?.username ?? 'class'}</Text>
+            </View>
           </View>
-        </View>
-      </View>
 
-      <View style={styles.quickGrid}>
-        <RoomStat icon={<BookOpen size={19} color={colors.ink} />} label="Subjects" value={subjectNames.length} tone={tones[0]} />
-        <RoomStat icon={<Users size={19} color={colors.ink} />} label="Members" value={classMemberCount} tone={tones[3]} />
-        <RoomStat icon={<Headphones size={19} color={colors.ink} />} label="Audio" value={1} tone={tones[1]} />
-        <RoomStat icon={<Brain size={19} color={colors.ink} />} label="Quiz" value={1} tone={tones[2]} />
+          {canManageClass ? (
+            <Pressable onPress={() => setSubjectModalOpen(true)} style={styles.heroAction}>
+              <Plus size={16} color={colors.ink} />
+              <Text style={styles.heroActionText}>Subject</Text>
+            </Pressable>
+          ) : null}
+        </View>
+
+        <View style={styles.subjectStrip}>
+          {subjectNames.length ? subjectNames.slice(0, 6).map((subject) => (
+            <View key={subject} style={styles.heroSubjectPill}>
+              <Text style={styles.heroSubjectText}>{subject}</Text>
+            </View>
+          )) : (
+            <Text style={styles.heroEmptyText}>No subjects yet. Add subjects to organize lessons.</Text>
+          )}
+        </View>
       </View>
 
       <View style={styles.panelRail}>
@@ -159,7 +172,7 @@ export function SchoolClassRouteScreen({
         {canManageClass ? (
           <Pressable onPress={() => setSubjectModalOpen(true)} style={styles.createSubjectAction}>
             <Plus size={18} color="#ffffff" />
-            <Text style={styles.createSubjectText}>Subject</Text>
+            <Text style={styles.createSubjectText}>Add subject</Text>
           </Pressable>
         ) : null}
       </View>
@@ -171,9 +184,9 @@ export function SchoolClassRouteScreen({
             <BookOpen size={22} color="#ffffff" />
           </View>
           <View style={styles.flexText}>
-            <Text style={styles.laneEyebrow}>Main lesson lane</Text>
+            <Text style={styles.laneEyebrow}>{mode === 'teach' ? 'Live teaching console' : 'Class lesson space'}</Text>
             <Text style={styles.laneTitle}>
-              {mode === 'teach' ? 'Start, review, and publish lessons' : 'Teacher lessons and learning path'}
+              {mode === 'teach' ? 'Record, prepare, and publish lessons' : 'Listen, read, quiz, and revise'}
             </Text>
           </View>
           <View style={styles.primaryBadge}>
@@ -452,35 +465,40 @@ function initials(value: string) {
 
 const styles = StyleSheet.create({
   stack: {
-    gap: 16,
+    gap: 10,
   },
   hero: {
     overflow: 'hidden',
-    borderRadius: 30,
-    borderWidth: 2,
+    position: 'relative',
+    borderRadius: 18,
+    backgroundColor: '#101916',
+    borderWidth: 1,
+    borderColor: '#24483f',
   },
-  banner: {
-    height: 112,
-  },
-  bannerImage: {
+  heroImage: {
+    position: 'absolute',
     width: '100%',
     height: '100%',
+    opacity: 0.26,
+  },
+  heroShade: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(8, 21, 17, 0.82)',
   },
   heroBody: {
-    padding: 16,
+    padding: 12,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 14,
+    gap: 10,
   },
   classMark: {
     overflow: 'hidden',
-    width: 76,
-    height: 76,
-    borderRadius: 25,
+    width: 48,
+    height: 48,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 3,
-    borderColor: '#ffffff',
+    borderWidth: 2,
   },
   markImage: {
     width: '100%',
@@ -488,8 +506,8 @@ const styles = StyleSheet.create({
   },
   markText: {
     color: '#ffffff',
-    fontSize: 20,
-    fontWeight: '900',
+    fontSize: 14,
+    fontWeight: '700',
   },
   flexText: {
     flex: 1,
@@ -498,51 +516,107 @@ const styles = StyleSheet.create({
   },
   heroPill: {
     alignSelf: 'flex-start',
-    minHeight: 30,
-    borderRadius: 15,
-    paddingHorizontal: 10,
+    minHeight: 24,
+    borderRadius: 12,
+    paddingHorizontal: 8,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    backgroundColor: '#ffffff',
+    gap: 5,
+    backgroundColor: colors.gold,
   },
   heroPillText: {
     color: colors.ink,
     fontSize: 11,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   title: {
-    color: colors.ink,
-    fontSize: 30,
-    lineHeight: 36,
-    fontWeight: '900',
+    color: '#ffffff',
+    fontSize: 20,
+    lineHeight: 24,
+    fontWeight: '700',
   },
   meta: {
-    color: colors.muted,
-    fontSize: 13,
-    lineHeight: 19,
-    fontWeight: '800',
+    color: '#d9e5de',
+    fontSize: 12,
+    lineHeight: 17,
+    fontWeight: '700',
   },
-  quickGrid: {
+  classChips: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 10,
+    gap: 6,
+  },
+  classChip: {
+    minHeight: 24,
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingTop: 5,
+    color: '#e9f4ef',
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.12)',
+    fontSize: 10,
+    lineHeight: 13,
+    fontWeight: '700',
+  },
+  heroAction: {
+    minHeight: 34,
+    borderRadius: 13,
+    paddingHorizontal: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: colors.gold,
+  },
+  heroActionText: {
+    color: colors.ink,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  subjectStrip: {
+    paddingHorizontal: 12,
+    paddingBottom: 12,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  heroSubjectPill: {
+    minHeight: 28,
+    borderRadius: 14,
+    paddingHorizontal: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.11)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.12)',
+  },
+  heroSubjectText: {
+    color: '#ffffff',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  heroEmptyText: {
+    color: '#d9e5de',
+    fontSize: 12,
+    lineHeight: 17,
+    fontWeight: '700',
   },
   panelRail: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 10,
+    gap: 8,
     alignItems: 'stretch',
   },
   panelTab: {
-    minHeight: 68,
-    minWidth: 170,
+    minHeight: 50,
+    minWidth: 145,
     flex: 1,
-    borderRadius: 22,
-    padding: 12,
+    borderRadius: 15,
+    padding: 9,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 8,
     backgroundColor: '#ffffff',
     borderWidth: 1,
     borderColor: colors.line,
@@ -552,9 +626,9 @@ const styles = StyleSheet.create({
     borderColor: colors.tealDark,
   },
   panelTabIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 15,
+    width: 34,
+    height: 34,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.softTeal,
@@ -564,27 +638,27 @@ const styles = StyleSheet.create({
   },
   panelTabTitle: {
     color: colors.ink,
-    fontSize: 14,
-    lineHeight: 19,
-    fontWeight: '900',
+    fontSize: 13,
+    lineHeight: 17,
+    fontWeight: '700',
   },
   panelTabTitleActive: {
     color: '#ffffff',
   },
   panelTabMeta: {
     color: colors.muted,
-    fontSize: 11,
-    lineHeight: 16,
-    fontWeight: '800',
+    fontSize: 10,
+    lineHeight: 14,
+    fontWeight: '700',
   },
   panelTabMetaActive: {
     color: '#dce7e1',
   },
   createSubjectAction: {
-    minHeight: 68,
-    minWidth: 132,
-    borderRadius: 22,
-    paddingHorizontal: 15,
+    minHeight: 50,
+    minWidth: 118,
+    borderRadius: 15,
+    paddingHorizontal: 11,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -595,48 +669,48 @@ const styles = StyleSheet.create({
   },
   createSubjectText: {
     color: '#ffffff',
-    fontSize: 13,
-    fontWeight: '900',
+    fontSize: 12,
+    fontWeight: '700',
   },
   lessonLane: {
-    gap: 12,
+    gap: 8,
   },
   laneHeader: {
-    minHeight: 86,
-    borderRadius: 26,
-    padding: 14,
+    minHeight: 58,
+    borderRadius: 16,
+    padding: 11,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 10,
     backgroundColor: '#0f2d25',
     borderWidth: 1,
     borderColor: '#1e574b',
   },
   laneIcon: {
-    width: 50,
-    height: 50,
-    borderRadius: 18,
+    width: 40,
+    height: 40,
+    borderRadius: 13,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.teal,
   },
   laneEyebrow: {
     color: colors.gold,
-    fontSize: 11,
-    lineHeight: 15,
-    fontWeight: '900',
+    fontSize: 10,
+    lineHeight: 13,
+    fontWeight: '700',
     textTransform: 'uppercase',
   },
   laneTitle: {
     color: '#ffffff',
-    fontSize: 22,
-    lineHeight: 28,
-    fontWeight: '900',
+    fontSize: 16,
+    lineHeight: 20,
+    fontWeight: '700',
   },
   primaryBadge: {
-    minHeight: 34,
-    borderRadius: 17,
-    paddingHorizontal: 10,
+    minHeight: 28,
+    borderRadius: 14,
+    paddingHorizontal: 8,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -645,24 +719,24 @@ const styles = StyleSheet.create({
   },
   primaryBadgeText: {
     color: colors.ink,
-    fontSize: 11,
-    fontWeight: '900',
+    fontSize: 10,
+    fontWeight: '700',
   },
   libraryHeader: {
-    minHeight: 82,
-    borderRadius: 26,
-    padding: 14,
+    minHeight: 56,
+    borderRadius: 16,
+    padding: 11,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 10,
     backgroundColor: '#e9f6ff',
     borderWidth: 1,
     borderColor: '#bce0f4',
   },
   libraryIcon: {
-    width: 50,
-    height: 50,
-    borderRadius: 18,
+    width: 40,
+    height: 40,
+    borderRadius: 13,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#4aa6d9',
@@ -671,47 +745,47 @@ const styles = StyleSheet.create({
     color: colors.tealDark,
     fontSize: 11,
     lineHeight: 15,
-    fontWeight: '900',
+    fontWeight: '700',
     textTransform: 'uppercase',
   },
   libraryTitle: {
     color: colors.ink,
-    fontSize: 22,
-    lineHeight: 28,
-    fontWeight: '900',
+    fontSize: 16,
+    lineHeight: 20,
+    fontWeight: '700',
   },
   secondaryLane: {
-    gap: 12,
+    gap: 8,
   },
   secondaryHeader: {
-    minHeight: 76,
-    borderRadius: 24,
-    padding: 14,
+    minHeight: 56,
+    borderRadius: 16,
+    padding: 11,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 10,
     backgroundColor: '#fff6da',
     borderWidth: 1,
     borderColor: '#f0d489',
   },
   secondaryIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 17,
+    width: 40,
+    height: 40,
+    borderRadius: 13,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.gold,
   },
   secondaryTitle: {
     color: colors.ink,
-    fontSize: 19,
-    lineHeight: 25,
-    fontWeight: '900',
+    fontSize: 15,
+    lineHeight: 19,
+    fontWeight: '700',
   },
   roomStat: {
     minWidth: 130,
     flex: 1,
-    borderRadius: 22,
+    borderRadius: 17,
     padding: 13,
     gap: 6,
     borderWidth: 2,
@@ -725,19 +799,19 @@ const styles = StyleSheet.create({
   },
   roomStatValue: {
     color: colors.ink,
-    fontSize: 24,
-    lineHeight: 29,
-    fontWeight: '900',
+    fontSize: 21,
+    lineHeight: 26,
+    fontWeight: '700',
   },
   roomStatLabel: {
     color: colors.muted,
     fontSize: 12,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   subjectPanel: {
-    borderRadius: 24,
-    padding: 16,
-    gap: 12,
+    borderRadius: 18,
+    padding: 12,
+    gap: 10,
     backgroundColor: '#ffffff',
     borderWidth: 1,
     borderColor: colors.line,
@@ -750,9 +824,9 @@ const styles = StyleSheet.create({
   },
   panelTitle: {
     color: colors.ink,
-    fontSize: 18,
-    lineHeight: 24,
-    fontWeight: '900',
+    fontSize: 17,
+    lineHeight: 22,
+    fontWeight: '700',
   },
   panelAction: {
     marginLeft: 'auto',
@@ -768,7 +842,7 @@ const styles = StyleSheet.create({
   panelActionText: {
     color: '#ffffff',
     fontSize: 11,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   subjectWrap: {
     flexDirection: 'row',
@@ -788,27 +862,27 @@ const styles = StyleSheet.create({
   subjectText: {
     color: colors.tealDark,
     fontSize: 12,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   emptyText: {
     color: colors.muted,
     fontSize: 13,
     lineHeight: 19,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   modalBackdrop: {
     flex: 1,
     justifyContent: 'center',
-    padding: 16,
+    padding: 12,
     backgroundColor: 'rgba(7, 12, 10, 0.6)',
   },
   modalSheet: {
     width: '100%',
     maxWidth: 880,
     alignSelf: 'center',
-    borderRadius: 28,
-    padding: 16,
-    gap: 14,
+    borderRadius: 20,
+    padding: 12,
+    gap: 12,
     backgroundColor: colors.paper,
     borderWidth: 1,
     borderColor: colors.line,
@@ -817,7 +891,7 @@ const styles = StyleSheet.create({
     minHeight: 52,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 10,
   },
   modalIcon: {
     width: 46,
@@ -829,20 +903,20 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     color: colors.ink,
-    fontSize: 23,
-    lineHeight: 29,
-    fontWeight: '900',
+    fontSize: 21,
+    lineHeight: 26,
+    fontWeight: '700',
   },
   modalMeta: {
     color: colors.muted,
     fontSize: 12,
     lineHeight: 18,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   modalClose: {
     width: 38,
     height: 38,
-    borderRadius: 19,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.softTeal,
@@ -850,14 +924,14 @@ const styles = StyleSheet.create({
   modalGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 12,
+    gap: 10,
   },
   modalPanel: {
     flex: 1,
     minWidth: 260,
-    borderRadius: 22,
+    borderRadius: 17,
     padding: 14,
-    gap: 12,
+    gap: 10,
     backgroundColor: '#ffffff',
     borderWidth: 1,
     borderColor: colors.line,
@@ -869,9 +943,9 @@ const styles = StyleSheet.create({
   },
   modalPanelTitle: {
     color: colors.ink,
-    fontSize: 17,
-    lineHeight: 23,
-    fontWeight: '900',
+    fontSize: 16,
+    lineHeight: 21,
+    fontWeight: '700',
   },
   fieldBlock: {
     gap: 6,
@@ -879,23 +953,23 @@ const styles = StyleSheet.create({
   fieldLabel: {
     color: colors.ink,
     fontSize: 12,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   input: {
     minHeight: 48,
     borderRadius: 16,
-    paddingHorizontal: 14,
+    paddingHorizontal: 12,
     color: colors.ink,
     fontSize: 14,
-    fontWeight: '800',
+    fontWeight: '700',
     backgroundColor: '#f8fbf9',
     borderWidth: 1,
     borderColor: colors.line,
   },
   primaryAction: {
     minHeight: 48,
-    borderRadius: 18,
-    paddingHorizontal: 14,
+    borderRadius: 15,
+    paddingHorizontal: 12,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -905,7 +979,7 @@ const styles = StyleSheet.create({
   primaryActionText: {
     color: '#ffffff',
     fontSize: 13,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   disabledAction: {
     opacity: 0.55,
@@ -914,8 +988,8 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   attachItem: {
-    minHeight: 60,
-    borderRadius: 18,
+    minHeight: 52,
+    borderRadius: 15,
     padding: 10,
     flexDirection: 'row',
     alignItems: 'center',
@@ -928,13 +1002,13 @@ const styles = StyleSheet.create({
     color: colors.ink,
     fontSize: 14,
     lineHeight: 19,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   attachMeta: {
     color: colors.muted,
     fontSize: 11,
     lineHeight: 16,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   attachButton: {
     minHeight: 34,
@@ -949,12 +1023,12 @@ const styles = StyleSheet.create({
   attachButtonText: {
     color: colors.tealDark,
     fontSize: 11,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   errorText: {
     color: colors.coral,
     fontSize: 13,
     lineHeight: 19,
-    fontWeight: '900',
+    fontWeight: '700',
   },
 });

@@ -93,19 +93,19 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    padding: 18,
+    padding: 14,
     justifyContent: 'center',
   },
   shell: {
     width: '100%',
     maxWidth: 720,
     alignSelf: 'center',
-    gap: 18,
+    gap: 14,
   },
   brandRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 10,
   },
   brandMark: {
     width: 48,
@@ -120,9 +120,9 @@ const styles = StyleSheet.create({
   },
   brandName: {
     color: colors.ink,
-    fontSize: 24,
-    lineHeight: 30,
-    fontWeight: '900',
+    fontSize: 21,
+    lineHeight: 26,
+    fontWeight: '700',
   },
   brandMeta: {
     color: colors.muted,
@@ -130,9 +130,9 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   card: {
-    borderRadius: 24,
-    padding: 20,
-    gap: 14,
+    borderRadius: 18,
+    padding: 16,
+    gap: 12,
     backgroundColor: colors.paper,
     borderWidth: 1,
     borderColor: colors.line,
@@ -140,21 +140,21 @@ const styles = StyleSheet.create({
   iconBox: {
     width: 54,
     height: 54,
-    borderRadius: 18,
+    borderRadius: 15,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.softTeal,
   },
   title: {
     color: colors.ink,
-    fontSize: 24,
-    lineHeight: 30,
-    fontWeight: '900',
+    fontSize: 21,
+    lineHeight: 26,
+    fontWeight: '700',
   },
   body: {
     color: '#33413b',
     fontSize: 14,
-    lineHeight: 21,
+    lineHeight: 19,
   },
   field: {
     gap: 7,
@@ -162,12 +162,12 @@ const styles = StyleSheet.create({
   fieldLabel: {
     color: colors.ink,
     fontSize: 13,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   input: {
     minHeight: 48,
     borderRadius: 14,
-    paddingHorizontal: 14,
+    paddingHorizontal: 12,
     color: colors.ink,
     backgroundColor: '#ffffff',
     borderWidth: 1,
@@ -187,7 +187,7 @@ const styles = StyleSheet.create({
   submitButtonText: {
     color: '#ffffff',
     fontSize: 14,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   secondaryButton: {
     minHeight: 42,
@@ -199,18 +199,18 @@ const styles = StyleSheet.create({
   secondaryButtonText: {
     color: colors.tealDark,
     fontSize: 13,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   errorText: {
     color: '#9d2e24',
     fontSize: 13,
     lineHeight: 19,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   successText: {
     color: colors.tealDark,
     fontSize: 13,
     lineHeight: 19,
-    fontWeight: '900',
+    fontWeight: '700',
   },
 });

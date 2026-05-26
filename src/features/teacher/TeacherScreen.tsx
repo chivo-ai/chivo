@@ -291,12 +291,12 @@ function formatRole(value: string) {
 
 const styles = StyleSheet.create({
   stack: {
-    gap: 16,
+    gap: 12,
   },
   panel: {
-    borderRadius: 24,
-    padding: 16,
-    gap: 14,
+    borderRadius: 18,
+    padding: 12,
+    gap: 12,
     backgroundColor: '#ffffff',
     borderWidth: 1,
     borderColor: colors.line,
@@ -308,7 +308,7 @@ const styles = StyleSheet.create({
   panelHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 10,
   },
   panelIcon: {
     width: 46,
@@ -320,15 +320,15 @@ const styles = StyleSheet.create({
   },
   panelTitle: {
     color: colors.ink,
-    fontSize: 20,
-    lineHeight: 26,
-    fontWeight: '900',
+    fontSize: 18,
+    lineHeight: 23,
+    fontWeight: '700',
   },
   panelText: {
     color: colors.muted,
     fontSize: 13,
     lineHeight: 19,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   flexText: {
     flex: 1,
@@ -357,7 +357,7 @@ const styles = StyleSheet.create({
   classTabText: {
     color: colors.tealDark,
     fontSize: 13,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   classTabTextActive: {
     color: '#ffffff',
@@ -365,7 +365,7 @@ const styles = StyleSheet.create({
   rosterGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 12,
+    gap: 10,
   },
   rosterColumn: {
     minWidth: 280,
@@ -375,8 +375,8 @@ const styles = StyleSheet.create({
   columnTitle: {
     color: colors.ink,
     fontSize: 14,
-    lineHeight: 20,
-    fontWeight: '900',
+    lineHeight: 18,
+    fontWeight: '700',
   },
   memberRow: {
     minHeight: 54,
@@ -401,13 +401,13 @@ const styles = StyleSheet.create({
     color: colors.ink,
     fontSize: 13,
     lineHeight: 18,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   memberMeta: {
     color: colors.muted,
     fontSize: 12,
     lineHeight: 17,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   memberChoices: {
     flexDirection: 'row',
@@ -429,7 +429,7 @@ const styles = StyleSheet.create({
   memberChoiceText: {
     color: colors.tealDark,
     fontSize: 12,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   memberChoiceTextActive: {
     color: '#ffffff',
@@ -447,7 +447,7 @@ const styles = StyleSheet.create({
   addButtonText: {
     color: '#ffffff',
     fontSize: 13,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   removeButton: {
     minHeight: 34,
@@ -460,7 +460,7 @@ const styles = StyleSheet.create({
   removeButtonText: {
     color: '#6f5520',
     fontSize: 12,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   disabledButton: {
     opacity: 0.55,
@@ -469,12 +469,12 @@ const styles = StyleSheet.create({
     color: colors.tealDark,
     fontSize: 13,
     lineHeight: 19,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   errorText: {
     color: '#9d2e24',
     fontSize: 13,
     lineHeight: 19,
-    fontWeight: '800',
+    fontWeight: '700',
   },
 });

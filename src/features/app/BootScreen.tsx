@@ -16,12 +16,12 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 12,
+    gap: 10,
     backgroundColor: colors.canvas,
   },
   bootText: {
     color: colors.muted,
     fontSize: 14,
-    fontWeight: '800',
+    fontWeight: '700',
   },
 });

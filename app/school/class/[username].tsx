@@ -72,7 +72,7 @@ export default function ClassRoute() {
 
   return (
     <RouteScreen>
-      {error ? <Text style={{ color: colors.coral, fontWeight: '900' }}>{error}</Text> : null}
+      {error ? <Text style={{ color: colors.coral, fontWeight: '700' }}>{error}</Text> : null}
       <SchoolClassRouteScreen
         classId={schoolClass.id}
         membership={activeMembership}

@@ -89,10 +89,10 @@ export function AccessAccountScreen({
 
 const styles = StyleSheet.create({
   accountHeader: {
-    minHeight: 92,
+    minHeight: 74,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 10,
   },
   flexText: {
     flex: 1,
@@ -109,25 +109,25 @@ const styles = StyleSheet.create({
   },
   recordTitle: {
     color: colors.ink,
-    fontSize: 18,
-    lineHeight: 24,
-    fontWeight: '900',
+    fontSize: 17,
+    lineHeight: 22,
+    fontWeight: '700',
   },
   recordMeta: {
     color: colors.muted,
     fontSize: 12,
     lineHeight: 18,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   cardTitle: {
     color: colors.ink,
-    fontSize: 18,
-    lineHeight: 24,
-    fontWeight: '900',
+    fontSize: 17,
+    lineHeight: 22,
+    fontWeight: '700',
   },
   cardBody: {
     color: '#33413b',
     fontSize: 14,
-    lineHeight: 21,
+    lineHeight: 19,
   },
 });

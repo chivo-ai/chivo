@@ -60,6 +60,6 @@ const styles = StyleSheet.create({
   text: {
     color: colors.tealDark,
     fontSize: 13,
-    fontWeight: '900',
+    fontWeight: '700',
   },
 });

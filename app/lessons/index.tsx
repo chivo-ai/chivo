@@ -64,7 +64,7 @@ export default function LessonsRoute() {
 
   return (
     <RouteScreen>
-      {error ? <Text style={{ color: colors.coral, fontWeight: '900' }}>{error}</Text> : null}
+      {error ? <Text style={{ color: colors.coral, fontWeight: '700' }}>{error}</Text> : null}
       <LessonsRouteScreen
         membership={activeMembership}
         setup={setup}

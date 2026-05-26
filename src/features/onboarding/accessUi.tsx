@@ -199,41 +199,41 @@ export function UploadPair({
 
 const styles = StyleSheet.create({
   screen: {
-    gap: 16,
+    gap: 12,
   },
   header: {
-    minHeight: 112,
-    borderRadius: 24,
-    padding: 18,
+    minHeight: 85,
+    borderRadius: 18,
+    padding: 14,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 14,
+    gap: 12,
     backgroundColor: colors.ink,
   },
   headerIcon: {
     width: 54,
     height: 54,
-    borderRadius: 18,
+    borderRadius: 15,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.tealDark,
   },
   headerTitle: {
     color: '#ffffff',
-    fontSize: 24,
-    lineHeight: 30,
-    fontWeight: '900',
+    fontSize: 21,
+    lineHeight: 26,
+    fontWeight: '700',
   },
   headerBody: {
     color: '#dce7e1',
     fontSize: 13,
-    lineHeight: 20,
-    fontWeight: '800',
+    lineHeight: 18,
+    fontWeight: '700',
   },
   card: {
-    borderRadius: 22,
-    padding: 18,
-    gap: 14,
+    borderRadius: 17,
+    padding: 14,
+    gap: 12,
     backgroundColor: colors.paper,
     borderWidth: 1,
     borderColor: colors.line,
@@ -247,9 +247,9 @@ const styles = StyleSheet.create({
   cardTitle: {
     flex: 1,
     color: colors.ink,
-    fontSize: 18,
-    lineHeight: 24,
-    fontWeight: '900',
+    fontSize: 17,
+    lineHeight: 22,
+    fontWeight: '700',
   },
   field: {
     gap: 7,
@@ -257,12 +257,12 @@ const styles = StyleSheet.create({
   fieldLabel: {
     color: colors.ink,
     fontSize: 13,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   input: {
     minHeight: 48,
     borderRadius: 14,
-    paddingHorizontal: 14,
+    paddingHorizontal: 12,
     color: colors.ink,
     backgroundColor: '#ffffff',
     borderWidth: 1,
@@ -272,7 +272,7 @@ const styles = StyleSheet.create({
   primaryButton: {
     minHeight: 46,
     borderRadius: 15,
-    paddingHorizontal: 16,
+    paddingHorizontal: 14,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.tealDark,
@@ -280,7 +280,7 @@ const styles = StyleSheet.create({
   primaryButtonText: {
     color: '#ffffff',
     fontSize: 14,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   buttonDisabled: {
     opacity: 0.55,
@@ -302,7 +302,7 @@ const styles = StyleSheet.create({
   choicePillText: {
     color: colors.tealDark,
     fontSize: 13,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   choicePillTextActive: {
     color: '#ffffff',
@@ -325,9 +325,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   identityMarkLarge: {
-    width: 76,
-    height: 76,
-    borderRadius: 24,
+    width: 65,
+    height: 62,
+    borderRadius: 18,
   },
   identityImage: {
     width: '100%',
@@ -335,12 +335,12 @@ const styles = StyleSheet.create({
   },
   identityInitials: {
     color: '#ffffff',
-    fontSize: 18,
-    fontWeight: '900',
+    fontSize: 17,
+    fontWeight: '700',
   },
   bannerStrip: {
-    height: 76,
-    borderRadius: 18,
+    height: 62,
+    borderRadius: 15,
     overflow: 'hidden',
   },
   bannerImage: {
@@ -370,6 +370,6 @@ const styles = StyleSheet.create({
   stickerText: {
     color: colors.ink,
     fontSize: 12,
-    fontWeight: '900',
+    fontWeight: '700',
   },
 });

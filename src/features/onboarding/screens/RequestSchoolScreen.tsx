@@ -70,7 +70,7 @@ const styles = StyleSheet.create({
   cardBody: {
     color: '#33413b',
     fontSize: 14,
-    lineHeight: 21,
+    lineHeight: 19,
   },
   pillRow: {
     flexDirection: 'row',

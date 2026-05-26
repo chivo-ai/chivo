@@ -26,13 +26,13 @@ export function AccessCrewsScreen() {
 const styles = StyleSheet.create({
   cardTitle: {
     color: colors.ink,
-    fontSize: 18,
-    lineHeight: 24,
-    fontWeight: '900',
+    fontSize: 17,
+    lineHeight: 22,
+    fontWeight: '700',
   },
   cardBody: {
     color: '#33413b',
     fontSize: 14,
-    lineHeight: 21,
+    lineHeight: 19,
   },
 });

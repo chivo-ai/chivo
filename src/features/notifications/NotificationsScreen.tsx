@@ -209,16 +209,16 @@ function formatDate(value: string) {
 
 const styles = StyleSheet.create({
   screen: {
-    gap: 18,
+    gap: 14,
   },
   hero: {
-    minHeight: 220,
-    borderRadius: 30,
-    padding: 20,
+    minHeight: 126,
+    borderRadius: 22,
+    padding: 16,
     flexDirection: 'row',
     flexWrap: 'wrap',
     alignItems: 'center',
-    gap: 18,
+    gap: 14,
     backgroundColor: '#101916',
     borderWidth: 1,
     borderColor: '#20352f',
@@ -241,19 +241,19 @@ const styles = StyleSheet.create({
   heroPillText: {
     color: colors.ink,
     fontSize: 12,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   heroTitle: {
     color: '#ffffff',
-    fontSize: 36,
-    lineHeight: 42,
-    fontWeight: '900',
+    fontSize: 26,
+    lineHeight: 32,
+    fontWeight: '700',
   },
   heroBody: {
     color: '#dce7e1',
     fontSize: 15,
-    lineHeight: 23,
-    fontWeight: '800',
+    lineHeight: 21,
+    fontWeight: '700',
   },
   heroStats: {
     flex: 1,
@@ -265,7 +265,7 @@ const styles = StyleSheet.create({
   statCard: {
     minWidth: 108,
     flex: 1,
-    borderRadius: 24,
+    borderRadius: 18,
     padding: 14,
     gap: 7,
     borderWidth: 2,
@@ -280,33 +280,33 @@ const styles = StyleSheet.create({
   },
   statValue: {
     color: colors.ink,
-    fontSize: 25,
-    lineHeight: 31,
-    fontWeight: '900',
+    fontSize: 22,
+    lineHeight: 27,
+    fontWeight: '700',
   },
   statLabel: {
     color: colors.muted,
     fontSize: 12,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   sectionHeading: {
     minHeight: 46,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: 12,
+    gap: 10,
   },
   sectionTitle: {
     color: colors.ink,
-    fontSize: 22,
-    lineHeight: 28,
-    fontWeight: '900',
+    fontSize: 20,
+    lineHeight: 25,
+    fontWeight: '700',
   },
   sectionMeta: {
     color: colors.muted,
     fontSize: 13,
     lineHeight: 19,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   readButton: {
     minHeight: 42,
@@ -321,7 +321,7 @@ const styles = StyleSheet.create({
   readButtonText: {
     color: '#ffffff',
     fontSize: 12,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   disabledButton: {
     opacity: 0.5,
@@ -330,12 +330,12 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   notificationCard: {
-    minHeight: 94,
-    borderRadius: 24,
+    minHeight: 75,
+    borderRadius: 18,
     padding: 14,
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: 12,
+    gap: 10,
     borderWidth: 2,
   },
   notificationIcon: {
@@ -361,8 +361,8 @@ const styles = StyleSheet.create({
     flex: 1,
     color: colors.ink,
     fontSize: 16,
-    lineHeight: 22,
-    fontWeight: '900',
+    lineHeight: 20,
+    fontWeight: '700',
   },
   unreadDot: {
     width: 10,
@@ -374,7 +374,7 @@ const styles = StyleSheet.create({
     color: colors.muted,
     fontSize: 13,
     lineHeight: 19,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   metaRow: {
     flexDirection: 'row',
@@ -384,17 +384,17 @@ const styles = StyleSheet.create({
   notificationMeta: {
     color: '#76837e',
     fontSize: 11,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   openMeta: {
     color: colors.tealDark,
     fontSize: 11,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   emptyPanel: {
-    minHeight: 160,
-    borderRadius: 26,
-    padding: 18,
+    minHeight: 101,
+    borderRadius: 20,
+    padding: 14,
     justifyContent: 'center',
     gap: 10,
     backgroundColor: '#ffffff',
@@ -403,20 +403,20 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     color: colors.ink,
-    fontSize: 20,
-    lineHeight: 26,
-    fontWeight: '900',
+    fontSize: 18,
+    lineHeight: 23,
+    fontWeight: '700',
   },
   emptyMeta: {
     color: colors.muted,
     fontSize: 13,
     lineHeight: 19,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   errorText: {
     color: '#a13c33',
     fontSize: 13,
     lineHeight: 19,
-    fontWeight: '900',
+    fontWeight: '700',
   },
 });

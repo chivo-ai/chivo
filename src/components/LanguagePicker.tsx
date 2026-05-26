@@ -104,7 +104,7 @@ const styles = StyleSheet.create({
   label: {
     color: colors.ink,
     fontSize: 12,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   trigger: {
     minHeight: 48,
@@ -133,13 +133,13 @@ const styles = StyleSheet.create({
     color: colors.ink,
     fontSize: 14,
     lineHeight: 18,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   triggerMeta: {
     color: colors.muted,
     fontSize: 11,
     lineHeight: 15,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   backdrop: {
     flex: 1,
@@ -149,9 +149,9 @@ const styles = StyleSheet.create({
   sheet: {
     maxHeight: '82%',
     margin: 12,
-    borderRadius: 26,
-    padding: 16,
-    gap: 14,
+    borderRadius: 20,
+    padding: 12,
+    gap: 12,
     backgroundColor: colors.paper,
     borderWidth: 1,
     borderColor: colors.line,
@@ -161,19 +161,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: 12,
+    gap: 10,
   },
   sheetTitle: {
     color: colors.ink,
-    fontSize: 20,
-    lineHeight: 26,
-    fontWeight: '900',
+    fontSize: 18,
+    lineHeight: 23,
+    fontWeight: '700',
   },
   sheetMeta: {
     color: colors.muted,
     fontSize: 12,
     lineHeight: 18,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   closeButton: {
     width: 38,
@@ -192,7 +192,7 @@ const styles = StyleSheet.create({
   languageCard: {
     minWidth: 132,
     flex: 1,
-    minHeight: 58,
+    minHeight: 50,
     borderRadius: 17,
     paddingHorizontal: 12,
     justifyContent: 'center',
@@ -208,7 +208,7 @@ const styles = StyleSheet.create({
     color: colors.ink,
     fontSize: 14,
     lineHeight: 19,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   languageTitleActive: {
     color: '#ffffff',
@@ -217,7 +217,7 @@ const styles = StyleSheet.create({
     color: colors.muted,
     fontSize: 11,
     lineHeight: 15,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   languageMetaActive: {
     color: '#dce7e1',

@@ -24,9 +24,9 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    paddingHorizontal: 16,
-    paddingTop: 18,
-    paddingBottom: 92,
+    paddingHorizontal: 12,
+    paddingTop: 12,
+    paddingBottom: 64,
     backgroundColor: colors.canvas,
   },
   shell: {

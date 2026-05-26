@@ -295,16 +295,16 @@ function initials(value: string) {
 
 const styles = StyleSheet.create({
   screen: {
-    gap: 18,
+    gap: 14,
   },
   hero: {
-    minHeight: 206,
-    borderRadius: 30,
-    padding: 20,
+    minHeight: 124,
+    borderRadius: 22,
+    padding: 16,
     flexDirection: 'row',
     flexWrap: 'wrap',
     alignItems: 'center',
-    gap: 18,
+    gap: 14,
     backgroundColor: '#101916',
     borderWidth: 1,
     borderColor: '#20352f',
@@ -327,19 +327,19 @@ const styles = StyleSheet.create({
   heroPillText: {
     color: colors.ink,
     fontSize: 12,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   heroTitle: {
     color: '#ffffff',
-    fontSize: 34,
-    lineHeight: 40,
-    fontWeight: '900',
+    fontSize: 25,
+    lineHeight: 31,
+    fontWeight: '700',
   },
   heroBody: {
     color: '#dce7e1',
     fontSize: 15,
-    lineHeight: 22,
-    fontWeight: '800',
+    lineHeight: 20,
+    fontWeight: '700',
   },
   heroStats: {
     flex: 1,
@@ -351,7 +351,7 @@ const styles = StyleSheet.create({
   statCard: {
     minWidth: 100,
     flex: 1,
-    borderRadius: 22,
+    borderRadius: 17,
     padding: 14,
     gap: 6,
     borderWidth: 2,
@@ -364,24 +364,24 @@ const styles = StyleSheet.create({
   },
   statValue: {
     color: colors.ink,
-    fontSize: 24,
-    lineHeight: 30,
-    fontWeight: '900',
+    fontSize: 21,
+    lineHeight: 26,
+    fontWeight: '700',
   },
   statLabel: {
     color: colors.muted,
     fontSize: 12,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   classGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 12,
+    gap: 10,
   },
   classCard: {
     minWidth: 250,
     flex: 1,
-    borderRadius: 26,
+    borderRadius: 20,
     padding: 15,
     gap: 10,
     borderWidth: 2,
@@ -396,7 +396,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     width: 58,
     height: 58,
-    borderRadius: 20,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
@@ -409,19 +409,19 @@ const styles = StyleSheet.create({
   markText: {
     color: '#ffffff',
     fontSize: 16,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   className: {
     color: colors.ink,
-    fontSize: 18,
-    lineHeight: 24,
-    fontWeight: '900',
+    fontSize: 17,
+    lineHeight: 22,
+    fontWeight: '700',
   },
   classMeta: {
     color: colors.muted,
     fontSize: 12,
     lineHeight: 18,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   subjectPills: {
     minHeight: 30,
@@ -442,7 +442,7 @@ const styles = StyleSheet.create({
   subjectPillText: {
     color: colors.tealDark,
     fontSize: 11,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   enterButton: {
     minHeight: 42,
@@ -467,7 +467,7 @@ const styles = StyleSheet.create({
   buttonText: {
     color: '#ffffff',
     fontSize: 13,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   pendingButton: {
     minHeight: 42,
@@ -484,7 +484,7 @@ const styles = StyleSheet.create({
   pendingText: {
     color: colors.tealDark,
     fontSize: 13,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   statusSoft: {
     minHeight: 30,
@@ -498,7 +498,7 @@ const styles = StyleSheet.create({
   statusSoftText: {
     color: colors.tealDark,
     fontSize: 12,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   statusActive: {
     minHeight: 30,
@@ -512,11 +512,11 @@ const styles = StyleSheet.create({
   statusActiveText: {
     color: '#ffffff',
     fontSize: 12,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   loadingPanel: {
-    minHeight: 130,
-    borderRadius: 24,
+    minHeight: 99,
+    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 10,
@@ -525,9 +525,9 @@ const styles = StyleSheet.create({
     borderColor: colors.line,
   },
   emptyPanel: {
-    minHeight: 130,
-    borderRadius: 24,
-    padding: 16,
+    minHeight: 99,
+    borderRadius: 18,
+    padding: 12,
     justifyContent: 'center',
     gap: 8,
     backgroundColor: '#ffffff',
@@ -536,26 +536,26 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     color: colors.ink,
-    fontSize: 20,
-    lineHeight: 26,
-    fontWeight: '900',
+    fontSize: 18,
+    lineHeight: 23,
+    fontWeight: '700',
   },
   meta: {
     color: colors.muted,
     fontSize: 13,
     lineHeight: 19,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   successText: {
     color: colors.tealDark,
     fontSize: 13,
     lineHeight: 19,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   errorText: {
     color: '#9d2e24',
     fontSize: 13,
     lineHeight: 19,
-    fontWeight: '800',
+    fontWeight: '700',
   },
 });

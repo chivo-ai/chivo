@@ -188,8 +188,8 @@ export function UniversalTopBar() {
 
 const styles = StyleSheet.create({
   wrap: {
-    minHeight: 58,
-    paddingHorizontal: 14,
+    minHeight: 50,
+    paddingHorizontal: 12,
     paddingTop: 8,
     paddingBottom: 8,
     flexDirection: 'row',
@@ -242,14 +242,14 @@ const styles = StyleSheet.create({
   brandTitle: {
     color: '#ffffff',
     fontSize: 16,
-    lineHeight: 20,
-    fontWeight: '900',
+    lineHeight: 18,
+    fontWeight: '700',
   },
   brandMeta: {
     color: '#f6d979',
     fontSize: 10,
     lineHeight: 14,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   notificationButton: {
     position: 'relative',
@@ -280,7 +280,7 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 9,
     lineHeight: 12,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   accountButton: {
     width: 40,
@@ -300,9 +300,9 @@ const styles = StyleSheet.create({
   sheet: {
     margin: 12,
     marginTop: 58,
-    borderRadius: 26,
-    padding: 16,
-    gap: 14,
+    borderRadius: 20,
+    padding: 12,
+    gap: 12,
     backgroundColor: colors.paper,
     borderWidth: 1,
     borderColor: colors.line,
@@ -312,18 +312,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: 12,
+    gap: 10,
   },
   sheetTitle: {
     color: colors.ink,
-    fontSize: 20,
-    lineHeight: 25,
-    fontWeight: '900',
+    fontSize: 18,
+    lineHeight: 23,
+    fontWeight: '700',
   },
   sheetMeta: {
     color: colors.muted,
     fontSize: 12,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   closeButton: {
     width: 38,
@@ -342,7 +342,7 @@ const styles = StyleSheet.create({
     minWidth: 132,
     flex: 1,
     minHeight: 54,
-    borderRadius: 18,
+    borderRadius: 15,
     paddingHorizontal: 12,
     flexDirection: 'row',
     alignItems: 'center',
@@ -359,6 +359,6 @@ const styles = StyleSheet.create({
     flex: 1,
     color: colors.ink,
     fontSize: 13,
-    fontWeight: '900',
+    fontWeight: '700',
   },
 });

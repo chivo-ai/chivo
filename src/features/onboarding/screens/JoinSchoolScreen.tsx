@@ -140,7 +140,7 @@ const styles = StyleSheet.create({
   scanButtonText: {
     color: colors.tealDark,
     fontSize: 13,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   manualButton: {
     minHeight: 42,
@@ -157,11 +157,11 @@ const styles = StyleSheet.create({
   manualButtonText: {
     color: colors.tealDark,
     fontSize: 13,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   scannerBox: {
-    height: 310,
-    borderRadius: 22,
+    height: 202,
+    borderRadius: 17,
     overflow: 'hidden',
     backgroundColor: '#101916',
   },
@@ -174,13 +174,13 @@ const styles = StyleSheet.create({
     right: '18%',
     top: 74,
     bottom: 74,
-    borderRadius: 20,
+    borderRadius: 16,
     borderWidth: 3,
     borderColor: colors.gold,
   },
   cardBody: {
     color: '#33413b',
     fontSize: 14,
-    lineHeight: 21,
+    lineHeight: 19,
   },
 });

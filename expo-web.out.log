@@ -1,0 +1,8 @@
+
+> chivo-ai@1.0.0 web
+> expo start --web --port 8081 --host localhost
+
+env: load .env
+env: export EXPO_PUBLIC_SUPABASE_URL EXPO_PUBLIC_SUPABASE_ANON_KEY GEMINI_API_KEY SERVICE_ROLE_KEY
+Starting project at E:\BESTCITY-AI
+Starting Metro Bundler
