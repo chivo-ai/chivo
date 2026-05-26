@@ -16,6 +16,7 @@ import {
   X,
 } from 'lucide-react-native';
 
+import { ChivoCard, ChivoMetric } from '../../components/chivo/ChivoUI';
 import { useAppSession } from '../app/AppSessionProvider';
 import { mapMembershipRow } from '../onboarding/accessTypes';
 import { useAccessMemberships } from '../onboarding/useAccessMemberships';
@@ -31,6 +32,14 @@ const tones = [
 ];
 
 type CrewModal = 'create' | 'join' | null;
+type CrewFilter = 'all' | 'created' | 'joined' | 'cross';
+
+const crewFilters: Array<{ id: CrewFilter; label: string }> = [
+  { id: 'all', label: 'All' },
+  { id: 'created', label: 'Created' },
+  { id: 'joined', label: 'Joined' },
+  { id: 'cross', label: 'Cross-school' },
+];
 
 export function CrewHubScreen() {
   const { user, activeMembership } = useAppSession();
@@ -42,12 +51,28 @@ export function CrewHubScreen() {
   const [crewScope, setCrewScope] = useState<CrewScope>('school');
   const [joinCode, setJoinCode] = useState('');
   const [activeModal, setActiveModal] = useState<CrewModal>(null);
+  const [activeFilter, setActiveFilter] = useState<CrewFilter>('all');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<'create' | 'join' | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
   const selectedSchool = schools.find((school) => school.id === selectedSchoolId) ?? schools[0] ?? null;
   const canCreateCrossSchool = Boolean(selectedSchool?.school.externalCrewsAllowed);
+  const filteredCrews = useMemo(() => {
+    if (activeFilter === 'created') {
+      return crews.filter((crew) => crew.membershipRole === 'owner');
+    }
+
+    if (activeFilter === 'joined') {
+      return crews.filter((crew) => crew.membershipRole !== 'owner');
+    }
+
+    if (activeFilter === 'cross') {
+      return crews.filter((crew) => crew.scope === 'cross_school');
+    }
+
+    return crews;
+  }, [activeFilter, crews]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -132,7 +157,7 @@ export function CrewHubScreen() {
 
   return (
     <View style={styles.screen}>
-      <View style={styles.hero}>
+      <ChivoCard tone="night" compact style={styles.hero}>
         <View style={styles.heroCopy}>
           <View style={styles.heroPill}>
             <Sparkles size={15} color={colors.ink} />
@@ -148,17 +173,17 @@ export function CrewHubScreen() {
 
         <View style={styles.heroStats}>
           <StatSticker icon={<Users size={21} color={colors.ink} />} label="Crews" value={crews.length} tone={tones[0]} />
-          <StatSticker icon={<MessageCircle size={21} color={colors.ink} />} label="Chat" value="Live" tone={tones[3]} />
-          <StatSticker icon={<BookOpen size={21} color={colors.ink} />} label="Notes" value="Share" tone={tones[1]} />
+          <StatSticker icon={<MessageCircle size={21} color={colors.ink} />} label="Created" value={crews.filter((crew) => crew.membershipRole === 'owner').length} tone={tones[3]} />
+          <StatSticker icon={<BookOpen size={21} color={colors.ink} />} label="Shared notes" value={crews.reduce((total, crew) => total + crew.resourceCount, 0)} tone={tones[1]} />
         </View>
-      </View>
+      </ChivoCard>
 
       {message && !activeModal ? <Text style={styles.errorText}>{message}</Text> : null}
 
       <View style={styles.sectionHeading}>
         <View>
           <Text style={styles.sectionTitle}>Your crews</Text>
-          <Text style={styles.sectionMeta}>{crews.length ? 'Tap a crew slug to enter the room' : 'Create or join your first crew'}</Text>
+          <Text style={styles.sectionMeta}>{filteredCrews.length ? `${filteredCrews.length} room${filteredCrews.length === 1 ? '' : 's'} ready` : 'Create or join your first crew'}</Text>
         </View>
         <View style={styles.headingActions}>
           <Pressable onPress={() => setActiveModal('create')} style={styles.roundAction}>
@@ -170,19 +195,30 @@ export function CrewHubScreen() {
         </View>
       </View>
 
+      <View style={styles.filterRail}>
+        {crewFilters.map((filter) => {
+          const active = activeFilter === filter.id;
+          return (
+            <Pressable key={filter.id} onPress={() => setActiveFilter(filter.id)} style={[styles.filterChip, active && styles.filterChipActive]}>
+              <Text style={[styles.filterChipText, active && styles.filterChipTextActive]}>{filter.label}</Text>
+            </Pressable>
+          );
+        })}
+      </View>
+
       <View style={styles.crewGrid}>
         {loading ? (
           <View style={styles.emptyPanel}>
             <ActivityIndicator color={colors.tealDark} />
             <Text style={styles.emptyMeta}>Loading crews...</Text>
           </View>
-        ) : crews.length ? crews.map((crew, index) => (
+        ) : filteredCrews.length ? filteredCrews.map((crew, index) => (
           <CrewCard key={crew.id} crew={crew} tone={tones[index % tones.length]} />
         )) : (
           <View style={styles.emptyPanel}>
             <Users size={28} color={colors.tealDark} />
-            <Text style={styles.emptyTitle}>No crew yet</Text>
-            <Text style={styles.emptyMeta}>Create a revision group, class circle, or focused study team.</Text>
+            <Text style={styles.emptyTitle}>No crew in this view</Text>
+            <Text style={styles.emptyMeta}>Switch filters or start a new study room.</Text>
           </View>
         )}
       </View>
@@ -381,14 +417,8 @@ function PrimaryButton({
   );
 }
 
-function StatSticker({ icon, label, value, tone }: { icon: ReactNode; label: string; value: ReactNode; tone: { background: string; accent: string } }) {
-  return (
-    <View style={[styles.statSticker, { backgroundColor: tone.background }]}>
-      <View style={[styles.statIcon, { backgroundColor: tone.accent }]}>{icon}</View>
-      <Text style={styles.statValue}>{value}</Text>
-      <Text style={styles.statLabel}>{label}</Text>
-    </View>
-  );
+function StatSticker({ icon, label, value }: { icon: ReactNode; label: string; value: string | number; tone: { background: string; accent: string } }) {
+  return <ChivoMetric icon={icon} label={label} value={value} tone="surface" />;
 }
 
 function MiniStat({ label, value }: { label: string; value: number }) {
@@ -413,30 +443,24 @@ function formatScope(value: CrewScope) {
 
 const styles = StyleSheet.create({
   screen: {
-    gap: 14,
+    gap: 8,
   },
   hero: {
-    minHeight: 136,
-    borderRadius: 22,
-    padding: 16,
     flexDirection: 'row',
     flexWrap: 'wrap',
     alignItems: 'center',
-    gap: 14,
-    backgroundColor: '#101916',
-    borderWidth: 1,
-    borderColor: '#20352f',
+    gap: 9,
   },
   heroCopy: {
     flex: 1.5,
-    minWidth: 260,
-    gap: 11,
+    minWidth: 240,
+    gap: 7,
   },
   heroPill: {
     alignSelf: 'flex-start',
-    minHeight: 34,
-    borderRadius: 17,
-    paddingHorizontal: 11,
+    minHeight: 23,
+    borderRadius: 11,
+    paddingHorizontal: 8,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 7,
@@ -444,42 +468,42 @@ const styles = StyleSheet.create({
   },
   heroPillText: {
     color: colors.ink,
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '700',
   },
   heroTitle: {
     color: '#ffffff',
-    fontSize: 26,
-    lineHeight: 32,
-    fontWeight: '700',
+    fontSize: 19,
+    lineHeight: 23,
+    fontWeight: '800',
   },
   heroBody: {
     color: '#dce7e1',
-    fontSize: 15,
-    lineHeight: 21,
-    fontWeight: '700',
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: '600',
   },
   heroActions: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 10,
+    gap: 7,
   },
   iconAction: {
-    minHeight: 44,
-    borderRadius: 16,
-    paddingHorizontal: 13,
+    minHeight: 34,
+    borderRadius: 12,
+    paddingHorizontal: 10,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: colors.tealDark,
+    backgroundColor: colors.brandDeep,
   },
   iconActionLight: {
     backgroundColor: '#ffffff',
   },
   iconActionText: {
     color: '#ffffff',
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '700',
   },
   iconActionTextLight: {
@@ -487,40 +511,13 @@ const styles = StyleSheet.create({
   },
   heroStats: {
     flex: 1,
-    minWidth: 250,
+    minWidth: 220,
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 10,
-  },
-  statSticker: {
-    minWidth: 108,
-    flex: 1,
-    borderRadius: 18,
-    padding: 14,
     gap: 7,
-    borderWidth: 2,
-    borderColor: '#ffffff',
-  },
-  statIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 15,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  statValue: {
-    color: colors.ink,
-    fontSize: 20,
-    lineHeight: 25,
-    fontWeight: '700',
-  },
-  statLabel: {
-    color: colors.muted,
-    fontSize: 12,
-    fontWeight: '700',
   },
   sectionHeading: {
-    minHeight: 46,
+    minHeight: 38,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -528,32 +525,61 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     color: colors.ink,
-    fontSize: 20,
-    lineHeight: 25,
-    fontWeight: '700',
+    fontSize: 16,
+    lineHeight: 20,
+    fontWeight: '800',
   },
   sectionMeta: {
     color: colors.muted,
-    fontSize: 13,
-    lineHeight: 19,
-    fontWeight: '700',
+    fontSize: 12,
+    lineHeight: 17,
+    fontWeight: '600',
   },
   headingActions: {
     flexDirection: 'row',
     gap: 8,
   },
   roundAction: {
-    width: 42,
-    height: 42,
-    borderRadius: 15,
+    width: 34,
+    height: 34,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.tealDark,
+    backgroundColor: colors.brandDeep,
   },
   roundActionLight: {
     backgroundColor: colors.softTeal,
     borderWidth: 1,
     borderColor: '#d4e8df',
+  },
+  filterRail: {
+    minHeight: 36,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: 7,
+  },
+  filterChip: {
+    minHeight: 31,
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: colors.line,
+  },
+  filterChipActive: {
+    backgroundColor: colors.brandDeep,
+    borderColor: colors.brandDeep,
+  },
+  filterChipText: {
+    color: colors.tealDark,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  filterChipTextActive: {
+    color: '#ffffff',
   },
   crewGrid: {
     flexDirection: 'row',
@@ -562,29 +588,29 @@ const styles = StyleSheet.create({
   },
   crewCard: {
     overflow: 'hidden',
-    minWidth: 260,
+    minWidth: 220,
     flex: 1,
-    borderRadius: 20,
-    borderWidth: 2,
+    borderRadius: 14,
+    borderWidth: 1,
   },
   crewBanner: {
-    height: 61,
+    height: 32,
   },
   bannerImage: {
     width: '100%',
     height: '100%',
   },
   crewBody: {
-    padding: 14,
+    padding: 10,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
   },
   crewMark: {
     overflow: 'hidden',
-    width: 54,
-    height: 54,
-    borderRadius: 15,
+    width: 38,
+    height: 38,
+    borderRadius: 13,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
@@ -600,33 +626,33 @@ const styles = StyleSheet.create({
   },
   crewName: {
     color: colors.ink,
-    fontSize: 17,
-    lineHeight: 22,
+    fontSize: 15,
+    lineHeight: 19,
     fontWeight: '700',
   },
   crewMeta: {
     color: colors.muted,
-    fontSize: 12,
-    lineHeight: 18,
-    fontWeight: '700',
+    fontSize: 11,
+    lineHeight: 16,
+    fontWeight: '600',
   },
   crewStats: {
-    paddingHorizontal: 12,
-    paddingBottom: 14,
+    paddingHorizontal: 10,
+    paddingBottom: 11,
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
   },
   miniStat: {
-    minWidth: 70,
-    borderRadius: 15,
-    paddingHorizontal: 11,
-    paddingVertical: 8,
+    minWidth: 62,
+    borderRadius: 13,
+    paddingHorizontal: 9,
+    paddingVertical: 6,
     backgroundColor: 'rgba(255, 255, 255, 0.74)',
   },
   miniStatValue: {
     color: colors.ink,
-    fontSize: 15,
+    fontSize: 13,
     fontWeight: '700',
   },
   miniStatLabel: {
@@ -635,9 +661,9 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   codePill: {
-    minHeight: 38,
-    borderRadius: 15,
-    paddingHorizontal: 10,
+    minHeight: 32,
+    borderRadius: 13,
+    paddingHorizontal: 9,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
@@ -656,34 +682,34 @@ const styles = StyleSheet.create({
   },
   modalSheet: {
     width: '100%',
-    maxWidth: 540,
+    maxWidth: 500,
     alignSelf: 'center',
-    borderRadius: 20,
-    padding: 14,
-    gap: 12,
-    backgroundColor: colors.paper,
+    borderRadius: 16,
+    padding: 10,
+    gap: 9,
+    backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.line,
   },
   modalHeader: {
-    minHeight: 48,
+    minHeight: 42,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
   },
   modalIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 16,
+    width: 36,
+    height: 36,
+    borderRadius: 13,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.tealDark,
+    backgroundColor: colors.brandDeep,
   },
   modalTitle: {
     color: colors.ink,
-    fontSize: 19,
-    lineHeight: 24,
-    fontWeight: '700',
+    fontSize: 16,
+    lineHeight: 20,
+    fontWeight: '800',
   },
   modalBody: {
     color: colors.muted,
@@ -708,15 +734,15 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   input: {
-    minHeight: 48,
-    borderRadius: 16,
-    paddingHorizontal: 12,
+    minHeight: 40,
+    borderRadius: 13,
+    paddingHorizontal: 10,
     color: colors.ink,
     backgroundColor: '#ffffff',
     borderWidth: 1,
     borderColor: colors.line,
-    fontSize: 15,
-    fontWeight: '700',
+    fontSize: 14,
+    fontWeight: '600',
   },
   schoolPicker: {
     flexDirection: 'row',
@@ -724,7 +750,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   schoolPill: {
-    minHeight: 38,
+    minHeight: 34,
     maxWidth: '100%',
     borderRadius: 14,
     paddingHorizontal: 11,
@@ -800,14 +826,14 @@ const styles = StyleSheet.create({
     color: '#dce7e1',
   },
   primaryButton: {
-    minHeight: 46,
-    borderRadius: 16,
-    paddingHorizontal: 12,
+    minHeight: 38,
+    borderRadius: 13,
+    paddingHorizontal: 10,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: colors.tealDark,
+    backgroundColor: colors.brandDeep,
   },
   primaryButtonText: {
     color: '#ffffff',
@@ -818,8 +844,8 @@ const styles = StyleSheet.create({
     opacity: 0.55,
   },
   codeBox: {
-    minHeight: 50,
-    borderRadius: 17,
+    minHeight: 44,
+    borderRadius: 15,
     paddingHorizontal: 12,
     flexDirection: 'row',
     alignItems: 'center',
@@ -836,10 +862,10 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   emptyPanel: {
-    minHeight: 95,
+    minHeight: 82,
     flex: 1,
-    minWidth: 260,
-    borderRadius: 20,
+    minWidth: 238,
+    borderRadius: 16,
     padding: 12,
     justifyContent: 'center',
     gap: 10,
@@ -849,15 +875,15 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     color: colors.ink,
-    fontSize: 18,
-    lineHeight: 23,
+    fontSize: 16,
+    lineHeight: 21,
     fontWeight: '700',
   },
   emptyMeta: {
     color: colors.muted,
-    fontSize: 13,
-    lineHeight: 19,
-    fontWeight: '700',
+    fontSize: 12,
+    lineHeight: 17,
+    fontWeight: '600',
   },
   errorText: {
     color: '#a13c33',

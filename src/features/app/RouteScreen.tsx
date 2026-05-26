@@ -2,7 +2,7 @@ import { ReactNode } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 
 import { UniversalTopBar, useTopBarProvided } from '../../components/UniversalTopBar';
-import { colors } from '../../theme/tokens';
+import { chivoTheme, colors } from '../../theme/tokens';
 
 export function RouteScreen({ children }: { children: ReactNode }) {
   const topBarProvided = useTopBarProvided();
@@ -20,18 +20,18 @@ export function RouteScreen({ children }: { children: ReactNode }) {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: colors.canvas,
+    backgroundColor: colors.surfaceSoft,
   },
   scrollContent: {
     flexGrow: 1,
-    paddingHorizontal: 12,
-    paddingTop: 12,
-    paddingBottom: 64,
-    backgroundColor: colors.canvas,
+    paddingHorizontal: chivoTheme.pagePadding,
+    paddingTop: 8,
+    paddingBottom: 58,
+    backgroundColor: colors.surfaceSoft,
   },
   shell: {
     width: '100%',
-    maxWidth: 1120,
+    maxWidth: chivoTheme.pageMaxWidth,
     alignSelf: 'center',
   },
 });

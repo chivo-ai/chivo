@@ -12,12 +12,10 @@ import {
   Layers,
   PlayCircle,
   Sparkles,
-  Star,
-  Trophy,
   UserPlus,
 } from 'lucide-react-native';
 
-import { LessonWorkspace } from '../lessons/LessonWorkspace';
+import { ChivoAction, ChivoCard, ChivoMetric } from '../../components/chivo/ChivoUI';
 import { ClassRow, SchoolSetupState, SubjectRow, requestClassAccess } from '../../services/school';
 import { colors } from '../../theme/tokens';
 import { ActiveSchoolMembership } from '../../types';
@@ -31,15 +29,14 @@ type LearnerScreenProps = {
 type ClassTone = {
   background: string;
   accent: string;
-  text: string;
 };
 
 const classTones: ClassTone[] = [
-  { background: '#fff4d4', accent: colors.gold, text: colors.ink },
-  { background: '#e9f6ff', accent: '#4aa6d9', text: colors.ink },
-  { background: '#f3eaff', accent: '#8d68d8', text: colors.ink },
-  { background: '#e8f8ee', accent: '#39a96b', text: colors.ink },
-  { background: '#fff0ed', accent: colors.coral, text: colors.ink },
+  { background: '#fff4d4', accent: colors.gold },
+  { background: '#e9f6ff', accent: '#4aa6d9' },
+  { background: '#f3eaff', accent: '#8d68d8' },
+  { background: '#e8f8ee', accent: '#39a96b' },
+  { background: '#fff0ed', accent: colors.coral },
 ];
 
 export function LearnerScreen({ membership, setup, onWorkspaceChanged }: LearnerScreenProps) {
@@ -72,7 +69,6 @@ export function LearnerScreen({ membership, setup, onWorkspaceChanged }: Learner
     () => (isStaff ? setup.classes : setup.classes.filter((schoolClass) => joinedClassIds.has(schoolClass.id))),
     [isStaff, joinedClassIds, setup.classes]
   );
-  const firstLearnerClassId = learnerClasses[0]?.id ?? null;
 
   const subjectCount = useMemo(() => {
     const classIds = new Set(learnerClasses.map((schoolClass) => schoolClass.id));
@@ -111,14 +107,14 @@ export function LearnerScreen({ membership, setup, onWorkspaceChanged }: Learner
 
   return (
     <View style={styles.stack}>
-      <StudentHero
+      <LearnerOverview
         schoolName={membership.school.name}
         classCount={learnerClasses.length}
         subjectCount={subjectCount}
         openClassCount={openClassCount}
       />
 
-      <StudyPath classCount={learnerClasses.length} subjectCount={subjectCount} />
+      <StudyToolRail />
 
       <ClassAccessPanel
         classes={setup.classes}
@@ -133,31 +129,11 @@ export function LearnerScreen({ membership, setup, onWorkspaceChanged }: Learner
         isStaff={isStaff}
         onRequest={requestClass}
       />
-
-      <StudyTools />
-
-      <View style={styles.libraryHeader}>
-        <View style={styles.sectionIcon}>
-          <BookOpen size={22} color="#ffffff" />
-        </View>
-        <View style={styles.flexText}>
-          <Text style={styles.sectionTitle}>Lesson library</Text>
-          <Text style={styles.sectionMeta}>Audio, transcript, summary, quiz, and cards in one place.</Text>
-        </View>
-      </View>
-
-      <LessonWorkspace
-        membership={membership}
-        setup={setup}
-        onLessonsChanged={onWorkspaceChanged}
-        mode="learn"
-        initialClassId={firstLearnerClassId}
-      />
     </View>
   );
 }
 
-function StudentHero({
+function LearnerOverview({
   schoolName,
   classCount,
   subjectCount,
@@ -169,65 +145,56 @@ function StudentHero({
   openClassCount: number;
 }) {
   return (
-    <View style={styles.studentHero}>
-      <View style={styles.heroCopy}>
-        <View style={styles.heroLabel}>
-          <Sparkles size={16} color={colors.ink} />
-          <Text style={styles.heroLabelText}>Chivo learner</Text>
-        </View>
-        <Text style={styles.heroTitle}>Your study path is ready</Text>
-        <Text style={styles.heroBody}>{schoolName} lessons become small, clear practice steps.</Text>
+    <ChivoCard compact style={styles.overview}>
+      <View style={styles.overviewIcon}>
+        <Sparkles size={19} color={colors.ink} />
+      </View>
+      <View style={styles.flexText}>
+        <Text style={styles.overviewTitle}>Learning launchpad</Text>
+        <Text style={styles.overviewMeta}>{schoolName} lessons are organized by class, with audio, transcript, quiz, cards, and progress inside each room.</Text>
+      </View>
+      <View style={styles.overviewActions}>
+        <ChivoAction compact label="Classes" icon={<DoorOpen size={15} color="#ffffff" />} onPress={() => router.push('/school/class' as never)} />
+        <ChivoAction compact variant="ghost" label="Lessons" icon={<BookOpen size={15} color={colors.tealDark} />} onPress={() => router.push('/lessons' as never)} />
       </View>
 
-      <View style={styles.heroStickerBoard}>
-        <StickerStat icon={<Trophy size={20} color={colors.ink} />} label="Classes" value={classCount} tone={classTones[0]} />
-        <StickerStat icon={<Brain size={20} color={colors.ink} />} label="Subjects" value={subjectCount} tone={classTones[2]} />
-        <StickerStat icon={<DoorOpen size={20} color={colors.ink} />} label="Open" value={openClassCount} tone={classTones[3]} />
+      <View style={styles.statRow}>
+        <MiniStat label="Joined" value={classCount} />
+        <MiniStat label="Subjects" value={subjectCount} />
+        <MiniStat label="Open" value={openClassCount} />
       </View>
-    </View>
+    </ChivoCard>
   );
 }
 
-function StickerStat({ icon, label, value, tone }: { icon: ReactNode; label: string; value: number; tone: ClassTone }) {
-  return (
-    <View style={[styles.stickerStat, { backgroundColor: tone.background }]}>
-      <View style={[styles.stickerIcon, { backgroundColor: tone.accent }]}>
-        {icon}
-      </View>
-      <Text style={[styles.stickerValue, { color: tone.text }]}>{value}</Text>
-      <Text style={styles.stickerLabel}>{label}</Text>
-    </View>
-  );
+function MiniStat({ label, value }: { label: string; value: number }) {
+  return <ChivoMetric label={label} value={value} tone="soft" />;
 }
 
-function StudyPath({ classCount, subjectCount }: { classCount: number; subjectCount: number }) {
-  const steps = [
-    { label: 'Listen', icon: <Headphones size={19} color={colors.ink} />, tone: classTones[1], ready: classCount > 0 },
-    { label: 'Read', icon: <BookOpen size={19} color={colors.ink} />, tone: classTones[0], ready: classCount > 0 },
-    { label: 'Quiz', icon: <Brain size={19} color={colors.ink} />, tone: classTones[2], ready: subjectCount > 0 },
-    { label: 'Cards', icon: <Layers size={19} color={colors.ink} />, tone: classTones[4], ready: subjectCount > 0 },
+function StudyToolRail() {
+  const tools = [
+    { label: 'Listen', body: 'Audio lessons', icon: <Headphones size={18} color={colors.ink} />, tone: classTones[1] },
+    { label: 'Translate', body: 'Language switch', icon: <Languages size={18} color={colors.ink} />, tone: classTones[3] },
+    { label: 'Quiz', body: 'Check memory', icon: <Brain size={18} color={colors.ink} />, tone: classTones[2] },
+    { label: 'Cards', body: 'Review fast', icon: <Layers size={18} color={colors.ink} />, tone: classTones[4] },
   ];
 
   return (
-    <View style={styles.pathSection}>
-      <View style={styles.sectionHeadingRow}>
-        <Text style={styles.sectionTitle}>Today path</Text>
-        <View style={styles.softBadge}>
-          <Star size={14} color={colors.tealDark} />
-          <Text style={styles.softBadgeText}>{classCount ? 'Active' : 'Join class'}</Text>
-        </View>
-      </View>
-      <View style={styles.pathTrack}>
-        {steps.map((step, index) => (
-          <View key={step.label} style={styles.pathStepWrap}>
-            <View style={[styles.pathStep, { backgroundColor: step.tone.background, borderColor: step.ready ? step.tone.accent : colors.line }]}>
-              <View style={[styles.pathStepIcon, { backgroundColor: step.tone.accent }]}>{step.icon}</View>
-              <Text style={styles.pathStepText}>{step.label}</Text>
-              {step.ready ? <CheckCircle2 size={15} color={colors.tealDark} /> : <Clock3 size={15} color={colors.muted} />}
-            </View>
-            {index < steps.length - 1 ? <View style={styles.pathConnector} /> : null}
-          </View>
-        ))}
+    <View style={styles.toolRail}>
+      {tools.map((tool) => (
+        <ToolChip key={tool.label} {...tool} />
+      ))}
+    </View>
+  );
+}
+
+function ToolChip({ icon, label, body, tone }: { icon: ReactNode; label: string; body: string; tone: ClassTone }) {
+  return (
+    <View style={[styles.toolChip, { backgroundColor: tone.background, borderColor: tone.accent }]}>
+      <View style={[styles.toolIcon, { backgroundColor: tone.accent }]}>{icon}</View>
+      <View style={styles.flexText}>
+        <Text style={styles.toolTitle}>{label}</Text>
+        <Text style={styles.toolBody}>{body}</Text>
       </View>
     </View>
   );
@@ -258,17 +225,15 @@ function ClassAccessPanel({
   isStaff: boolean;
   onRequest: (schoolClass: ClassRow) => void;
 }) {
-  const visibleClasses = isStaff ? classes : classes;
-
   return (
     <View style={styles.classSection}>
-      <View style={styles.sectionHeadingRow}>
+      <View style={styles.sectionHeader}>
         <View>
-          <Text style={styles.sectionTitle}>Class map</Text>
-          <Text style={styles.sectionMeta}>{learnerClasses.length ? `${learnerClasses.length} class${learnerClasses.length === 1 ? '' : 'es'} in your path` : 'Choose a class to begin'}</Text>
+          <Text style={styles.sectionTitle}>Classes</Text>
+          <Text style={styles.sectionMeta}>{learnerClasses.length ? `${learnerClasses.length} active class${learnerClasses.length === 1 ? '' : 'es'}` : 'Join a class to begin learning'}</Text>
         </View>
         <Pressable onPress={() => router.push('/school/class' as never)} style={styles.iconAction}>
-          <DoorOpen size={18} color={colors.tealDark} />
+          <DoorOpen size={17} color={colors.tealDark} />
         </Pressable>
       </View>
 
@@ -276,8 +241,8 @@ function ClassAccessPanel({
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
       <View style={styles.classGrid}>
-        {visibleClasses.length ? (
-          visibleClasses.map((schoolClass, index) => {
+        {classes.length ? (
+          classes.map((schoolClass, index) => {
             const joined = isStaff || joinedClassIds.has(schoolClass.id);
             const pending = pendingClassIds.has(schoolClass.id);
             const loading = savingClassId === schoolClass.id;
@@ -287,7 +252,7 @@ function ClassAccessPanel({
               .filter(Boolean) as string[];
 
             return (
-              <ClassJourneyCard
+              <ClassCard
                 key={schoolClass.id}
                 schoolClass={schoolClass}
                 index={index}
@@ -300,9 +265,9 @@ function ClassAccessPanel({
             );
           })
         ) : (
-          <View style={styles.emptyClassState}>
+          <View style={styles.emptyPanel}>
             <Text style={styles.emptyTitle}>No classes yet</Text>
-            <Text style={styles.sectionMeta}>Classes will appear when the school creates them.</Text>
+            <Text style={styles.emptyMeta}>Classes will appear after the school creates them.</Text>
           </View>
         )}
       </View>
@@ -310,7 +275,7 @@ function ClassAccessPanel({
   );
 }
 
-function ClassJourneyCard({
+function ClassCard({
   schoolClass,
   index,
   joined,
@@ -331,8 +296,8 @@ function ClassJourneyCard({
 
   return (
     <View style={[styles.classCard, { backgroundColor: tone.background, borderColor: tone.accent }]}>
-      <View style={styles.classCardTop}>
-        <View style={[styles.classSticker, { backgroundColor: tone.accent }]}>
+      <View style={styles.classTop}>
+        <View style={[styles.classMark, { backgroundColor: tone.accent }]}>
           {schoolClass.logo_url ? (
             <Image source={{ uri: schoolClass.logo_url }} style={styles.classImage} />
           ) : (
@@ -343,40 +308,34 @@ function ClassJourneyCard({
       </View>
 
       <Text style={styles.classTitle}>{schoolClass.name}</Text>
-      <Text style={styles.classMeta}>{schoolClass.grade_level ?? 'Learning group'}</Text>
+      <Text style={styles.classMeta}>{schoolClass.grade_level ?? schoolClass.username}</Text>
 
-      <View style={styles.subjectPills}>
+      <View style={styles.subjectRow}>
         {subjectNames.length ? subjectNames.slice(0, 3).map((subject) => (
           <View key={subject} style={styles.subjectPill}>
-            <Text style={styles.subjectPillText}>{subject}</Text>
+            <Text style={styles.subjectText}>{subject}</Text>
           </View>
         )) : (
           <View style={styles.subjectPill}>
-            <Text style={styles.subjectPillText}>Subjects soon</Text>
+            <Text style={styles.subjectText}>Subjects soon</Text>
           </View>
         )}
       </View>
 
       {joined ? (
         <Pressable onPress={() => router.push(`/school/class/${schoolClass.username}` as never)} style={styles.enterButton}>
-          <PlayCircle size={16} color="#ffffff" />
+          <PlayCircle size={15} color="#ffffff" />
           <Text style={styles.enterButtonText}>Enter class</Text>
         </Pressable>
       ) : pending ? (
         <View style={styles.pendingButton}>
-          <Clock3 size={16} color={colors.tealDark} />
+          <Clock3 size={15} color={colors.tealDark} />
           <Text style={styles.pendingButtonText}>Waiting</Text>
         </View>
       ) : (
         <Pressable disabled={loading} onPress={onRequest} style={styles.requestButton}>
-          {loading ? (
-            <ActivityIndicator color="#ffffff" />
-          ) : (
-            <>
-              <UserPlus size={16} color="#ffffff" />
-              <Text style={styles.enterButtonText}>Request</Text>
-            </>
-          )}
+          {loading ? <ActivityIndicator color="#ffffff" /> : <UserPlus size={15} color="#ffffff" />}
+          <Text style={styles.enterButtonText}>Request</Text>
         </Pressable>
       )}
     </View>
@@ -386,47 +345,26 @@ function ClassJourneyCard({
 function ClassStatus({ joined, pending }: { joined: boolean; pending: boolean }) {
   if (joined) {
     return (
-      <View style={styles.statusPillActive}>
-        <CheckCircle2 size={14} color="#ffffff" />
-        <Text style={styles.statusPillTextActive}>Joined</Text>
+      <View style={styles.statusActive}>
+        <CheckCircle2 size={13} color="#ffffff" />
+        <Text style={styles.statusActiveText}>Joined</Text>
       </View>
     );
   }
 
   if (pending) {
     return (
-      <View style={styles.statusPill}>
-        <Clock3 size={14} color={colors.tealDark} />
-        <Text style={styles.statusPillText}>Pending</Text>
+      <View style={styles.statusSoft}>
+        <Clock3 size={13} color={colors.tealDark} />
+        <Text style={styles.statusSoftText}>Pending</Text>
       </View>
     );
   }
 
   return (
-    <View style={styles.statusPill}>
-      <DoorOpen size={14} color={colors.tealDark} />
-      <Text style={styles.statusPillText}>Open</Text>
-    </View>
-  );
-}
-
-function StudyTools() {
-  const tools = [
-    { label: 'Audio', body: 'Listen back', icon: <Headphones size={21} color={colors.ink} />, tone: classTones[1] },
-    { label: 'Translate', body: 'Switch language', icon: <Languages size={21} color={colors.ink} />, tone: classTones[3] },
-    { label: 'Quiz', body: 'Check mastery', icon: <Brain size={21} color={colors.ink} />, tone: classTones[2] },
-    { label: 'Cards', body: 'Review fast', icon: <Layers size={21} color={colors.ink} />, tone: classTones[4] },
-  ];
-
-  return (
-    <View style={styles.toolsGrid}>
-      {tools.map((tool) => (
-        <View key={tool.label} style={[styles.toolCard, { backgroundColor: tool.tone.background, borderColor: tool.tone.accent }]}>
-          <View style={[styles.toolIcon, { backgroundColor: tool.tone.accent }]}>{tool.icon}</View>
-          <Text style={styles.toolTitle}>{tool.label}</Text>
-          <Text style={styles.toolBody}>{tool.body}</Text>
-        </View>
-      ))}
+    <View style={styles.statusSoft}>
+      <DoorOpen size={13} color={colors.tealDark} />
+      <Text style={styles.statusSoftText}>Open</Text>
     </View>
   );
 }
@@ -442,90 +380,146 @@ function initials(value: string) {
 
 const styles = StyleSheet.create({
   stack: {
-    gap: 10,
-  },
-  studentHero: {
-    borderRadius: 16,
-    padding: 10,
     gap: 8,
+  },
+  overview: {
+    borderRadius: 15,
+    padding: 10,
+    gap: 9,
     flexDirection: 'row',
     flexWrap: 'wrap',
     alignItems: 'center',
-    overflow: 'hidden',
-    backgroundColor: '#ffe8a8',
+    backgroundColor: '#ffffff',
     borderWidth: 1,
-    borderColor: '#f0c75d',
+    borderColor: colors.line,
   },
-  heroCopy: {
-    flex: 1.2,
-    minWidth: 170,
+  overviewIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.gold,
+  },
+  flexText: {
+    flex: 1,
+    minWidth: 0,
+  },
+  overviewTitle: {
+    color: colors.ink,
+    fontSize: 15,
+    lineHeight: 19,
+    fontWeight: '700',
+  },
+  overviewMeta: {
+    color: colors.muted,
+    fontSize: 11,
+    lineHeight: 15,
+    fontWeight: '700',
+  },
+  overviewActions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 7,
   },
-  heroLabel: {
-    alignSelf: 'flex-start',
-    minHeight: 28,
-    borderRadius: 14,
-    paddingHorizontal: 9,
+  primaryAction: {
+    minHeight: 34,
+    borderRadius: 13,
+    paddingHorizontal: 10,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
-    backgroundColor: '#ffffff',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: colors.tealDark,
   },
-  heroLabelText: {
-    color: colors.ink,
-    fontSize: 11,
+  primaryActionText: {
+    color: '#ffffff',
+    fontSize: 12,
     fontWeight: '700',
   },
-  heroTitle: {
-    color: colors.ink,
-    fontSize: 19,
-    lineHeight: 23,
+  softAction: {
+    minHeight: 34,
+    borderRadius: 13,
+    paddingHorizontal: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: colors.softTeal,
+    borderWidth: 1,
+    borderColor: '#d4e8df',
+  },
+  softActionText: {
+    color: colors.tealDark,
+    fontSize: 12,
     fontWeight: '700',
   },
-  heroBody: {
-    color: '#3f3726',
+  statRow: {
+    width: '100%',
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 7,
+  },
+  miniStat: {
+    minWidth: 86,
+    flex: 1,
+    borderRadius: 13,
+    padding: 8,
+    backgroundColor: '#f8fbf9',
+    borderWidth: 1,
+    borderColor: colors.line,
+  },
+  miniStatValue: {
+    color: colors.ink,
+    fontSize: 16,
+    lineHeight: 20,
+    fontWeight: '700',
+  },
+  miniStatLabel: {
+    color: colors.muted,
+    fontSize: 10,
+    lineHeight: 13,
+    fontWeight: '700',
+  },
+  toolRail: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  toolChip: {
+    minWidth: 145,
+    flex: 1,
+    borderRadius: 14,
+    padding: 9,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    borderWidth: 1,
+  },
+  toolIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  toolTitle: {
+    color: colors.ink,
     fontSize: 12,
     lineHeight: 16,
     fontWeight: '700',
   },
-  heroStickerBoard: {
-    flex: 1,
-    minWidth: 132,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-  },
-  stickerStat: {
-    minWidth: 60,
-    flex: 1,
-    borderRadius: 12,
-    padding: 8,
-    gap: 4,
-    borderWidth: 1,
-    borderColor: '#ffffff',
-  },
-  stickerIcon: {
-    width: 28,
-    height: 28,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  stickerValue: {
-    fontSize: 16,
-    lineHeight: 19,
-    fontWeight: '700',
-  },
-  stickerLabel: {
+  toolBody: {
     color: colors.muted,
     fontSize: 10,
+    lineHeight: 13,
     fontWeight: '700',
   },
-  pathSection: {
-    gap: 7,
+  classSection: {
+    gap: 8,
   },
-  sectionHeadingRow: {
-    minHeight: 34,
+  sectionHeader: {
+    minHeight: 36,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -533,165 +527,61 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     color: colors.ink,
-    fontSize: 17,
-    lineHeight: 21,
+    fontSize: 16,
+    lineHeight: 20,
     fontWeight: '700',
   },
   sectionMeta: {
     color: colors.muted,
     fontSize: 11,
-    lineHeight: 16,
-    fontWeight: '700',
-  },
-  softBadge: {
-    minHeight: 34,
-    borderRadius: 17,
-    paddingHorizontal: 11,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: colors.softTeal,
-    borderWidth: 1,
-    borderColor: '#d4e8df',
-  },
-  softBadgeText: {
-    color: colors.tealDark,
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  pathTrack: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 7,
-  },
-  pathStepWrap: {
-    flex: 1,
-    minWidth: 118,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  pathStep: {
-    minHeight: 44,
-    flex: 1,
-    borderRadius: 13,
-    padding: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    borderWidth: 1,
-  },
-  pathStepIcon: {
-    width: 30,
-    height: 30,
-    borderRadius: 11,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  pathStepText: {
-    flex: 1,
-    minWidth: 0,
-    color: colors.ink,
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  pathConnector: {
-    width: 16,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: colors.line,
-  },
-  classSection: {
-    gap: 10,
-  },
-  classListPanel: {
-    borderRadius: 18,
-    padding: 12,
-    gap: 10,
-    backgroundColor: '#ffffff',
-    borderWidth: 1,
-    borderColor: colors.line,
-  },
-  classListStack: {
-    gap: 9,
-  },
-  classListItem: {
-    minHeight: 57,
-    borderRadius: 15,
-    padding: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 11,
-    backgroundColor: '#f7faf7',
-    borderWidth: 1,
-    borderColor: '#e1e9e3',
-  },
-  classListIcon: {
-    width: 42,
-    height: 42,
-    borderRadius: 15,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.tealDark,
-  },
-  classListTitle: {
-    color: colors.ink,
-    fontSize: 15,
-    lineHeight: 19,
-    fontWeight: '700',
-  },
-  classListMeta: {
-    color: colors.muted,
-    fontSize: 12,
-    lineHeight: 18,
-    fontWeight: '700',
-  },
-  classListButton: {
-    minHeight: 34,
-    borderRadius: 14,
-    paddingHorizontal: 11,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.gold,
-  },
-  classListButtonText: {
-    color: colors.ink,
-    fontSize: 12,
+    lineHeight: 15,
     fontWeight: '700',
   },
   iconAction: {
-    width: 42,
-    height: 42,
-    borderRadius: 15,
+    width: 36,
+    height: 36,
+    borderRadius: 13,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.softTeal,
     borderWidth: 1,
     borderColor: '#d4e8df',
+  },
+  successText: {
+    color: colors.tealDark,
+    fontSize: 12,
+    lineHeight: 17,
+    fontWeight: '700',
+  },
+  errorText: {
+    color: '#9d2e24',
+    fontSize: 12,
+    lineHeight: 17,
+    fontWeight: '700',
   },
   classGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 10,
+    gap: 9,
   },
   classCard: {
     minWidth: 210,
     flex: 1,
-    borderRadius: 14,
+    borderRadius: 15,
     padding: 10,
     gap: 7,
     borderWidth: 1,
   },
-  classCardTop: {
+  classTop: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: 10,
+    gap: 9,
   },
-  classSticker: {
+  classMark: {
     overflow: 'hidden',
-    width: 42,
-    height: 42,
+    width: 38,
+    height: 38,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
@@ -704,7 +594,7 @@ const styles = StyleSheet.create({
   },
   classInitials: {
     color: '#ffffff',
-    fontSize: 16,
+    fontSize: 13,
     fontWeight: '700',
   },
   classTitle: {
@@ -715,29 +605,28 @@ const styles = StyleSheet.create({
   },
   classMeta: {
     color: colors.muted,
-    fontSize: 12,
-    lineHeight: 18,
+    fontSize: 10,
+    lineHeight: 14,
     fontWeight: '700',
   },
-  subjectPills: {
-    minHeight: 30,
+  subjectRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 6,
   },
   subjectPill: {
-    minHeight: 28,
-    borderRadius: 14,
-    paddingHorizontal: 9,
+    minHeight: 25,
+    borderRadius: 12,
+    paddingHorizontal: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#ffffff',
+    backgroundColor: 'rgba(255,255,255,0.72)',
     borderWidth: 1,
     borderColor: 'rgba(24, 36, 33, 0.08)',
   },
-  subjectPillText: {
+  subjectText: {
     color: colors.tealDark,
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '700',
   },
   enterButton: {
@@ -762,7 +651,7 @@ const styles = StyleSheet.create({
   },
   enterButtonText: {
     color: '#ffffff',
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '700',
   },
   pendingButton: {
@@ -774,119 +663,59 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 7,
     backgroundColor: '#ffffff',
-    borderWidth: 1,
-    borderColor: colors.line,
   },
   pendingButtonText: {
     color: colors.tealDark,
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '700',
   },
-  statusPill: {
-    minHeight: 30,
-    borderRadius: 15,
-    paddingHorizontal: 10,
+  statusActive: {
+    minHeight: 26,
+    borderRadius: 13,
+    paddingHorizontal: 8,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    backgroundColor: '#ffffff',
-  },
-  statusPillActive: {
-    minHeight: 30,
-    borderRadius: 15,
-    paddingHorizontal: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
+    gap: 5,
     backgroundColor: colors.tealDark,
   },
-  statusPillText: {
-    color: colors.tealDark,
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  statusPillTextActive: {
+  statusActiveText: {
     color: '#ffffff',
-    fontSize: 12,
+    fontSize: 10,
     fontWeight: '700',
   },
-  emptyClassState: {
-    minHeight: 84,
+  statusSoft: {
+    minHeight: 26,
+    borderRadius: 13,
+    paddingHorizontal: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: '#ffffff',
+  },
+  statusSoftText: {
+    color: colors.tealDark,
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  emptyPanel: {
     flex: 1,
-    minWidth: 260,
-    borderRadius: 18,
+    borderRadius: 15,
     padding: 12,
-    justifyContent: 'center',
+    gap: 5,
     backgroundColor: '#ffffff',
     borderWidth: 1,
     borderColor: colors.line,
   },
   emptyTitle: {
     color: colors.ink,
-    fontSize: 17,
-    lineHeight: 22,
+    fontSize: 15,
+    lineHeight: 19,
     fontWeight: '700',
   },
-  toolsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-  },
-  toolCard: {
-    minWidth: 132,
-    flex: 1,
-    borderRadius: 13,
-    padding: 10,
-    gap: 6,
-    borderWidth: 1,
-  },
-  toolIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  toolTitle: {
-    color: colors.ink,
-    fontSize: 13,
-    lineHeight: 17,
-    fontWeight: '700',
-  },
-  toolBody: {
+  emptyMeta: {
     color: colors.muted,
     fontSize: 11,
-    lineHeight: 15,
-    fontWeight: '700',
-  },
-  libraryHeader: {
-    minHeight: 42,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  sectionIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.tealDark,
-  },
-  flexText: {
-    flex: 1,
-    minWidth: 0,
-  },
-  successText: {
-    color: colors.tealDark,
-    fontSize: 13,
-    lineHeight: 19,
-    fontWeight: '700',
-  },
-  errorText: {
-    color: '#9d2e24',
-    fontSize: 13,
-    lineHeight: 19,
+    lineHeight: 16,
     fontWeight: '700',
   },
 });

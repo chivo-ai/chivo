@@ -32,6 +32,47 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+const lessonResponseSchema = {
+  type: 'OBJECT',
+  properties: {
+    transcript: { type: 'STRING' },
+    title: { type: 'STRING' },
+    summary: { type: 'STRING' },
+    key_points: {
+      type: 'ARRAY',
+      items: { type: 'STRING' },
+    },
+    quiz: {
+      type: 'ARRAY',
+      items: {
+        type: 'OBJECT',
+        properties: {
+          prompt: { type: 'STRING' },
+          options: {
+            type: 'ARRAY',
+            items: { type: 'STRING' },
+          },
+          answer: { type: 'STRING' },
+          explanation: { type: 'STRING' },
+        },
+        required: ['prompt', 'options', 'answer', 'explanation'],
+      },
+    },
+    flashcards: {
+      type: 'ARRAY',
+      items: {
+        type: 'OBJECT',
+        properties: {
+          front: { type: 'STRING' },
+          back: { type: 'STRING' },
+        },
+        required: ['front', 'back'],
+      },
+    },
+  },
+  required: ['title', 'summary', 'key_points', 'quiz', 'flashcards'],
+};
+
 serve(async (request) => {
   if (request.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -232,6 +273,7 @@ async function generateWithGemini(input: {
         contents: [{ parts }],
         generationConfig: {
           responseMimeType: 'application/json',
+          responseSchema: lessonResponseSchema,
         },
       }),
     }
@@ -244,7 +286,7 @@ async function generateWithGemini(input: {
 
   const generated = await response.json();
   const text = generated.candidates?.[0]?.content?.parts?.[0]?.text ?? '{}';
-  const parsed = JSON.parse(text) as GeneratedLesson;
+  const parsed = await parseGeneratedLesson(geminiKey, text, input);
 
   return {
     transcript: parsed.transcript ?? input.transcript ?? '',
@@ -254,6 +296,91 @@ async function generateWithGemini(input: {
     quiz: Array.isArray(parsed.quiz) ? parsed.quiz : [],
     flashcards: Array.isArray(parsed.flashcards) ? parsed.flashcards : [],
   };
+}
+
+async function parseGeneratedLesson(
+  geminiKey: string,
+  text: string,
+  input: {
+    title: string;
+    language: string;
+    transcript: string | null;
+  }
+): Promise<GeneratedLesson> {
+  try {
+    return JSON.parse(extractJson(text)) as GeneratedLesson;
+  } catch (error) {
+    const repaired = await repairGeneratedLessonJson(geminiKey, text, input);
+
+    try {
+      return JSON.parse(extractJson(repaired)) as GeneratedLesson;
+    } catch {
+      const message = error instanceof Error ? error.message : 'Invalid JSON';
+      throw new Error(`Chivo AI returned malformed lesson JSON and repair failed: ${message}`);
+    }
+  }
+}
+
+async function repairGeneratedLessonJson(
+  geminiKey: string,
+  brokenJson: string,
+  input: {
+    title: string;
+    language: string;
+    transcript: string | null;
+  }
+) {
+  const prompt = [
+    'Repair this malformed JSON into valid JSON only.',
+    'It must match this object shape: transcript, title, summary, key_points, quiz, flashcards.',
+    'Do not add markdown, comments, or explanation.',
+    'If one quiz or flashcard item is broken, fix it or remove that item.',
+    `Lesson title: ${input.title}`,
+    `Language: ${input.language}`,
+    input.transcript ? `Transcript source: ${input.transcript.slice(0, 6000)}` : 'Transcript source: audio lesson',
+    'Malformed JSON:',
+    brokenJson,
+  ].join('\n\n');
+
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: {
+          responseMimeType: 'application/json',
+          responseSchema: lessonResponseSchema,
+        },
+      }),
+    }
+  );
+
+  if (!response.ok) {
+    const details = await response.text();
+    throw new Error(`Gemini JSON repair failed: ${details}`);
+  }
+
+  const repaired = await response.json();
+  return repaired.candidates?.[0]?.content?.parts?.[0]?.text ?? '{}';
+}
+
+function extractJson(value: string) {
+  const trimmed = value.trim().replace(/^```(?:json)?/i, '').replace(/```$/i, '').trim();
+
+  if (trimmed.startsWith('{')) {
+    return trimmed;
+  }
+
+  const start = trimmed.indexOf('{');
+  const end = trimmed.lastIndexOf('}');
+
+  if (start >= 0 && end > start) {
+    return trimmed.slice(start, end + 1);
+  }
+
+  return trimmed;
 }
 
 async function fetchLessonAudio(

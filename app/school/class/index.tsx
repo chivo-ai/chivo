@@ -13,6 +13,8 @@ import {
 } from '../../../src/services/school';
 import { colors } from '../../../src/theme/tokens';
 
+type ClassFilter = 'all' | 'joined' | 'waiting' | 'open';
+
 const emptySetup: SchoolSetupState = {
   academicYears: [],
   academicTerms: [],
@@ -38,6 +40,7 @@ export default function ClassesIndexRoute() {
   const [setup, setSetup] = useState<SchoolSetupState>(emptySetup);
   const [loadingSetup, setLoadingSetup] = useState(true);
   const [savingClassId, setSavingClassId] = useState<string | null>(null);
+  const [activeFilter, setActiveFilter] = useState<ClassFilter>('all');
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const isStaff = activeMembership ? ['owner', 'admin', 'teacher'].includes(activeMembership.role) : false;
@@ -120,6 +123,23 @@ export default function ClassesIndexRoute() {
   }
 
   const joinedCount = isStaff ? setup.classes.length : joinedClassIds.size;
+  const waitingCount = pendingClassIds.size;
+  const openCount = setup.classes.filter((schoolClass) => !joinedClassIds.has(schoolClass.id) && !pendingClassIds.has(schoolClass.id)).length;
+  const visibleClasses = setup.classes.filter((schoolClass) => {
+    if (activeFilter === 'joined') {
+      return isStaff || joinedClassIds.has(schoolClass.id);
+    }
+
+    if (activeFilter === 'waiting') {
+      return pendingClassIds.has(schoolClass.id);
+    }
+
+    if (activeFilter === 'open') {
+      return !isStaff && !joinedClassIds.has(schoolClass.id) && !pendingClassIds.has(schoolClass.id);
+    }
+
+    return true;
+  });
 
   return (
     <RouteScreen>
@@ -131,26 +151,33 @@ export default function ClassesIndexRoute() {
               <Text style={styles.heroPillText}>Class map</Text>
             </View>
             <Text style={styles.heroTitle}>{activeMembership.school.name}</Text>
-            <Text style={styles.heroBody}>Pick a classroom, then study lessons as audio, notes, quizzes, and cards.</Text>
+            <Text style={styles.heroBody}>Pick a class, then learn inside the full classroom.</Text>
           </View>
           <View style={styles.heroStats}>
             <MiniStat label="Classes" value={setup.classes.length} tone={tones[0]} />
             <MiniStat label="Joined" value={joinedCount} tone={tones[3]} />
-            <MiniStat label="Waiting" value={pendingClassIds.size} tone={tones[2]} />
+            <MiniStat label="Waiting" value={waitingCount} tone={tones[2]} />
           </View>
         </View>
 
         {message ? <Text style={styles.successText}>{message}</Text> : null}
         {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
+        <View style={styles.filterRail}>
+          <FilterButton id="all" active={activeFilter} label="All" count={setup.classes.length} onPress={setActiveFilter} />
+          <FilterButton id="joined" active={activeFilter} label="Joined" count={joinedCount} onPress={setActiveFilter} />
+          <FilterButton id="waiting" active={activeFilter} label="Waiting" count={waitingCount} onPress={setActiveFilter} />
+          <FilterButton id="open" active={activeFilter} label="Open" count={isStaff ? 0 : openCount} onPress={setActiveFilter} />
+        </View>
+
         {loadingSetup ? (
           <View style={styles.loadingPanel}>
             <ActivityIndicator color={colors.tealDark} />
             <Text style={styles.meta}>Loading classes</Text>
           </View>
-        ) : setup.classes.length ? (
+        ) : visibleClasses.length ? (
           <View style={styles.classGrid}>
-            {setup.classes.map((schoolClass, index) => {
+            {visibleClasses.map((schoolClass, index) => {
               const joined = isStaff || joinedClassIds.has(schoolClass.id);
               const pending = pendingClassIds.has(schoolClass.id);
               const subjectNames = setup.classSubjects
@@ -175,12 +202,35 @@ export default function ClassesIndexRoute() {
           </View>
         ) : (
           <View style={styles.emptyPanel}>
-            <Text style={styles.emptyTitle}>No classes yet</Text>
-            <Text style={styles.meta}>Classes will appear after the school creates them.</Text>
+            <Text style={styles.emptyTitle}>No classes here</Text>
+            <Text style={styles.meta}>Try another filter or wait for the school to create more classes.</Text>
           </View>
         )}
       </View>
     </RouteScreen>
+  );
+}
+
+function FilterButton({
+  id,
+  active,
+  label,
+  count,
+  onPress,
+}: {
+  id: ClassFilter;
+  active: ClassFilter;
+  label: string;
+  count: number;
+  onPress: (id: ClassFilter) => void;
+}) {
+  const selected = id === active;
+
+  return (
+    <Pressable onPress={() => onPress(id)} style={[styles.filterButton, selected && styles.filterButtonActive]}>
+      <Text style={[styles.filterText, selected && styles.filterTextActive]}>{label}</Text>
+      <Text style={[styles.filterCount, selected && styles.filterTextActive]}>{count}</Text>
+    </Pressable>
   );
 }
 
@@ -295,83 +345,116 @@ function initials(value: string) {
 
 const styles = StyleSheet.create({
   screen: {
-    gap: 14,
+    gap: 8,
   },
   hero: {
-    minHeight: 124,
-    borderRadius: 22,
-    padding: 16,
+    borderRadius: 16,
+    padding: 10,
     flexDirection: 'row',
     flexWrap: 'wrap',
     alignItems: 'center',
-    gap: 14,
+    gap: 10,
     backgroundColor: '#101916',
     borderWidth: 1,
     borderColor: '#20352f',
   },
   heroCopy: {
     flex: 1.4,
-    minWidth: 270,
-    gap: 10,
+    minWidth: 190,
+    gap: 6,
   },
   heroPill: {
     alignSelf: 'flex-start',
-    minHeight: 34,
-    borderRadius: 17,
-    paddingHorizontal: 11,
+    minHeight: 26,
+    borderRadius: 13,
+    paddingHorizontal: 9,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 7,
+    gap: 6,
     backgroundColor: colors.gold,
   },
   heroPillText: {
     color: colors.ink,
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '700',
   },
   heroTitle: {
     color: '#ffffff',
-    fontSize: 25,
-    lineHeight: 31,
+    fontSize: 18,
+    lineHeight: 22,
     fontWeight: '700',
   },
   heroBody: {
     color: '#dce7e1',
-    fontSize: 15,
-    lineHeight: 20,
+    fontSize: 12,
+    lineHeight: 16,
     fontWeight: '700',
   },
   heroStats: {
     flex: 1,
-    minWidth: 250,
+    minWidth: 180,
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 10,
+    gap: 7,
   },
   statCard: {
-    minWidth: 100,
+    minWidth: 82,
     flex: 1,
-    borderRadius: 17,
-    padding: 14,
-    gap: 6,
-    borderWidth: 2,
+    borderRadius: 13,
+    padding: 8,
+    gap: 4,
+    borderWidth: 1,
     borderColor: '#ffffff',
   },
   statDot: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
   },
   statValue: {
     color: colors.ink,
-    fontSize: 21,
-    lineHeight: 26,
+    fontSize: 16,
+    lineHeight: 20,
     fontWeight: '700',
   },
   statLabel: {
     color: colors.muted,
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  filterRail: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 7,
+  },
+  filterButton: {
+    minHeight: 34,
+    borderRadius: 13,
+    paddingHorizontal: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: colors.line,
+  },
+  filterButtonActive: {
+    backgroundColor: colors.tealDark,
+    borderColor: colors.tealDark,
+  },
+  filterText: {
+    color: colors.tealDark,
     fontSize: 12,
     fontWeight: '700',
+  },
+  filterCount: {
+    color: colors.muted,
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  filterTextActive: {
+    color: '#ffffff',
   },
   classGrid: {
     flexDirection: 'row',
@@ -379,12 +462,12 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   classCard: {
-    minWidth: 250,
+    minWidth: 210,
     flex: 1,
-    borderRadius: 20,
-    padding: 15,
-    gap: 10,
-    borderWidth: 2,
+    borderRadius: 15,
+    padding: 10,
+    gap: 7,
+    borderWidth: 1,
   },
   classTop: {
     flexDirection: 'row',
@@ -394,9 +477,9 @@ const styles = StyleSheet.create({
   },
   classMark: {
     overflow: 'hidden',
-    width: 58,
-    height: 58,
-    borderRadius: 16,
+    width: 38,
+    height: 38,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
@@ -413,14 +496,14 @@ const styles = StyleSheet.create({
   },
   className: {
     color: colors.ink,
-    fontSize: 17,
-    lineHeight: 22,
+    fontSize: 14,
+    lineHeight: 18,
     fontWeight: '700',
   },
   classMeta: {
     color: colors.muted,
-    fontSize: 12,
-    lineHeight: 18,
+    fontSize: 10,
+    lineHeight: 14,
     fontWeight: '700',
   },
   subjectPills: {
@@ -445,9 +528,9 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   enterButton: {
-    minHeight: 42,
-    borderRadius: 16,
-    paddingHorizontal: 12,
+    minHeight: 34,
+    borderRadius: 12,
+    paddingHorizontal: 10,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -455,9 +538,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.ink,
   },
   requestButton: {
-    minHeight: 42,
-    borderRadius: 16,
-    paddingHorizontal: 12,
+    minHeight: 34,
+    borderRadius: 12,
+    paddingHorizontal: 10,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -466,13 +549,13 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     color: '#ffffff',
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '700',
   },
   pendingButton: {
-    minHeight: 42,
-    borderRadius: 16,
-    paddingHorizontal: 12,
+    minHeight: 34,
+    borderRadius: 12,
+    paddingHorizontal: 10,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -483,13 +566,13 @@ const styles = StyleSheet.create({
   },
   pendingText: {
     color: colors.tealDark,
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '700',
   },
   statusSoft: {
-    minHeight: 30,
-    borderRadius: 15,
-    paddingHorizontal: 10,
+    minHeight: 26,
+    borderRadius: 13,
+    paddingHorizontal: 8,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
@@ -497,13 +580,13 @@ const styles = StyleSheet.create({
   },
   statusSoftText: {
     color: colors.tealDark,
-    fontSize: 12,
+    fontSize: 10,
     fontWeight: '700',
   },
   statusActive: {
-    minHeight: 30,
-    borderRadius: 15,
-    paddingHorizontal: 10,
+    minHeight: 26,
+    borderRadius: 13,
+    paddingHorizontal: 8,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
@@ -511,7 +594,7 @@ const styles = StyleSheet.create({
   },
   statusActiveText: {
     color: '#ffffff',
-    fontSize: 12,
+    fontSize: 10,
     fontWeight: '700',
   },
   loadingPanel: {

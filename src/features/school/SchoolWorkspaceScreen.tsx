@@ -12,9 +12,10 @@ import {
   View,
 } from 'react-native';
 import { router } from 'expo-router';
-import { ArrowLeft, BookOpen, GraduationCap, LogOut, Plus, ShieldCheck, X } from 'lucide-react-native';
+import { ArrowLeft, BookOpen, CheckCircle2, Circle, GraduationCap, Grid2X2, Layers, LogOut, Plus, Settings2, ShieldCheck, X } from 'lucide-react-native';
 
 import { AppNavigation, AppNavItem } from '../../components/AppNavigation';
+import { ChivoMetric } from '../../components/chivo/ChivoUI';
 import { signOut } from '../../services/auth';
 import { createClass, fetchSchoolSetupState, SchoolSetupState } from '../../services/school';
 import { colors } from '../../theme/tokens';
@@ -23,6 +24,7 @@ import { LearnerScreen } from '../learner/LearnerScreen';
 import { TeacherScreen } from '../teacher/TeacherScreen';
 
 type WorkspaceSurface = 'learn' | 'teach';
+type ClassModalIntent = 'default' | 'guided';
 
 type SchoolWorkspaceScreenProps = {
   membership: ActiveSchoolMembership;
@@ -56,6 +58,7 @@ export function SchoolWorkspaceScreen({
   const [refreshing, setRefreshing] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const [classModalOpen, setClassModalOpen] = useState(false);
+  const [classModalIntent, setClassModalIntent] = useState<ClassModalIntent>('default');
   const [className, setClassName] = useState('');
   const [classUsername, setClassUsername] = useState('');
   const [gradeLevel, setGradeLevel] = useState('');
@@ -107,11 +110,13 @@ export function SchoolWorkspaceScreen({
       joinedClasses,
     };
   }, [membership.id, setup]);
+  const firstClass = setup.classes[0] ?? null;
 
   const loadWorkspace = useCallback(async () => {
     setError(null);
     const nextSetup = await fetchSchoolSetupState(membership.schoolId, isAdmin);
     setSetup(nextSetup);
+    return nextSetup;
   }, [isAdmin, membership.schoolId]);
 
   useEffect(() => {
@@ -160,7 +165,7 @@ export function SchoolWorkspaceScreen({
     setClassError(null);
 
     try {
-      await createClass({
+      const createdClass = await createClass({
         schoolId: membership.schoolId,
         academicTermId: null,
         name: className,
@@ -174,12 +179,43 @@ export function SchoolWorkspaceScreen({
       setClassUsername('');
       setGradeLevel('');
       setClassModalOpen(false);
-      await loadWorkspace();
+      const nextSetup = await loadWorkspace();
+
+      if (classModalIntent === 'guided') {
+        const targetClass = createdClass ?? nextSetup.classes.find((item) => item.name.toLowerCase() === className.trim().toLowerCase());
+        if (targetClass?.username) {
+          router.push(`/school/class/${targetClass.username}?setup=subject&panel=people` as never);
+        }
+      }
     } catch (caught) {
       setClassError(caught instanceof Error ? caught.message : 'Could not create class.');
     } finally {
       setCreatingClass(false);
     }
+  }
+
+  function openClassModal(intent: ClassModalIntent) {
+    setClassModalIntent(intent);
+    setClassError(null);
+    setClassModalOpen(true);
+  }
+
+  function openSubjectSetup() {
+    if (!firstClass?.username) {
+      openClassModal('guided');
+      return;
+    }
+
+    router.push(`/school/class/${firstClass.username}?setup=subject&panel=people` as never);
+  }
+
+  function openLessonStudio() {
+    if (!firstClass?.username) {
+      openClassModal('guided');
+      return;
+    }
+
+    router.push(`/school/class/${firstClass.username}?panel=studio` as never);
   }
 
   function selectSurface(id: string) {
@@ -222,13 +258,6 @@ export function SchoolWorkspaceScreen({
               </Text>
             </View>
 
-            {canTeach ? (
-              <Pressable onPress={() => setClassModalOpen(true)} style={styles.createClassButton}>
-                <Plus size={17} color="#ffffff" />
-                <Text style={styles.createClassText}>Class</Text>
-              </Pressable>
-            ) : null}
-
             <Pressable onPress={handleSignOut} style={styles.signOutButton}>
               {signingOut ? (
                 <ActivityIndicator color={colors.tealDark} />
@@ -269,15 +298,28 @@ export function SchoolWorkspaceScreen({
             <Metric label="Joined" value={counts.joinedClasses} />
           </View>
 
+          {canTeach ? (
+            <SchoolSetupDock
+              classCount={counts.classes}
+              subjectCount={counts.subjects}
+              linkedSubjectCount={setup.classSubjects.length}
+              memberCount={counts.activeMembers}
+              isAdmin={isAdmin}
+              onCreateClass={() => openClassModal('guided')}
+              onAddSubject={openSubjectSetup}
+              onRecordLesson={openLessonStudio}
+            />
+          ) : null}
+
           {loading ? (
             <View style={styles.loadingCard}>
               <ActivityIndicator color={colors.tealDark} />
               <Text style={styles.meta}>Loading school data</Text>
             </View>
           ) : activeSurface === 'teach' ? (
-            <TeacherScreen membership={membership} setup={setup} onWorkspaceChanged={loadWorkspace} />
+            <TeacherScreen membership={membership} setup={setup} onWorkspaceChanged={async () => { await loadWorkspace(); }} />
           ) : (
-            <LearnerScreen membership={membership} setup={setup} onWorkspaceChanged={loadWorkspace} />
+            <LearnerScreen membership={membership} setup={setup} onWorkspaceChanged={async () => { await loadWorkspace(); }} />
           )}
 
           <QuickClassModal
@@ -290,12 +332,91 @@ export function SchoolWorkspaceScreen({
             onName={setClassName}
             onUsername={setClassUsername}
             onGradeLevel={setGradeLevel}
-            onClose={() => setClassModalOpen(false)}
+            onClose={() => {
+              setClassModalOpen(false);
+              setClassModalIntent('default');
+            }}
             onSubmit={handleCreateClass}
           />
         </View>
       </ScrollView>
     </AppNavigation>
+  );
+}
+
+function SchoolSetupDock({
+  classCount,
+  subjectCount,
+  linkedSubjectCount,
+  memberCount,
+  isAdmin,
+  onCreateClass,
+  onAddSubject,
+  onRecordLesson,
+}: {
+  classCount: number;
+  subjectCount: number;
+  linkedSubjectCount: number;
+  memberCount: number;
+  isAdmin: boolean;
+  onCreateClass: () => void;
+  onAddSubject: () => void;
+  onRecordLesson: () => void;
+}) {
+  const nextAction = classCount === 0
+    ? { label: 'Create class', onPress: onCreateClass, icon: <Plus size={16} color="#ffffff" /> }
+    : linkedSubjectCount === 0
+      ? { label: 'Add subject', onPress: onAddSubject, icon: <Layers size={16} color="#ffffff" /> }
+      : { label: 'Record lesson', onPress: onRecordLesson, icon: <BookOpen size={16} color="#ffffff" /> };
+  const activeStep = classCount === 0 ? 2 : linkedSubjectCount === 0 ? 3 : 4;
+
+  return (
+    <View style={styles.setupDock}>
+      <View style={styles.setupIntro}>
+        <View style={styles.setupIcon}>
+          <Settings2 size={18} color="#ffffff" />
+        </View>
+        <View style={styles.flexText}>
+          <Text style={styles.setupTitle}>Setup path</Text>
+          <Text style={styles.setupMeta}>
+            Step {activeStep}: {classCount === 0 ? 'create a class' : linkedSubjectCount === 0 ? 'add a subject' : 'record the first lesson'} - {classCount} classes, {subjectCount} subjects, {memberCount} members
+          </Text>
+        </View>
+      </View>
+
+      <View style={styles.setupSteps}>
+        <SetupStep label="School" done />
+        <SetupStep label="Class" done={classCount > 0} />
+        <SetupStep label="Subject" done={linkedSubjectCount > 0} />
+        <SetupStep label="Lesson" done={false} active={classCount > 0 && linkedSubjectCount > 0} />
+      </View>
+
+      <View style={styles.setupActions}>
+        <Pressable onPress={nextAction.onPress} style={styles.setupPrimary}>
+          {nextAction.icon}
+          <Text style={styles.setupPrimaryText}>{nextAction.label}</Text>
+        </Pressable>
+        <Pressable onPress={() => router.push('/school/class' as never)} style={styles.setupAction}>
+          <Grid2X2 size={16} color={colors.tealDark} />
+          <Text style={styles.setupActionText}>Classes</Text>
+        </Pressable>
+        {isAdmin ? (
+          <Pressable onPress={() => router.push('/admin' as never)} style={styles.setupAction}>
+            <ShieldCheck size={16} color={colors.tealDark} />
+            <Text style={styles.setupActionText}>Admin</Text>
+          </Pressable>
+        ) : null}
+      </View>
+    </View>
+  );
+}
+
+function SetupStep({ label, done, active }: { label: string; done?: boolean; active?: boolean }) {
+  return (
+    <View style={[styles.setupStep, active && styles.setupStepActive]}>
+      {done ? <CheckCircle2 size={14} color={colors.tealDark} /> : <Circle size={14} color={active ? colors.ink : colors.muted} />}
+      <Text style={[styles.setupStepText, active && styles.setupStepTextActive]}>{label}</Text>
+    </View>
   );
 }
 
@@ -388,12 +509,7 @@ function QuickClassModal({
 }
 
 function Metric({ label, value }: { label: string; value: number }) {
-  return (
-    <View style={styles.metric}>
-      <Text style={styles.metricValue}>{value}</Text>
-      <Text style={styles.metricLabel}>{label}</Text>
-    </View>
-  );
+  return <ChivoMetric label={label} value={value} tone="surface" />;
 }
 
 function IdentityMark({ imageUrl, label }: { imageUrl?: string | null; label: string }) {
@@ -428,18 +544,18 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     paddingHorizontal: 10,
-    paddingTop: 10,
-    paddingBottom: 62,
-    backgroundColor: colors.canvas,
+    paddingTop: 8,
+    paddingBottom: 56,
+    backgroundColor: colors.surfaceSoft,
   },
   shell: {
     width: '100%',
     maxWidth: 1180,
     alignSelf: 'center',
-    gap: 8,
+    gap: 9,
   },
   topRow: {
-    minHeight: 40,
+    minHeight: 38,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
@@ -487,31 +603,16 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
   },
-  createClassButton: {
-    minHeight: 36,
-    borderRadius: 12,
-    paddingHorizontal: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    backgroundColor: colors.tealDark,
-  },
-  createClassText: {
-    color: '#ffffff',
-    fontSize: 12,
-    fontWeight: '700',
-  },
   heroPanel: {
     overflow: 'hidden',
-    borderRadius: 14,
-    backgroundColor: '#101916',
+    borderRadius: 16,
+    backgroundColor: colors.night,
     borderWidth: 1,
-    borderColor: '#20352f',
+    borderColor: 'rgba(25, 209, 163, 0.2)',
   },
   banner: {
-    height: 46,
-    backgroundColor: colors.tealDark,
+    height: 34,
+    backgroundColor: colors.brandDeep,
   },
   bannerImage: {
     width: '100%',
@@ -525,8 +626,8 @@ const styles = StyleSheet.create({
   },
   identityMark: {
     overflow: 'hidden',
-    width: 46,
-    height: 46,
+    width: 42,
+    height: 42,
     borderRadius: 13,
     alignItems: 'center',
     justifyContent: 'center',
@@ -545,15 +646,15 @@ const styles = StyleSheet.create({
   },
   heroTitle: {
     color: '#ffffff',
-    fontSize: 18,
-    lineHeight: 22,
-    fontWeight: '700',
+    fontSize: 17,
+    lineHeight: 21,
+    fontWeight: '800',
   },
   heroBody: {
     color: '#dce7e1',
     fontSize: 12,
     lineHeight: 16,
-    fontWeight: '700',
+    fontWeight: '600',
   },
   metricGrid: {
     flexDirection: 'row',
@@ -579,6 +680,112 @@ const styles = StyleSheet.create({
     color: colors.muted,
     fontSize: 11,
     lineHeight: 15,
+    fontWeight: '700',
+  },
+  setupDock: {
+    borderRadius: 16,
+    padding: 10,
+    gap: 8,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.line,
+  },
+  setupSteps: {
+    flex: 1.2,
+    minWidth: 250,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  setupStep: {
+    minHeight: 28,
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+    backgroundColor: '#f8fbf8',
+    borderWidth: 1,
+    borderColor: colors.line,
+  },
+  setupStepActive: {
+    backgroundColor: colors.softGold,
+    borderColor: '#efcf75',
+  },
+  setupStepText: {
+    color: colors.muted,
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  setupStepTextActive: {
+    color: colors.ink,
+  },
+  setupIntro: {
+    flex: 1,
+    minWidth: 190,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 9,
+  },
+  setupIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 13,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.tealDark,
+  },
+  setupTitle: {
+    color: colors.ink,
+    fontSize: 14,
+    lineHeight: 18,
+    fontWeight: '700',
+  },
+  setupMeta: {
+    color: colors.muted,
+    fontSize: 10,
+    lineHeight: 14,
+    fontWeight: '700',
+  },
+  setupActions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 7,
+  },
+  setupPrimary: {
+    minHeight: 32,
+    borderRadius: 13,
+    paddingHorizontal: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: colors.tealDark,
+  },
+  setupPrimaryText: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  setupAction: {
+    minHeight: 32,
+    borderRadius: 13,
+    paddingHorizontal: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: colors.softTeal,
+    borderWidth: 1,
+    borderColor: '#d4e8df',
+  },
+  setupActionText: {
+    color: colors.tealDark,
+    fontSize: 12,
     fontWeight: '700',
   },
   loadingCard: {

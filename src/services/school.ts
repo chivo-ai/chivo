@@ -362,7 +362,7 @@ export async function createSubject(input: CreateSubjectInput) {
 export async function createClass(input: CreateClassInput) {
   requireFields([['Class name', input.name]]);
 
-  const { error } = await (client() as any).rpc('create_class_for_school', {
+  const { data, error } = await (client() as any).rpc('create_class_for_school', {
     school_id_input: input.schoolId,
     class_name: input.name.trim(),
     academic_term_id_input: input.academicTermId,
@@ -379,6 +379,8 @@ export async function createClass(input: CreateClassInput) {
     }
     throw error;
   }
+
+  return data as ClassRow;
 }
 
 export async function updateSchoolDetails(input: UpdateSchoolDetailsInput) {

@@ -22,8 +22,14 @@ const emptySetup: SchoolSetupState = {
 };
 
 export default function ClassRoute() {
-  const { username } = useLocalSearchParams<{ username: string }>();
+  const { username, panel, setup: setupTarget } = useLocalSearchParams<{
+    username: string;
+    panel?: string;
+    setup?: string;
+  }>();
   const classUsername = Array.isArray(username) ? username[0] : username;
+  const panelParam = Array.isArray(panel) ? panel[0] : panel;
+  const setupParam = Array.isArray(setupTarget) ? setupTarget[0] : setupTarget;
   const { loading, activeMembership } = useAppSession();
   const [setup, setSetup] = useState<SchoolSetupState>(emptySetup);
   const [loadingSetup, setLoadingSetup] = useState(true);
@@ -78,6 +84,8 @@ export default function ClassRoute() {
         membership={activeMembership}
         setup={setup}
         mode={isStaff ? 'teach' : 'learn'}
+        initialPanel={panelParam === 'studio' || panelParam === 'library' || panelParam === 'people' || panelParam === 'tools' ? panelParam : undefined}
+        openSubjectSetup={setupParam === 'subject'}
         onWorkspaceChanged={loadSetup}
       />
     </RouteScreen>

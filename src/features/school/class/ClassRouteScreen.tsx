@@ -1,10 +1,18 @@
-import { ReactNode, useMemo, useState } from 'react';
-import { ActivityIndicator, Image, Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
-import { BookOpen, Brain, Headphones, Layers, Link2, Plus, Sparkles, Users, X } from 'lucide-react-native';
+import { ReactNode, useEffect, useMemo, useRef, useState } from 'react';
+import { ActivityIndicator, Image, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { BookOpen, Brain, Headphones, Layers, Link2, Plus, Sparkles, UserMinus, UserPlus, Users, X } from 'lucide-react-native';
 
 import { LessonWorkspace } from '../../lessons/LessonWorkspace';
 import { ClassStudyRoom } from './ClassStudyRoom';
-import { createClassSubject, createSubject, SchoolSetupState, SubjectRow } from '../../../services/school';
+import {
+  assignMemberToClass,
+  createClassSubject,
+  createSubject,
+  removeMemberFromClass,
+  SchoolMemberRow,
+  SchoolSetupState,
+  SubjectRow,
+} from '../../../services/school';
 import { colors } from '../../../theme/tokens';
 import { ActiveSchoolMembership } from '../../../types';
 
@@ -13,10 +21,12 @@ type SchoolClassRouteScreenProps = {
   membership: ActiveSchoolMembership;
   setup: SchoolSetupState;
   mode: 'learn' | 'teach';
+  initialPanel?: ClassPanel;
+  openSubjectSetup?: boolean;
   onWorkspaceChanged: () => void | Promise<void>;
 };
 
-type ClassPanel = 'studio' | 'library' | 'tools';
+type ClassPanel = 'studio' | 'library' | 'people' | 'tools';
 
 const tones = [
   { background: '#fff4d4', accent: colors.gold },
@@ -30,6 +40,8 @@ export function SchoolClassRouteScreen({
   membership,
   setup,
   mode,
+  initialPanel,
+  openSubjectSetup,
   onWorkspaceChanged,
 }: SchoolClassRouteScreenProps) {
   const schoolClass = setup.classes.find((item) => item.id === classId);
@@ -40,9 +52,17 @@ export function SchoolClassRouteScreen({
   const [subjectDepartment, setSubjectDepartment] = useState('');
   const [subjectSaving, setSubjectSaving] = useState<string | null>(null);
   const [subjectError, setSubjectError] = useState<string | null>(null);
+  const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
+  const [rosterSaving, setRosterSaving] = useState<string | null>(null);
+  const [rosterMessage, setRosterMessage] = useState<string | null>(null);
+  const [rosterError, setRosterError] = useState<string | null>(null);
+  const openedSetupRef = useRef(false);
   const classIndex = Math.max(setup.classes.findIndex((item) => item.id === classId), 0);
   const tone = tones[classIndex % tones.length];
   const classSubjects = setup.classSubjects.filter((link) => link.class_id === classId);
+  const activeClassMemberships = setup.classMemberships.filter((item) => item.class_id === classId && item.status === 'active');
+  const classMemberIds = new Set(activeClassMemberships.map((item) => item.school_membership_id));
+  const availableMembers = setup.members.filter((member) => member.status === 'active' && !classMemberIds.has(member.id));
   const linkedSubjectIds = useMemo(
     () => new Set(classSubjects.map((link) => link.subject_id)),
     [classSubjects]
@@ -51,7 +71,93 @@ export function SchoolClassRouteScreen({
   const subjectNames = classSubjects
     .map((link) => setup.subjects.find((subject) => subject.id === link.subject_id)?.name)
     .filter(Boolean) as string[];
-  const classMemberCount = setup.classMemberships.filter((item) => item.class_id === classId && item.status === 'active').length;
+  const classMemberCount = activeClassMemberships.length;
+  const classRoster = activeClassMemberships.map((classMembership) => {
+    const member = setup.members.find((item) => item.id === classMembership.school_membership_id);
+    return {
+      id: classMembership.id,
+      name: member?.profiles?.full_name || formatRole(classMembership.role),
+      language: member?.profiles?.preferred_language || 'Language not set',
+      role: classMembership.role,
+      status: member?.status ?? classMembership.status,
+    };
+  });
+  const panelItems = mode === 'teach'
+    ? [
+        {
+          id: 'studio' as ClassPanel,
+          label: 'Teach',
+          description: 'Record and publish',
+          icon: <BookOpen size={17} color={activePanel === 'studio' ? '#ffffff' : colors.tealDark} />,
+        },
+        {
+          id: 'library' as ClassPanel,
+          label: 'Lessons',
+          description: 'Published and live',
+          icon: <Headphones size={17} color={activePanel === 'library' ? '#ffffff' : colors.tealDark} />,
+        },
+        {
+          id: 'people' as ClassPanel,
+          label: 'Students',
+          description: 'Roster and access',
+          icon: <Users size={17} color={activePanel === 'people' ? '#ffffff' : colors.tealDark} />,
+        },
+        {
+          id: 'tools' as ClassPanel,
+          label: 'Tools',
+          description: 'Chat, voice, AI',
+          icon: <Brain size={17} color={activePanel === 'tools' ? '#ffffff' : colors.tealDark} />,
+        },
+      ]
+    : [
+        {
+          id: 'studio' as ClassPanel,
+          label: 'Learn',
+          description: 'Start lessons',
+          icon: <BookOpen size={17} color={activePanel === 'studio' ? '#ffffff' : colors.tealDark} />,
+        },
+        {
+          id: 'library' as ClassPanel,
+          label: 'Library',
+          description: 'All lessons',
+          icon: <Headphones size={17} color={activePanel === 'library' ? '#ffffff' : colors.tealDark} />,
+        },
+        {
+          id: 'people' as ClassPanel,
+          label: 'Practice',
+          description: 'Quiz and cards',
+          icon: <Sparkles size={17} color={activePanel === 'people' ? '#ffffff' : colors.tealDark} />,
+        },
+        {
+          id: 'tools' as ClassPanel,
+          label: 'Class',
+          description: 'Chat and voice',
+          icon: <Brain size={17} color={activePanel === 'tools' ? '#ffffff' : colors.tealDark} />,
+        },
+      ];
+
+  useEffect(() => {
+    if (selectedMemberId && availableMembers.some((member) => member.id === selectedMemberId)) {
+      return;
+    }
+
+    setSelectedMemberId(availableMembers[0]?.id ?? null);
+  }, [availableMembers, selectedMemberId]);
+
+  useEffect(() => {
+    if (initialPanel) {
+      setActivePanel(initialPanel);
+    }
+  }, [initialPanel]);
+
+  useEffect(() => {
+    if (!openSubjectSetup || !canManageClass || openedSetupRef.current) {
+      return;
+    }
+
+    openedSetupRef.current = true;
+    setSubjectModalOpen(true);
+  }, [canManageClass, openSubjectSetup]);
 
   async function handleCreateSubject() {
     setSubjectSaving('create');
@@ -72,6 +178,9 @@ export function SchoolClassRouteScreen({
       setSubjectDepartment('');
       setSubjectModalOpen(false);
       await onWorkspaceChanged();
+      if (mode === 'teach') {
+        setActivePanel('studio');
+      }
     } catch (caught) {
       setSubjectError(caught instanceof Error ? caught.message : 'Could not create subject.');
     } finally {
@@ -90,10 +199,51 @@ export function SchoolClassRouteScreen({
         teacherMembershipId: canManageClass ? membership.id : null,
       });
       await onWorkspaceChanged();
+      if (mode === 'teach') {
+        setSubjectModalOpen(false);
+        setActivePanel('studio');
+      }
     } catch (caught) {
       setSubjectError(caught instanceof Error ? caught.message : 'Could not attach subject.');
     } finally {
       setSubjectSaving(null);
+    }
+  }
+
+  async function handleAddMember() {
+    const member = setup.members.find((item) => item.id === selectedMemberId);
+    setRosterSaving('add-member');
+    setRosterMessage(null);
+    setRosterError(null);
+
+    try {
+      await assignMemberToClass({
+        classId,
+        schoolMembershipId: member?.id ?? '',
+        role: member?.role ?? 'student',
+      });
+      setRosterMessage('Member added to this class.');
+      await onWorkspaceChanged();
+    } catch (caught) {
+      setRosterError(caught instanceof Error ? caught.message : 'Could not add this member.');
+    } finally {
+      setRosterSaving(null);
+    }
+  }
+
+  async function handleRemoveMember(classMembershipId: string) {
+    setRosterSaving(`remove-${classMembershipId}`);
+    setRosterMessage(null);
+    setRosterError(null);
+
+    try {
+      await removeMemberFromClass(classMembershipId);
+      setRosterMessage('Member removed from this class.');
+      await onWorkspaceChanged();
+    } catch (caught) {
+      setRosterError(caught instanceof Error ? caught.message : 'Could not remove this member.');
+    } finally {
+      setRosterSaving(null);
     }
   }
 
@@ -125,12 +275,6 @@ export function SchoolClassRouteScreen({
             </View>
           </View>
 
-          {canManageClass ? (
-            <Pressable onPress={() => setSubjectModalOpen(true)} style={styles.heroAction}>
-              <Plus size={16} color={colors.ink} />
-              <Text style={styles.heroActionText}>Subject</Text>
-            </Pressable>
-          ) : null}
         </View>
 
         <View style={styles.subjectStrip}>
@@ -144,38 +288,45 @@ export function SchoolClassRouteScreen({
         </View>
       </View>
 
-      <View style={styles.panelRail}>
-        <ClassPanelButton
-          id="studio"
-          activeId={activePanel}
-          label="Lesson studio"
-          description={mode === 'teach' ? 'Record and prepare' : 'Class lessons'}
-          icon={<BookOpen size={18} color={activePanel === 'studio' ? '#ffffff' : colors.tealDark} />}
-          onPress={setActivePanel}
-        />
-        <ClassPanelButton
-          id="library"
-          activeId={activePanel}
-          label="Lesson library"
-          description="Published and live"
-          icon={<Headphones size={18} color={activePanel === 'library' ? '#ffffff' : colors.tealDark} />}
-          onPress={setActivePanel}
-        />
-        <ClassPanelButton
-          id="tools"
-          activeId={activePanel}
-          label="Class tools"
-          description="Chat, voice, AI"
-          icon={<Brain size={18} color={activePanel === 'tools' ? '#ffffff' : colors.tealDark} />}
-          onPress={setActivePanel}
-        />
+      <ClassControlCenter
+        mode={mode}
+        subjectCount={subjectNames.length}
+        memberCount={classMemberCount}
+        canManage={canManageClass}
+        activePanel={activePanel}
+        onOpenStudio={() => {
+          if (mode === 'teach' && !subjectNames.length) {
+            setSubjectModalOpen(true);
+            return;
+          }
+
+          setActivePanel(mode === 'teach' ? 'studio' : 'library');
+        }}
+        onOpenLibrary={() => setActivePanel('library')}
+        onOpenPeople={() => setActivePanel('people')}
+        onOpenTools={() => setActivePanel('tools')}
+        onSetup={() => setSubjectModalOpen(true)}
+      />
+
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.panelScroller} contentContainerStyle={styles.panelRail}>
+        {panelItems.map((item) => (
+          <ClassPanelButton
+            key={item.id}
+            id={item.id}
+            activeId={activePanel}
+            label={item.label}
+            description={item.description}
+            icon={item.icon}
+            onPress={setActivePanel}
+          />
+        ))}
         {canManageClass ? (
           <Pressable onPress={() => setSubjectModalOpen(true)} style={styles.createSubjectAction}>
             <Plus size={18} color="#ffffff" />
-            <Text style={styles.createSubjectText}>Add subject</Text>
+            <Text style={styles.createSubjectText}>Setup</Text>
           </Pressable>
         ) : null}
-      </View>
+      </ScrollView>
 
       {activePanel === 'studio' ? (
         <View style={styles.lessonLane}>
@@ -186,7 +337,7 @@ export function SchoolClassRouteScreen({
           <View style={styles.flexText}>
             <Text style={styles.laneEyebrow}>{mode === 'teach' ? 'Live teaching console' : 'Class lesson space'}</Text>
             <Text style={styles.laneTitle}>
-              {mode === 'teach' ? 'Record, prepare, and publish lessons' : 'Listen, read, quiz, and revise'}
+              {mode === 'teach' ? 'Record, prepare, and publish lessons' : 'Start with published lessons'}
             </Text>
           </View>
           <View style={styles.primaryBadge}>
@@ -201,7 +352,7 @@ export function SchoolClassRouteScreen({
           onLessonsChanged={onWorkspaceChanged}
           mode={mode}
           initialClassId={classId}
-          classPanel="studio"
+          classPanel={mode === 'teach' ? 'studio' : 'library'}
         />
       </View>
       ) : null}
@@ -227,6 +378,33 @@ export function SchoolClassRouteScreen({
             classPanel="library"
           />
         </View>
+      ) : null}
+
+      {activePanel === 'people' ? (
+        mode === 'teach' ? (
+          <ClassRosterPanel
+            className={schoolClass?.name ?? 'Class'}
+            roster={classRoster}
+            availableMembers={availableMembers}
+            selectedMemberId={selectedMemberId}
+            saving={rosterSaving}
+            message={rosterMessage}
+            error={rosterError}
+            subjectCount={subjectNames.length}
+            canManage={canManageClass}
+            onSetup={() => setSubjectModalOpen(true)}
+            onSelectMember={setSelectedMemberId}
+            onAddMember={handleAddMember}
+            onRemoveMember={handleRemoveMember}
+          />
+        ) : (
+          <StudentPracticePanel
+            subjectNames={subjectNames}
+            classMemberCount={classMemberCount}
+            onOpenLibrary={() => setActivePanel('library')}
+            onOpenTools={() => setActivePanel('tools')}
+          />
+        )
       ) : null}
 
       {activePanel === 'tools' ? (
@@ -291,6 +469,108 @@ export function SchoolClassRouteScreen({
 
 export default SchoolClassRouteScreen;
 
+function ClassControlCenter({
+  mode,
+  subjectCount,
+  memberCount,
+  canManage,
+  activePanel,
+  onOpenStudio,
+  onOpenLibrary,
+  onOpenPeople,
+  onOpenTools,
+  onSetup,
+}: {
+  mode: 'learn' | 'teach';
+  subjectCount: number;
+  memberCount: number;
+  canManage: boolean;
+  activePanel: ClassPanel;
+  onOpenStudio: () => void;
+  onOpenLibrary: () => void;
+  onOpenPeople: () => void;
+  onOpenTools: () => void;
+  onSetup: () => void;
+}) {
+  const teacherMode = mode === 'teach';
+
+  return (
+    <View style={styles.commandCenter}>
+      <Pressable onPress={onOpenStudio} style={[styles.missionCard, teacherMode ? styles.teacherMission : styles.studentMission]}>
+        <View style={styles.missionIcon}>
+          {teacherMode ? <BookOpen size={20} color="#ffffff" /> : <Headphones size={20} color="#ffffff" />}
+        </View>
+        <View style={styles.flexText}>
+          <Text style={styles.missionEyebrow}>{teacherMode ? 'Teacher next step' : 'Student next step'}</Text>
+          <Text style={styles.missionTitle}>
+            {teacherMode ? (subjectCount ? 'Record the next lesson' : 'Add a subject first') : 'Open published lessons'}
+          </Text>
+          <Text style={styles.missionMeta}>
+            {teacherMode ? `${subjectCount} subjects ready - ${memberCount} class members` : 'Listen, read, translate, quiz, and revise'}
+          </Text>
+        </View>
+      </Pressable>
+
+      <View style={styles.commandGrid}>
+        <ControlCard
+          active={activePanel === 'library'}
+          icon={<Headphones size={17} color={activePanel === 'library' ? '#ffffff' : colors.tealDark} />}
+          title={teacherMode ? 'Published' : 'Lessons'}
+          meta={teacherMode ? 'Live and published' : 'Study library'}
+          onPress={onOpenLibrary}
+        />
+        <ControlCard
+          active={activePanel === 'people'}
+          icon={<Users size={17} color={activePanel === 'people' ? '#ffffff' : colors.tealDark} />}
+          title={teacherMode ? 'Students' : 'Practice'}
+          meta={teacherMode ? `${memberCount} active` : 'Quiz and cards'}
+          onPress={onOpenPeople}
+        />
+        <ControlCard
+          active={activePanel === 'tools'}
+          icon={<Brain size={17} color={activePanel === 'tools' ? '#ffffff' : colors.tealDark} />}
+          title="Tools"
+          meta="Chat, voice, AI"
+          onPress={onOpenTools}
+        />
+        {canManage ? (
+          <ControlCard
+            active={false}
+            icon={<Layers size={17} color={colors.tealDark} />}
+            title="Subject"
+            meta={subjectCount ? `${subjectCount} linked` : 'Setup needed'}
+            onPress={onSetup}
+          />
+        ) : null}
+      </View>
+    </View>
+  );
+}
+
+function ControlCard({
+  active,
+  icon,
+  title,
+  meta,
+  onPress,
+}: {
+  active: boolean;
+  icon: ReactNode;
+  title: string;
+  meta: string;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable onPress={onPress} style={[styles.controlCard, active && styles.controlCardActive]}>
+      <View style={[styles.controlIcon, active && styles.controlIconActive]}>{icon}</View>
+      <View style={styles.flexText}>
+        <Text style={[styles.controlTitle, active && styles.controlTextActive]}>{title}</Text>
+        <Text style={[styles.controlMeta, active && styles.controlMetaActive]}>{meta}</Text>
+      </View>
+    </Pressable>
+  );
+}
+
 function ClassPanelButton({
   id,
   activeId,
@@ -316,6 +596,187 @@ function ClassPanelButton({
         <Text style={[styles.panelTabMeta, active && styles.panelTabMetaActive]}>{description}</Text>
       </View>
     </Pressable>
+  );
+}
+
+function ClassRosterPanel({
+  className,
+  roster,
+  availableMembers,
+  selectedMemberId,
+  saving,
+  message,
+  error,
+  subjectCount,
+  canManage,
+  onSetup,
+  onSelectMember,
+  onAddMember,
+  onRemoveMember,
+}: {
+  className: string;
+  roster: Array<{ id: string; name: string; language: string; role: string; status: string }>;
+  availableMembers: SchoolMemberRow[];
+  selectedMemberId: string | null;
+  saving: string | null;
+  message: string | null;
+  error: string | null;
+  subjectCount: number;
+  canManage: boolean;
+  onSetup: () => void;
+  onSelectMember: (id: string) => void;
+  onAddMember: () => void;
+  onRemoveMember: (id: string) => void;
+}) {
+  return (
+    <View style={styles.rosterPanel}>
+      <View style={styles.rosterHeader}>
+        <View style={styles.rosterIcon}>
+          <Users size={19} color="#ffffff" />
+        </View>
+        <View style={styles.flexText}>
+          <Text style={styles.rosterEyebrow}>Class roster</Text>
+          <Text style={styles.rosterTitle}>{className}</Text>
+        </View>
+        <Pressable onPress={onSetup} style={styles.rosterAction}>
+          <Plus size={15} color={colors.ink} />
+          <Text style={styles.rosterActionText}>Subject</Text>
+        </Pressable>
+      </View>
+
+      {message ? <Text style={styles.successText}>{message}</Text> : null}
+      {error ? <Text style={styles.errorText}>{error}</Text> : null}
+
+      <View style={styles.rosterStats}>
+        <View style={styles.compactStat}>
+          <Text style={styles.compactStatValue}>{roster.length}</Text>
+          <Text style={styles.compactStatLabel}>Students</Text>
+        </View>
+        <View style={styles.compactStat}>
+          <Text style={styles.compactStatValue}>{subjectCount}</Text>
+          <Text style={styles.compactStatLabel}>Subjects</Text>
+        </View>
+      </View>
+
+      <View style={styles.rosterList}>
+        {roster.length ? roster.map((member) => (
+          <View key={member.id} style={styles.rosterItem}>
+            <View style={styles.rosterAvatar}>
+              <Text style={styles.rosterAvatarText}>{initials(member.name)}</Text>
+            </View>
+            <View style={styles.flexText}>
+              <Text style={styles.rosterName}>{member.name}</Text>
+              <Text style={styles.rosterMeta}>{formatRole(member.role)} - {member.language}</Text>
+            </View>
+            {canManage ? (
+              <Pressable
+                disabled={saving === `remove-${member.id}`}
+                onPress={() => onRemoveMember(member.id)}
+                style={styles.rosterRemove}
+              >
+                {saving === `remove-${member.id}` ? (
+                  <ActivityIndicator color={colors.tealDark} />
+                ) : (
+                  <>
+                    <UserMinus size={14} color={colors.tealDark} />
+                    <Text style={styles.rosterRemoveText}>Remove</Text>
+                  </>
+                )}
+              </Pressable>
+            ) : (
+              <Text style={styles.rosterStatus}>{member.status}</Text>
+            )}
+          </View>
+        )) : (
+          <Text style={styles.emptyText}>No active students in this class yet.</Text>
+        )}
+      </View>
+
+      {canManage ? (
+        <View style={styles.addMemberPanel}>
+          <View style={styles.addMemberHeader}>
+            <UserPlus size={17} color={colors.tealDark} />
+            <Text style={styles.addMemberTitle}>Add school member</Text>
+          </View>
+          <View style={styles.memberChoiceWrap}>
+            {availableMembers.length ? availableMembers.map((member) => {
+              const active = member.id === selectedMemberId;
+              const label = member.profiles?.full_name || formatRole(member.role);
+
+              return (
+                <Pressable
+                  key={member.id}
+                  onPress={() => onSelectMember(member.id)}
+                  style={[styles.memberChoice, active && styles.memberChoiceActive]}
+                >
+                  <Text style={[styles.memberChoiceText, active && styles.memberChoiceTextActive]} numberOfLines={1}>{label}</Text>
+                  <Text style={[styles.memberChoiceMeta, active && styles.memberChoiceTextActive]}>{formatRole(member.role)}</Text>
+                </Pressable>
+              );
+            }) : (
+              <Text style={styles.emptyText}>Every active school member is already in this class.</Text>
+            )}
+          </View>
+          <Pressable
+            disabled={!selectedMemberId || saving === 'add-member'}
+            onPress={onAddMember}
+            style={[styles.addMemberButton, (!selectedMemberId || saving === 'add-member') && styles.disabledAction]}
+          >
+            {saving === 'add-member' ? <ActivityIndicator color="#ffffff" /> : <UserPlus size={16} color="#ffffff" />}
+            <Text style={styles.addMemberButtonText}>Add to class</Text>
+          </Pressable>
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
+function StudentPracticePanel({
+  subjectNames,
+  classMemberCount,
+  onOpenLibrary,
+  onOpenTools,
+}: {
+  subjectNames: string[];
+  classMemberCount: number;
+  onOpenLibrary: () => void;
+  onOpenTools: () => void;
+}) {
+  return (
+    <View style={styles.practicePanel}>
+      <View style={styles.practiceHeader}>
+        <View style={styles.practiceIcon}>
+          <Sparkles size={19} color={colors.ink} />
+        </View>
+        <View style={styles.flexText}>
+          <Text style={styles.practiceEyebrow}>Practice lane</Text>
+          <Text style={styles.practiceTitle}>Review the lesson, then quiz yourself</Text>
+        </View>
+      </View>
+
+      <View style={styles.practiceGrid}>
+        <Pressable onPress={onOpenLibrary} style={styles.practiceCard}>
+          <BookOpen size={18} color={colors.tealDark} />
+          <Text style={styles.practiceCardTitle}>Open lessons</Text>
+          <Text style={styles.practiceCardMeta}>Listen, read, cards, quiz</Text>
+        </Pressable>
+        <Pressable onPress={onOpenTools} style={styles.practiceCard}>
+          <Brain size={18} color={colors.tealDark} />
+          <Text style={styles.practiceCardTitle}>Study together</Text>
+          <Text style={styles.practiceCardMeta}>{classMemberCount} classmates available</Text>
+        </Pressable>
+      </View>
+
+      <View style={styles.subjectWrap}>
+        {subjectNames.length ? subjectNames.slice(0, 8).map((subject) => (
+          <View key={subject} style={styles.subjectPill}>
+            <Text style={styles.subjectText}>{subject}</Text>
+          </View>
+        )) : (
+          <Text style={styles.emptyText}>Your teacher has not attached subjects yet.</Text>
+        )}
+      </View>
+    </View>
   );
 }
 
@@ -463,17 +924,24 @@ function initials(value: string) {
     .join('') || 'CH';
 }
 
+function formatRole(value: string) {
+  return value
+    .split('_')
+    .map((part) => part.slice(0, 1).toUpperCase() + part.slice(1))
+    .join(' ');
+}
+
 const styles = StyleSheet.create({
   stack: {
-    gap: 10,
+    gap: 8,
   },
   hero: {
     overflow: 'hidden',
     position: 'relative',
-    borderRadius: 18,
-    backgroundColor: '#101916',
+    borderRadius: 16,
+    backgroundColor: colors.night,
     borderWidth: 1,
-    borderColor: '#24483f',
+    borderColor: 'rgba(25, 209, 163, 0.22)',
   },
   heroImage: {
     position: 'absolute',
@@ -486,16 +954,16 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(8, 21, 17, 0.82)',
   },
   heroBody: {
-    padding: 12,
+    padding: 10,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 9,
   },
   classMark: {
     overflow: 'hidden',
-    width: 48,
-    height: 48,
-    borderRadius: 16,
+    width: 42,
+    height: 42,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
@@ -516,9 +984,9 @@ const styles = StyleSheet.create({
   },
   heroPill: {
     alignSelf: 'flex-start',
-    minHeight: 24,
-    borderRadius: 12,
-    paddingHorizontal: 8,
+    minHeight: 22,
+    borderRadius: 11,
+    paddingHorizontal: 7,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
@@ -526,14 +994,14 @@ const styles = StyleSheet.create({
   },
   heroPillText: {
     color: colors.ink,
-    fontSize: 11,
-    fontWeight: '700',
+    fontSize: 10,
+    fontWeight: '800',
   },
   title: {
     color: '#ffffff',
-    fontSize: 20,
-    lineHeight: 24,
-    fontWeight: '700',
+    fontSize: 18,
+    lineHeight: 22,
+    fontWeight: '800',
   },
   meta: {
     color: '#d9e5de',
@@ -547,10 +1015,10 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   classChip: {
-    minHeight: 24,
-    borderRadius: 12,
-    paddingHorizontal: 8,
-    paddingTop: 5,
+    minHeight: 22,
+    borderRadius: 11,
+    paddingHorizontal: 7,
+    paddingTop: 4,
     color: '#e9f4ef',
     backgroundColor: 'rgba(255,255,255,0.1)',
     borderWidth: 1,
@@ -575,16 +1043,16 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   subjectStrip: {
-    paddingHorizontal: 12,
-    paddingBottom: 12,
+    paddingHorizontal: 10,
+    paddingBottom: 10,
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 6,
   },
   heroSubjectPill: {
-    minHeight: 28,
-    borderRadius: 14,
-    paddingHorizontal: 10,
+    minHeight: 24,
+    borderRadius: 12,
+    paddingHorizontal: 8,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(255,255,255,0.11)',
@@ -602,18 +1070,127 @@ const styles = StyleSheet.create({
     lineHeight: 17,
     fontWeight: '700',
   },
-  panelRail: {
+  commandCenter: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: 7,
     alignItems: 'stretch',
   },
-  panelTab: {
-    minHeight: 50,
-    minWidth: 145,
-    flex: 1,
+  missionCard: {
+    flex: 1.15,
+    minWidth: 240,
+    minHeight: 72,
     borderRadius: 15,
-    padding: 9,
+    padding: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    borderWidth: 1,
+  },
+  teacherMission: {
+    backgroundColor: colors.brandDeep,
+    borderColor: '#1d6f5f',
+  },
+  studentMission: {
+    backgroundColor: '#123047',
+    borderColor: '#245372',
+  },
+  missionIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 13,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.teal,
+  },
+  missionEyebrow: {
+    color: colors.gold,
+    fontSize: 10,
+    lineHeight: 13,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+  },
+  missionTitle: {
+    color: '#ffffff',
+    fontSize: 15,
+    lineHeight: 19,
+    fontWeight: '800',
+  },
+  missionMeta: {
+    color: '#dce7e1',
+    fontSize: 11,
+    lineHeight: 15,
+    fontWeight: '600',
+  },
+  commandGrid: {
+    flex: 1,
+    minWidth: 270,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 7,
+  },
+  controlCard: {
+    minWidth: 118,
+    flex: 1,
+    minHeight: 50,
+    borderRadius: 14,
+    padding: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.line,
+  },
+  controlCardActive: {
+    backgroundColor: colors.brandDeep,
+    borderColor: colors.brandDeep,
+  },
+  controlIcon: {
+    width: 30,
+    height: 30,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.softTeal,
+  },
+  controlIconActive: {
+    backgroundColor: 'rgba(255,255,255,0.16)',
+  },
+  controlTitle: {
+    color: colors.ink,
+    fontSize: 12,
+    lineHeight: 15,
+    fontWeight: '800',
+  },
+  controlMeta: {
+    color: colors.muted,
+    fontSize: 10,
+    lineHeight: 13,
+    fontWeight: '600',
+  },
+  controlTextActive: {
+    color: '#ffffff',
+  },
+  controlMetaActive: {
+    color: '#dce7e1',
+  },
+  panelScroller: {
+    maxHeight: 42,
+  },
+  panelRail: {
+    flexDirection: 'row',
+    flexWrap: 'nowrap',
+    gap: 8,
+    alignItems: 'stretch',
+    paddingVertical: 2,
+  },
+  panelTab: {
+    minHeight: 36,
+    minWidth: 108,
+    borderRadius: 13,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
@@ -622,13 +1199,13 @@ const styles = StyleSheet.create({
     borderColor: colors.line,
   },
   panelTabActive: {
-    backgroundColor: colors.tealDark,
-    borderColor: colors.tealDark,
+    backgroundColor: colors.brandDeep,
+    borderColor: colors.brandDeep,
   },
   panelTabIcon: {
-    width: 34,
-    height: 34,
-    borderRadius: 12,
+    width: 26,
+    height: 26,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.softTeal,
@@ -638,8 +1215,8 @@ const styles = StyleSheet.create({
   },
   panelTabTitle: {
     color: colors.ink,
-    fontSize: 13,
-    lineHeight: 17,
+    fontSize: 12,
+    lineHeight: 15,
     fontWeight: '700',
   },
   panelTabTitleActive: {
@@ -647,18 +1224,18 @@ const styles = StyleSheet.create({
   },
   panelTabMeta: {
     color: colors.muted,
-    fontSize: 10,
-    lineHeight: 14,
-    fontWeight: '700',
+    fontSize: 9,
+    lineHeight: 12,
+    fontWeight: '600',
   },
   panelTabMetaActive: {
     color: '#dce7e1',
   },
   createSubjectAction: {
-    minHeight: 50,
-    minWidth: 118,
-    borderRadius: 15,
-    paddingHorizontal: 11,
+    minHeight: 36,
+    minWidth: 88,
+    borderRadius: 13,
+    paddingHorizontal: 10,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -676,19 +1253,19 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   laneHeader: {
-    minHeight: 58,
-    borderRadius: 16,
-    padding: 11,
+    minHeight: 52,
+    borderRadius: 15,
+    padding: 10,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    backgroundColor: '#0f2d25',
+    gap: 9,
+    backgroundColor: colors.brandDeep,
     borderWidth: 1,
-    borderColor: '#1e574b',
+    borderColor: '#1d6f5f',
   },
   laneIcon: {
-    width: 40,
-    height: 40,
+    width: 36,
+    height: 36,
     borderRadius: 13,
     alignItems: 'center',
     justifyContent: 'center',
@@ -703,9 +1280,9 @@ const styles = StyleSheet.create({
   },
   laneTitle: {
     color: '#ffffff',
-    fontSize: 16,
-    lineHeight: 20,
-    fontWeight: '700',
+    fontSize: 15,
+    lineHeight: 19,
+    fontWeight: '800',
   },
   primaryBadge: {
     minHeight: 28,
@@ -723,19 +1300,19 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   libraryHeader: {
-    minHeight: 56,
-    borderRadius: 16,
-    padding: 11,
+    minHeight: 50,
+    borderRadius: 15,
+    padding: 10,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 9,
     backgroundColor: '#e9f6ff',
     borderWidth: 1,
     borderColor: '#bce0f4',
   },
   libraryIcon: {
-    width: 40,
-    height: 40,
+    width: 36,
+    height: 36,
     borderRadius: 13,
     alignItems: 'center',
     justifyContent: 'center',
@@ -750,27 +1327,27 @@ const styles = StyleSheet.create({
   },
   libraryTitle: {
     color: colors.ink,
-    fontSize: 16,
-    lineHeight: 20,
-    fontWeight: '700',
+    fontSize: 15,
+    lineHeight: 19,
+    fontWeight: '800',
   },
   secondaryLane: {
     gap: 8,
   },
   secondaryHeader: {
-    minHeight: 56,
-    borderRadius: 16,
-    padding: 11,
+    minHeight: 50,
+    borderRadius: 15,
+    padding: 10,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 9,
     backgroundColor: '#fff6da',
     borderWidth: 1,
     borderColor: '#f0d489',
   },
   secondaryIcon: {
-    width: 40,
-    height: 40,
+    width: 36,
+    height: 36,
     borderRadius: 13,
     alignItems: 'center',
     justifyContent: 'center',
@@ -780,7 +1357,7 @@ const styles = StyleSheet.create({
     color: colors.ink,
     fontSize: 15,
     lineHeight: 19,
-    fontWeight: '700',
+    fontWeight: '800',
   },
   roomStat: {
     minWidth: 130,
@@ -809,10 +1386,10 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   subjectPanel: {
-    borderRadius: 18,
-    padding: 12,
-    gap: 10,
-    backgroundColor: '#ffffff',
+    borderRadius: 15,
+    padding: 10,
+    gap: 8,
+    backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.line,
   },
@@ -824,9 +1401,9 @@ const styles = StyleSheet.create({
   },
   panelTitle: {
     color: colors.ink,
-    fontSize: 17,
-    lineHeight: 22,
-    fontWeight: '700',
+    fontSize: 15,
+    lineHeight: 19,
+    fontWeight: '800',
   },
   panelAction: {
     marginLeft: 'auto',
@@ -850,9 +1427,9 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   subjectPill: {
-    minHeight: 34,
-    borderRadius: 17,
-    paddingHorizontal: 11,
+    minHeight: 30,
+    borderRadius: 14,
+    paddingHorizontal: 9,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.softTeal,
@@ -868,6 +1445,276 @@ const styles = StyleSheet.create({
     color: colors.muted,
     fontSize: 13,
     lineHeight: 19,
+    fontWeight: '700',
+  },
+  rosterPanel: {
+    borderRadius: 16,
+    padding: 11,
+    gap: 10,
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: colors.line,
+  },
+  rosterHeader: {
+    minHeight: 42,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 9,
+  },
+  rosterIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 13,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.tealDark,
+  },
+  rosterEyebrow: {
+    color: colors.tealDark,
+    fontSize: 10,
+    lineHeight: 13,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+  },
+  rosterTitle: {
+    color: colors.ink,
+    fontSize: 16,
+    lineHeight: 20,
+    fontWeight: '700',
+  },
+  rosterAction: {
+    minHeight: 32,
+    borderRadius: 14,
+    paddingHorizontal: 9,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+    backgroundColor: colors.gold,
+  },
+  rosterActionText: {
+    color: colors.ink,
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  rosterStats: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  compactStat: {
+    minWidth: 120,
+    flex: 1,
+    borderRadius: 14,
+    padding: 9,
+    backgroundColor: colors.softTeal,
+    borderWidth: 1,
+    borderColor: '#d4e8df',
+  },
+  compactStatValue: {
+    color: colors.ink,
+    fontSize: 17,
+    lineHeight: 21,
+    fontWeight: '700',
+  },
+  compactStatLabel: {
+    color: colors.muted,
+    fontSize: 10,
+    lineHeight: 14,
+    fontWeight: '700',
+  },
+  rosterList: {
+    gap: 7,
+  },
+  rosterItem: {
+    minHeight: 50,
+    borderRadius: 14,
+    padding: 9,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 9,
+    backgroundColor: '#f8fbf9',
+    borderWidth: 1,
+    borderColor: colors.line,
+  },
+  rosterAvatar: {
+    width: 34,
+    height: 34,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.teal,
+  },
+  rosterAvatarText: {
+    color: '#ffffff',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  rosterName: {
+    color: colors.ink,
+    fontSize: 13,
+    lineHeight: 17,
+    fontWeight: '700',
+  },
+  rosterMeta: {
+    color: colors.muted,
+    fontSize: 10,
+    lineHeight: 14,
+    fontWeight: '700',
+  },
+  rosterStatus: {
+    overflow: 'hidden',
+    borderRadius: 11,
+    paddingHorizontal: 7,
+    paddingVertical: 4,
+    color: colors.tealDark,
+    backgroundColor: colors.softTeal,
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  rosterRemove: {
+    minHeight: 30,
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+    backgroundColor: colors.softGold,
+  },
+  rosterRemoveText: {
+    color: colors.tealDark,
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  addMemberPanel: {
+    borderRadius: 15,
+    padding: 10,
+    gap: 9,
+    backgroundColor: '#f8fbf9',
+    borderWidth: 1,
+    borderColor: colors.line,
+  },
+  addMemberHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+  },
+  addMemberTitle: {
+    color: colors.ink,
+    fontSize: 13,
+    lineHeight: 17,
+    fontWeight: '700',
+  },
+  memberChoiceWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 7,
+  },
+  memberChoice: {
+    minWidth: 112,
+    flex: 1,
+    borderRadius: 13,
+    paddingHorizontal: 9,
+    paddingVertical: 7,
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: colors.line,
+  },
+  memberChoiceActive: {
+    backgroundColor: colors.tealDark,
+    borderColor: colors.tealDark,
+  },
+  memberChoiceText: {
+    color: colors.ink,
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: '700',
+  },
+  memberChoiceMeta: {
+    color: colors.muted,
+    fontSize: 10,
+    lineHeight: 13,
+    fontWeight: '700',
+  },
+  memberChoiceTextActive: {
+    color: '#ffffff',
+  },
+  addMemberButton: {
+    minHeight: 38,
+    borderRadius: 13,
+    paddingHorizontal: 11,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 7,
+    backgroundColor: colors.tealDark,
+  },
+  addMemberButtonText: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  practicePanel: {
+    borderRadius: 16,
+    padding: 11,
+    gap: 10,
+    backgroundColor: '#fff8e3',
+    borderWidth: 1,
+    borderColor: '#efd58f',
+  },
+  practiceHeader: {
+    minHeight: 40,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 9,
+  },
+  practiceIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 13,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.gold,
+  },
+  practiceEyebrow: {
+    color: colors.tealDark,
+    fontSize: 10,
+    lineHeight: 13,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+  },
+  practiceTitle: {
+    color: colors.ink,
+    fontSize: 16,
+    lineHeight: 20,
+    fontWeight: '700',
+  },
+  practiceGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  practiceCard: {
+    minWidth: 160,
+    flex: 1,
+    borderRadius: 15,
+    padding: 10,
+    gap: 5,
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: colors.line,
+  },
+  practiceCardTitle: {
+    color: colors.ink,
+    fontSize: 13,
+    lineHeight: 17,
+    fontWeight: '700',
+  },
+  practiceCardMeta: {
+    color: colors.muted,
+    fontSize: 10,
+    lineHeight: 14,
     fontWeight: '700',
   },
   modalBackdrop: {
@@ -1027,6 +1874,12 @@ const styles = StyleSheet.create({
   },
   errorText: {
     color: colors.coral,
+    fontSize: 13,
+    lineHeight: 19,
+    fontWeight: '700',
+  },
+  successText: {
+    color: colors.tealDark,
     fontSize: 13,
     lineHeight: 19,
     fontWeight: '700',
