@@ -101,12 +101,12 @@ Crypto rails:
 - future EVM chains
 - future multi-chain support
 
-Traditional rails:
+Traditional rails: (secondary)
 
 - card payments
 - bank transfer
 - mobile money where available
-- region-specific providers in the future
+- region-specific providers in the future  
 
 Payment rail preference:
 
@@ -187,7 +187,7 @@ Open public feed:
 
 - public content that is not Chivo-approved
 - visible with lower trust status
-- may still be moderated for abuse and safety
+- will still be moderated for abuse and safety
 
 Approval flow:
 
@@ -228,8 +228,8 @@ Donation behavior:
 
 - each public article, research post, study, or lesson can include a donate button
 - donations go to the creator or school that published the content
-- Chivo may optionally take a platform fee from donations in the future
-- payment rails can include crypto and traditional finance
+- Chivo  take a 0.5% platform fee from donations
+- payment rails can include crypto and traditional finance (later)
 
 Monthly reward system:
 
