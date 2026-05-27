@@ -4,6 +4,11 @@ Chivo AI is a school-first learning platform that turns real lessons into transc
 
 The expanded vision is a real onchain education ecosystem, but the current build stays focused on getting the core school, lesson, crew, and billing product working first.
 
+## Roadmap Documents
+
+- **Foundation roadmap**: this `README.md` covers the active product foundation and Groups 1-3.
+- **2.0 expansion roadmap**: `README-2.0.md` covers future Group 4: gated schools/classes, payment rails, public profiles, publishing, verification, donations, and creator rewards.
+
 ## Current Product
 
 Chivo AI is built around five product surfaces:
@@ -98,33 +103,26 @@ Group 3 is done when the product feels connected, memorable, and ready for broad
 
 These are future ecosystem groups. They stay out of the current product build until the school, lesson, crew, and billing flows are stable.
 
-### Future Group 4: Paid Schools, Paid Classes, and Payment Rails
+### Future Group 4: Chivo AI 2.0 Ecosystem
 
-- free and paid schools
-- free and paid classes inside schools
-- school entry fees and automatic join after payment
-- weekly, monthly, yearly, and one-time class access
-- school revenue from student payments
-- Chivo platform share on school/class access payments
+Detailed plan: see `README-2.0.md`.
+
+Scope:
+
+- paid/gated schools and paid/gated classes
+- free schools and free classes remain supported
+- school-set pricing for school entry, class access, weekly/monthly/yearly plans, and one-time access
 - crypto rails including BNB, Solana, Base, and future EVM chains
-- traditional rails such as cards, bank transfer, and mobile payments
-
-### Future Group 5: Public Profiles, Publishing, and Discovery
-
-- public and private school profiles
-- public personal profiles
-- follow system for profiles and schools
-- studies, lessons, research, educational articles, and public slugs
-- public article audio playback, summaries, translation, and language selection
-- classroom lessons kept separate from public publishing
-
-### Future Group 6: Company Review, Verification, and Rewards
-
+- traditional finance rails such as cards, bank transfer, mobile payments, and regional providers
+- Chivo platform share on school/class access revenue, starting with a planned `0.5%` fee
+- public school profiles and public personal profiles
+- follow system for schools and personal profiles
+- public studies, lessons, research, articles, and learning posts
+- AI summaries, audio playback, language selection, and translation for public content
 - approved-by-Chivo feed and open public feed
-- AI moderation and company review queue
-- profile verification and school verification
-- verification fees and subscription plans
-- donations for public articles and research
+- AI-assisted company review queue
+- personal and school verification
+- donations for public content
 - monthly AI-assisted creator rewards
 
 ### Future Expansion
