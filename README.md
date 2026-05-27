@@ -2,12 +2,12 @@
 
 Chivo AI is a school-first learning platform that turns real lessons into transcript, summary, audio study, quizzes, flashcards, progress insight, and study crews.
 
-The expanded vision is a real onchain education ecosystem, but the current build stays focused on getting the core school, lesson, crew, and billing product working first.
+The expanded vision is a real onchain education ecosystem, but the current build stays focused on getting the core school, lesson, crew, classroom, and admin foundation working first.
 
 ## Roadmap Documents
 
 - **Foundation roadmap**: this `README.md` covers the active product foundation and Groups 1-3.
-- **2.0 expansion roadmap**: `README-2.0.md` covers future Group 4: gated schools/classes, payment rails, public profiles, publishing, verification, donations, and creator rewards.
+- **2.0 expansion roadmap**: `README-2.0.md` covers Group 4: billing, gated schools/classes, payment rails, public profiles, publishing, verification, donations, and creator rewards.
 
 ## Current Product
 
@@ -17,7 +17,7 @@ Chivo AI is built around five product surfaces:
 - **School**: school identity, classes, subjects, members, academic terms, invites, requests, and permissions.
 - **Learn**: student class entry, lesson cards, audio, transcript, summaries, quizzes, flashcards, personalization, and progress.
 - **Teach**: teacher rooms, live lesson recording, upload, AI processing, review, publishing, class roster, and class insight.
-- **Admin**: school command center, people, academic setup, class setup, billing, payments, requests, and audit visibility.
+- **Admin**: school command center, people, academic setup, class setup, requests, permissions, and audit visibility. Billing/payment controls belong to the 2.0 ecosystem layer.
 
 Core routes:
 
@@ -28,7 +28,7 @@ Core routes:
 - `/lessons`, `/lessons/[id]`
 - `/admin`, `/admin/profile`, `/admin/academic`, `/admin/classes`, `/admin/subjects`, `/admin/people`, `/admin/invites`, `/admin/requests`, `/admin/billing`
 
-Billing belongs to the school admin surface. Future Chivo company controls are a separate platform surface, not the school admin surface.
+Billing and payment rails belong to the 2.0 ecosystem layer. Foundation admin can keep placeholders or existing records, but real monetization should be designed from the 2.0 roadmap.
 
 ## Current Work Groups
 
@@ -44,7 +44,7 @@ Scope:
 - academic year, term, subject, class, and class-subject setup
 - member management, class access assignment, and request approval
 - responsive navigation with mobile bottom nav and desktop hover sidebar
-- admin profile, academic, classes, subjects, people, invites, requests, and billing screens
+- admin profile, academic, classes, subjects, people, invites, requests, and school setup screens
 
 ### Group 2: Lessons, Gemini AI, and Student Learning
 
@@ -63,7 +63,7 @@ Scope:
 
 Group 2 is ready to close when one teacher and one student can complete the full lesson loop on mobile and web.
 
-### Group 3: Crews, Billing, Payments, and Experience Layer
+### Group 3: Crews, Notifications, Classroom Tools, and Experience Layer
 
 Status: started.
 
@@ -74,7 +74,6 @@ Scope:
 - crew resources and messages
 - guardian experience
 - notifications
-- billing controls, subscriptions, invoices, plan limits, and crypto payment tracking
 - audit visibility
 - final mobile and web polish
 
@@ -101,7 +100,7 @@ Group 3 is done when the product feels connected, memorable, and ready for broad
 
 ## Expanded Onchain Vision
 
-These are future ecosystem groups. They stay out of the current product build until the school, lesson, crew, and billing flows are stable.
+These are future ecosystem groups. They build on top of the current product after the school, lesson, crew, classroom, and admin foundation is stable.
 
 ### Future Group 4: Chivo AI 2.0 Ecosystem
 
@@ -111,6 +110,11 @@ Scope:
 
 - paid/gated schools and paid/gated classes
 - free schools and free classes remain supported
+- database-driven access, billing, bans, suspensions, overrides, and verification badges
+- company/admin global billing toggle that can make the whole app free temporarily
+- company/admin authority to revoke paid access when policy is broken
+- embedded email-based web wallet direction for EVM chains and Solana
+- real onchain payment verification through EVM smart contracts, Solana programs, and backend event listeners
 - school-set pricing for school entry, class access, weekly/monthly/yearly plans, and one-time access
 - crypto rails including BNB, Solana, Base, and future EVM chains
 - traditional finance rails such as cards, bank transfer, mobile payments, and regional providers
