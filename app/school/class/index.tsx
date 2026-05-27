@@ -28,11 +28,11 @@ const emptySetup: SchoolSetupState = {
 };
 
 const tones = [
-  { background: '#fff4d4', accent: colors.gold },
-  { background: '#e9f6ff', accent: '#4aa6d9' },
-  { background: '#f3eaff', accent: '#8d68d8' },
-  { background: '#e8f8ee', accent: '#39a96b' },
-  { background: '#fff0ed', accent: colors.coral },
+  { background: '#e9f1ff', accent: colors.brand },
+  { background: '#e3fbf7', accent: colors.teal },
+  { background: '#f3efff', accent: colors.violet },
+  { background: '#f1ffd7', accent: '#a3e635' },
+  { background: '#fff1f4', accent: colors.coral },
 ];
 
 export default function ClassesIndexRoute() {
@@ -172,7 +172,7 @@ export default function ClassesIndexRoute() {
 
         {loadingSetup ? (
           <View style={styles.loadingPanel}>
-            <ActivityIndicator color={colors.tealDark} />
+            <ActivityIndicator color={colors.brandDeep} />
             <Text style={styles.meta}>Loading classes</Text>
           </View>
         ) : visibleClasses.length ? (
@@ -284,7 +284,7 @@ function ClassMapCard({
         </Pressable>
       ) : pending ? (
         <View style={styles.pendingButton}>
-          <Clock3 size={16} color={colors.tealDark} />
+          <Clock3 size={16} color={colors.brandDeep} />
           <Text style={styles.pendingText}>Waiting</Text>
         </View>
       ) : (
@@ -310,7 +310,7 @@ function StatusPill({ joined, pending }: { joined: boolean; pending: boolean }) 
   if (pending) {
     return (
       <View style={styles.statusSoft}>
-        <Clock3 size={14} color={colors.tealDark} />
+        <Clock3 size={14} color={colors.brandDeep} />
         <Text style={styles.statusSoftText}>Pending</Text>
       </View>
     );
@@ -318,7 +318,7 @@ function StatusPill({ joined, pending }: { joined: boolean; pending: boolean }) 
 
   return (
     <View style={styles.statusSoft}>
-      <DoorOpen size={14} color={colors.tealDark} />
+      <DoorOpen size={14} color={colors.brandDeep} />
       <Text style={styles.statusSoftText}>Open</Text>
     </View>
   );
@@ -345,33 +345,33 @@ function initials(value: string) {
 
 const styles = StyleSheet.create({
   screen: {
-    gap: 8,
+    gap: 12,
   },
   hero: {
-    borderRadius: 16,
-    padding: 10,
+    borderRadius: 8,
+    padding: 16,
     flexDirection: 'row',
     flexWrap: 'wrap',
     alignItems: 'center',
     gap: 10,
-    backgroundColor: '#101916',
+    backgroundColor: colors.brandDeep,
     borderWidth: 1,
-    borderColor: '#20352f',
+    borderColor: 'rgba(99, 230, 255, 0.22)',
   },
   heroCopy: {
     flex: 1.4,
     minWidth: 190,
-    gap: 6,
+    gap: 10,
   },
   heroPill: {
     alignSelf: 'flex-start',
     minHeight: 26,
-    borderRadius: 13,
+    borderRadius: 8,
     paddingHorizontal: 9,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: colors.gold,
+    backgroundColor: colors.mint,
   },
   heroPillText: {
     color: colors.ink,
@@ -380,14 +380,14 @@ const styles = StyleSheet.create({
   },
   heroTitle: {
     color: '#ffffff',
-    fontSize: 18,
-    lineHeight: 22,
-    fontWeight: '700',
+    fontSize: 26,
+    lineHeight: 32,
+    fontWeight: '900',
   },
   heroBody: {
-    color: '#dce7e1',
-    fontSize: 12,
-    lineHeight: 16,
+    color: '#d8e0ef',
+    fontSize: 14,
+    lineHeight: 20,
     fontWeight: '700',
   },
   heroStats: {
@@ -400,11 +400,11 @@ const styles = StyleSheet.create({
   statCard: {
     minWidth: 82,
     flex: 1,
-    borderRadius: 13,
-    padding: 8,
+    borderRadius: 10,
+    padding: 11,
     gap: 4,
     borderWidth: 1,
-    borderColor: '#ffffff',
+    borderColor: 'rgba(17, 19, 24, 0.1)',
   },
   statDot: {
     width: 12,
@@ -415,7 +415,7 @@ const styles = StyleSheet.create({
     color: colors.ink,
     fontSize: 16,
     lineHeight: 20,
-    fontWeight: '700',
+    fontWeight: '900',
   },
   statLabel: {
     color: colors.muted,
@@ -428,8 +428,8 @@ const styles = StyleSheet.create({
     gap: 7,
   },
   filterButton: {
-    minHeight: 34,
-    borderRadius: 13,
+    minHeight: 36,
+    borderRadius: 8,
     paddingHorizontal: 10,
     flexDirection: 'row',
     alignItems: 'center',
@@ -437,14 +437,14 @@ const styles = StyleSheet.create({
     gap: 6,
     backgroundColor: '#ffffff',
     borderWidth: 1,
-    borderColor: colors.line,
+    borderColor: '#dfe6f0',
   },
   filterButtonActive: {
-    backgroundColor: colors.tealDark,
-    borderColor: colors.tealDark,
+    backgroundColor: colors.brandDeep,
+    borderColor: colors.brandDeep,
   },
   filterText: {
-    color: colors.tealDark,
+    color: colors.brandDeep,
     fontSize: 12,
     fontWeight: '700',
   },
@@ -459,14 +459,14 @@ const styles = StyleSheet.create({
   classGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 10,
+    gap: 12,
   },
   classCard: {
-    minWidth: 210,
+    minWidth: 240,
     flex: 1,
-    borderRadius: 15,
-    padding: 10,
-    gap: 7,
+    borderRadius: 10,
+    padding: 14,
+    gap: 9,
     borderWidth: 1,
   },
   classTop: {
@@ -477,9 +477,9 @@ const styles = StyleSheet.create({
   },
   classMark: {
     overflow: 'hidden',
-    width: 38,
-    height: 38,
-    borderRadius: 12,
+    width: 44,
+    height: 44,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
@@ -496,9 +496,9 @@ const styles = StyleSheet.create({
   },
   className: {
     color: colors.ink,
-    fontSize: 14,
-    lineHeight: 18,
-    fontWeight: '700',
+    fontSize: 17,
+    lineHeight: 22,
+    fontWeight: '900',
   },
   classMeta: {
     color: colors.muted,
@@ -514,7 +514,7 @@ const styles = StyleSheet.create({
   },
   subjectPill: {
     minHeight: 28,
-    borderRadius: 14,
+    borderRadius: 8,
     paddingHorizontal: 9,
     alignItems: 'center',
     justifyContent: 'center',
@@ -523,29 +523,29 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(24, 36, 33, 0.08)',
   },
   subjectPillText: {
-    color: colors.tealDark,
+    color: colors.brandDeep,
     fontSize: 11,
     fontWeight: '700',
   },
   enterButton: {
-    minHeight: 34,
-    borderRadius: 12,
+    minHeight: 38,
+    borderRadius: 8,
     paddingHorizontal: 10,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 7,
-    backgroundColor: colors.ink,
+    backgroundColor: colors.brandDeep,
   },
   requestButton: {
-    minHeight: 34,
-    borderRadius: 12,
+    minHeight: 38,
+    borderRadius: 8,
     paddingHorizontal: 10,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 7,
-    backgroundColor: colors.tealDark,
+    backgroundColor: colors.brand,
   },
   buttonText: {
     color: '#ffffff',
@@ -553,8 +553,8 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   pendingButton: {
-    minHeight: 34,
-    borderRadius: 12,
+    minHeight: 38,
+    borderRadius: 8,
     paddingHorizontal: 10,
     flexDirection: 'row',
     alignItems: 'center',
@@ -562,16 +562,16 @@ const styles = StyleSheet.create({
     gap: 7,
     backgroundColor: '#ffffff',
     borderWidth: 1,
-    borderColor: colors.line,
+    borderColor: '#dfe6f0',
   },
   pendingText: {
-    color: colors.tealDark,
+    color: colors.brandDeep,
     fontSize: 12,
     fontWeight: '700',
   },
   statusSoft: {
     minHeight: 26,
-    borderRadius: 13,
+    borderRadius: 8,
     paddingHorizontal: 8,
     flexDirection: 'row',
     alignItems: 'center',
@@ -579,18 +579,18 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
   },
   statusSoftText: {
-    color: colors.tealDark,
+    color: colors.brandDeep,
     fontSize: 10,
     fontWeight: '700',
   },
   statusActive: {
     minHeight: 26,
-    borderRadius: 13,
+    borderRadius: 8,
     paddingHorizontal: 8,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: colors.tealDark,
+    backgroundColor: colors.brandDeep,
   },
   statusActiveText: {
     color: '#ffffff',
@@ -599,23 +599,23 @@ const styles = StyleSheet.create({
   },
   loadingPanel: {
     minHeight: 99,
-    borderRadius: 18,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 10,
     backgroundColor: '#ffffff',
     borderWidth: 1,
-    borderColor: colors.line,
+    borderColor: '#dfe6f0',
   },
   emptyPanel: {
     minHeight: 99,
-    borderRadius: 18,
-    padding: 12,
+    borderRadius: 10,
+    padding: 14,
     justifyContent: 'center',
     gap: 8,
     backgroundColor: '#ffffff',
     borderWidth: 1,
-    borderColor: colors.line,
+    borderColor: '#dfe6f0',
   },
   emptyTitle: {
     color: colors.ink,
@@ -630,7 +630,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   successText: {
-    color: colors.tealDark,
+    color: colors.brand,
     fontSize: 13,
     lineHeight: 19,
     fontWeight: '700',

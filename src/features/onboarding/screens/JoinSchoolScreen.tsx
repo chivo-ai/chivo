@@ -70,12 +70,12 @@ export function JoinSchoolScreen({
         />
         <View style={styles.actionRow}>
           <Pressable onPress={openScanner} style={styles.scanButton}>
-            <ScanLine size={17} color={colors.tealDark} />
-            <Text style={styles.scanButtonText}>Scan QR</Text>
+            <ScanLine size={17} color={colors.brandDeep} />
+            <Text style={styles.scanButtonText} numberOfLines={1}>Scan QR</Text>
           </Pressable>
           <Pressable onPress={() => setScannerOpen(false)} style={styles.manualButton}>
-            <Keyboard size={17} color={colors.tealDark} />
-            <Text style={styles.manualButtonText}>Type code</Text>
+            <Keyboard size={17} color={colors.brandDeep} />
+            <Text style={styles.manualButtonText} numberOfLines={1}>Type code</Text>
           </Pressable>
         </View>
 
@@ -90,7 +90,7 @@ export function JoinSchoolScreen({
             <View style={styles.scanFrame} />
           </View>
         ) : (
-          <Text style={styles.cardBody}>QR codes can contain a plain invite code or a link with a code.</Text>
+          <Text style={styles.cardBody} numberOfLines={2}>QR codes can contain a plain invite code or a link with a code.</Text>
         )}
 
         <SubmitButton label="Use code" loading={submitting === 'join'} onPress={onJoin} disabled={!inviteCode.trim()} />
@@ -129,22 +129,22 @@ const styles = StyleSheet.create({
   },
   scanButton: {
     minHeight: 42,
-    borderRadius: 14,
+    borderRadius: 8,
     paddingHorizontal: 12,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 7,
-    backgroundColor: colors.softTeal,
+    backgroundColor: colors.softBlue,
   },
   scanButtonText: {
-    color: colors.tealDark,
+    color: colors.brandDeep,
     fontSize: 13,
     fontWeight: '700',
   },
   manualButton: {
     minHeight: 42,
-    borderRadius: 14,
+    borderRadius: 8,
     paddingHorizontal: 12,
     flexDirection: 'row',
     alignItems: 'center',
@@ -152,18 +152,18 @@ const styles = StyleSheet.create({
     gap: 7,
     backgroundColor: '#ffffff',
     borderWidth: 1,
-    borderColor: colors.line,
+    borderColor: '#dfe6f0',
   },
   manualButtonText: {
-    color: colors.tealDark,
+    color: colors.brandDeep,
     fontSize: 13,
     fontWeight: '700',
   },
   scannerBox: {
     height: 202,
-    borderRadius: 17,
+    borderRadius: 8,
     overflow: 'hidden',
-    backgroundColor: '#101916',
+    backgroundColor: colors.brandDeep,
   },
   camera: {
     flex: 1,
@@ -174,9 +174,9 @@ const styles = StyleSheet.create({
     right: '18%',
     top: 74,
     bottom: 74,
-    borderRadius: 16,
+    borderRadius: 8,
     borderWidth: 3,
-    borderColor: colors.gold,
+    borderColor: colors.brandGlow,
   },
   cardBody: {
     color: '#33413b',

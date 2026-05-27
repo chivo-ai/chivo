@@ -2,7 +2,7 @@ import { router } from 'expo-router';
 import * as Speech from 'expo-speech';
 import { ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { BookOpen, Bot, Building2, DoorOpen, Layers, Mic, QrCode, Send, Sparkles, Trophy, UserPlus, Volume2, X } from 'lucide-react-native';
+import { BookOpen, Bot, Building2, ChevronRight, DoorOpen, Layers, Mic, QrCode, Send, Sparkles, Trophy, UserPlus, Volume2, X } from 'lucide-react-native';
 
 import { RouteScreen } from '../../src/features/app/RouteScreen';
 import { useAppSession } from '../../src/features/app/AppSessionProvider';
@@ -27,10 +27,10 @@ type HomeSpeechRecognition = {
 };
 
 const tones = [
-  { background: '#fff4d4', accent: colors.gold },
-  { background: '#e9f6ff', accent: '#4aa6d9' },
-  { background: '#f3eaff', accent: '#8d68d8' },
-  { background: '#e8f8ee', accent: '#39a96b' },
+  { background: '#e9f1ff', accent: colors.brand },
+  { background: '#e3fbf7', accent: colors.teal },
+  { background: '#f3efff', accent: colors.violet },
+  { background: '#f1ffd7', accent: '#a3e635' },
 ];
 
 const suggestedQuestions = [
@@ -206,10 +206,10 @@ export default function HomeTabRoute() {
           <View style={styles.heroCopy}>
             <View style={styles.heroPill}>
               <Sparkles size={12} color={colors.ink} />
-              <Text style={styles.heroPillText}>Chivo AI</Text>
+              <Text style={styles.heroPillText} numberOfLines={1}>Chivo AI</Text>
             </View>
-            <Text style={styles.heroTitle}>Learn from every real lesson</Text>
-            <Text style={styles.heroBody}>Audio, transcript, quiz, cards, and progress shaped from your school classes.</Text>
+            <Text style={styles.heroTitle} numberOfLines={2}>Learn from every real lesson</Text>
+            <Text style={styles.heroBody} numberOfLines={2}>Audio, transcript, quiz, cards, and progress shaped from your school classes.</Text>
             <View style={styles.heroActions}>
               <HeroButton label="My schools" icon={<Building2 size={14} color="#ffffff" />} onPress={() => router.push('/school/my-school' as never)} />
               <HeroButton label="Join" icon={<QrCode size={14} color={colors.ink} />} onPress={() => router.push('/join' as never)} light />
@@ -229,16 +229,16 @@ export default function HomeTabRoute() {
               <Bot size={20} color={colors.ink} />
             </View>
             <View style={styles.flexText}>
-              <Text style={styles.guideTitle}>Ask Chivo AI</Text>
-              <Text style={styles.guideMeta}>Understand the platform, lessons, study methods, and education ideas.</Text>
+              <Text style={styles.guideTitle} numberOfLines={1}>Ask Chivo AI</Text>
+              <Text style={styles.guideMeta} numberOfLines={2}>Understand the platform, lessons, study methods, and education ideas.</Text>
             </View>
           </View>
 
           <View style={styles.guidePoints}>
             {guidePreview.map((item) => (
               <View key={item} style={styles.guidePoint}>
-                <Sparkles size={11} color={colors.tealDark} />
-                <Text style={styles.guidePointText}>{item}</Text>
+                <Sparkles size={11} color={colors.brandDeep} />
+                <Text style={styles.guidePointText} numberOfLines={1}>{item}</Text>
               </View>
             ))}
           </View>
@@ -246,19 +246,19 @@ export default function HomeTabRoute() {
           <View style={styles.guideActions}>
             <Pressable onPress={() => setGuideOpen(true)} style={styles.primaryMiniAction}>
               <Bot size={14} color="#ffffff" />
-              <Text style={styles.primaryMiniActionText}>Learn more</Text>
+              <Text style={styles.primaryMiniActionText} numberOfLines={1}>Learn more</Text>
             </Pressable>
             <Pressable onPress={startVoiceQuestion} style={styles.secondaryMiniAction}>
               <Mic size={14} color={colors.ink} />
-              <Text style={styles.secondaryMiniActionText}>{listening ? 'Listening' : 'Voice'}</Text>
+              <Text style={styles.secondaryMiniActionText} numberOfLines={1}>{listening ? 'Listening' : 'Voice'}</Text>
             </Pressable>
           </View>
         </View>
 
         <View style={styles.sectionHeading}>
           <View>
-            <Text style={styles.sectionTitle}>Quick access</Text>
-            <Text style={styles.sectionMeta}>Open the places you use most.</Text>
+            <Text style={styles.sectionTitle} numberOfLines={1}>Quick access</Text>
+            <Text style={styles.sectionMeta} numberOfLines={1}>Open the places you use most.</Text>
           </View>
         </View>
 
@@ -291,7 +291,7 @@ export default function HomeTabRoute() {
             <ScrollView style={styles.messages} contentContainerStyle={styles.messagesContent}>
               {guideHistoryLoading ? (
                 <View style={styles.typingBubble}>
-                  <ActivityIndicator color={colors.tealDark} />
+                  <ActivityIndicator color={colors.brandDeep} />
                   <Text style={styles.typingText}>Loading saved chat...</Text>
                 </View>
               ) : null}
@@ -300,7 +300,7 @@ export default function HomeTabRoute() {
                   <Text style={[styles.messageText, message.role === 'user' && styles.userMessageText]}>{message.content}</Text>
                   {message.role === 'assistant' ? (
                     <Pressable onPress={() => speakGuideAnswer(message.content)} style={styles.listenAgain}>
-                      <Volume2 size={12} color={colors.tealDark} />
+                      <Volume2 size={12} color={colors.brandDeep} />
                       <Text style={styles.listenAgainText}>Read aloud</Text>
                     </Pressable>
                   ) : null}
@@ -308,7 +308,7 @@ export default function HomeTabRoute() {
               ))}
               {guideSending ? (
                 <View style={styles.typingBubble}>
-                  <ActivityIndicator color={colors.tealDark} />
+                  <ActivityIndicator color={colors.brandDeep} />
                   <Text style={styles.typingText}>Chivo AI is thinking...</Text>
                 </View>
               ) : null}
@@ -362,9 +362,12 @@ function QuickTool({
 }) {
   return (
     <Pressable onPress={onPress} style={[styles.toolCard, { backgroundColor: tone.background, borderColor: tone.accent }]}>
-      <View style={[styles.toolIcon, { backgroundColor: tone.accent }]}>{icon}</View>
-      <Text style={styles.toolTitle}>{label}</Text>
-      <Text style={styles.toolBody}>{body}</Text>
+      <View style={styles.toolTop}>
+        <View style={[styles.toolIcon, { backgroundColor: tone.accent }]}>{icon}</View>
+        <ChevronRight size={17} color={colors.ink} />
+      </View>
+      <Text style={styles.toolTitle} numberOfLines={1}>{label}</Text>
+      <Text style={styles.toolBody} numberOfLines={1}>{body}</Text>
     </Pressable>
   );
 }
@@ -373,8 +376,8 @@ function Sticker({ icon, label, value, tone }: { icon: ReactNode; label: string;
   return (
     <View style={[styles.sticker, { backgroundColor: tone.background }]}>
       <View style={[styles.stickerIcon, { backgroundColor: tone.accent }]}>{icon}</View>
-      <Text style={styles.stickerValue}>{value}</Text>
-      <Text style={styles.stickerLabel}>{label}</Text>
+      <Text style={styles.stickerValue} numberOfLines={1}>{value}</Text>
+      <Text style={styles.stickerLabel} numberOfLines={1}>{label}</Text>
     </View>
   );
 }
@@ -383,7 +386,7 @@ function HeroButton({ label, icon, onPress, light }: { label: string; icon: Reac
   return (
     <Pressable onPress={onPress} style={[styles.heroButton, light && styles.heroButtonLight]}>
       {icon}
-      <Text style={[styles.heroButtonText, light && styles.heroButtonTextLight]}>{label}</Text>
+      <Text style={[styles.heroButtonText, light && styles.heroButtonTextLight]} numberOfLines={1}>{label}</Text>
     </Pressable>
   );
 }
@@ -398,28 +401,34 @@ function getSpeechRecognition(): (new () => HomeSpeechRecognition) | null {
 
 const styles = StyleSheet.create({
   screen: {
-    gap: 10,
+    gap: 14,
   },
   hero: {
-    borderRadius: 16,
-    padding: 12,
-    gap: 10,
-    backgroundColor: '#101916',
+    minHeight: 240,
+    borderRadius: 8,
+    padding: 18,
+    gap: 18,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    backgroundColor: colors.brandDeep,
     borderWidth: 1,
-    borderColor: '#20352f',
+    borderColor: 'rgba(99, 230, 255, 0.22)',
   },
   heroCopy: {
-    gap: 8,
+    flex: 1.45,
+    minWidth: 280,
+    gap: 12,
   },
   heroPill: {
     alignSelf: 'flex-start',
-    minHeight: 24,
-    borderRadius: 12,
-    paddingHorizontal: 9,
+    minHeight: 30,
+    borderRadius: 8,
+    paddingHorizontal: 11,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
-    backgroundColor: colors.gold,
+    gap: 7,
+    backgroundColor: colors.mint,
   },
   heroPillText: {
     color: colors.ink,
@@ -428,14 +437,14 @@ const styles = StyleSheet.create({
   },
   heroTitle: {
     color: '#ffffff',
-    fontSize: 21,
-    lineHeight: 26,
-    fontWeight: '700',
+    fontSize: 34,
+    lineHeight: 40,
+    fontWeight: '900',
   },
   heroBody: {
-    color: '#dce7e1',
-    fontSize: 12,
-    lineHeight: 17,
+    color: '#d8e0ef',
+    fontSize: 15,
+    lineHeight: 22,
     fontWeight: '700',
   },
   heroActions: {
@@ -444,14 +453,14 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   heroButton: {
-    minHeight: 34,
-    borderRadius: 12,
-    paddingHorizontal: 10,
+    minHeight: 42,
+    borderRadius: 8,
+    paddingHorizontal: 13,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    backgroundColor: colors.tealDark,
+    backgroundColor: colors.brand,
   },
   heroButtonLight: {
     backgroundColor: '#ffffff',
@@ -459,37 +468,39 @@ const styles = StyleSheet.create({
   heroButtonText: {
     color: '#ffffff',
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '900',
   },
   heroButtonTextLight: {
     color: colors.ink,
   },
   stickerBoard: {
-    width: '100%',
+    flex: 1,
+    minWidth: 260,
     flexDirection: 'row',
-    gap: 8,
+    flexWrap: 'wrap',
+    gap: 10,
   },
   sticker: {
-    minWidth: 0,
+    minWidth: 120,
     flex: 1,
-    borderRadius: 13,
-    padding: 8,
-    gap: 3,
+    borderRadius: 8,
+    padding: 13,
+    gap: 7,
     borderWidth: 1,
-    borderColor: '#ffffff',
+    borderColor: 'rgba(17, 19, 24, 0.1)',
   },
   stickerIcon: {
-    width: 28,
-    height: 28,
-    borderRadius: 10,
+    width: 34,
+    height: 34,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
   },
   stickerValue: {
     color: colors.ink,
-    fontSize: 16,
-    lineHeight: 19,
-    fontWeight: '700',
+    fontSize: 23,
+    lineHeight: 28,
+    fontWeight: '900',
   },
   stickerLabel: {
     color: colors.muted,
@@ -497,12 +508,16 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   guidePanel: {
-    borderRadius: 16,
-    padding: 12,
-    gap: 10,
+    borderRadius: 8,
+    padding: 16,
+    gap: 13,
     backgroundColor: '#ffffff',
     borderWidth: 1,
-    borderColor: colors.line,
+    borderColor: '#dfe6f0',
+    shadowColor: '#111318',
+    shadowOpacity: 0.08,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 12 },
   },
   guideTop: {
     flexDirection: 'row',
@@ -517,26 +532,26 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   guideIcon: {
-    width: 38,
-    height: 38,
-    borderRadius: 13,
+    width: 42,
+    height: 42,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.gold,
+    backgroundColor: colors.mint,
   },
   guideIconSmall: {
     width: 34,
     height: 34,
-    borderRadius: 12,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.gold,
+    backgroundColor: colors.mint,
   },
   guideTitle: {
     color: colors.ink,
-    fontSize: 17,
-    lineHeight: 21,
-    fontWeight: '700',
+    fontSize: 20,
+    lineHeight: 25,
+    fontWeight: '900',
   },
   guideMeta: {
     color: colors.muted,
@@ -545,12 +560,23 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   guidePoints: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 6,
   },
   guidePoint: {
+    flex: 1,
+    minWidth: 190,
+    minHeight: 34,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
     flexDirection: 'row',
     gap: 7,
     alignItems: 'flex-start',
+    backgroundColor: '#f8fafc',
+    borderWidth: 1,
+    borderColor: '#e5ebf5',
   },
   guidePointText: {
     flex: 1,
@@ -565,14 +591,14 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   primaryMiniAction: {
-    minHeight: 34,
-    borderRadius: 12,
+    minHeight: 38,
+    borderRadius: 8,
     paddingHorizontal: 11,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    backgroundColor: colors.tealDark,
+    backgroundColor: colors.brand,
   },
   primaryMiniActionText: {
     color: '#ffffff',
@@ -580,16 +606,16 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   secondaryMiniAction: {
-    minHeight: 34,
-    borderRadius: 12,
+    minHeight: 38,
+    borderRadius: 8,
     paddingHorizontal: 11,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    backgroundColor: colors.softTeal,
+    backgroundColor: colors.softBlue,
     borderWidth: 1,
-    borderColor: colors.line,
+    borderColor: '#c7d7ff',
   },
   secondaryMiniActionText: {
     color: colors.ink,
@@ -605,9 +631,9 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     color: colors.ink,
-    fontSize: 18,
-    lineHeight: 22,
-    fontWeight: '700',
+    fontSize: 21,
+    lineHeight: 26,
+    fontWeight: '900',
   },
   sectionMeta: {
     color: colors.muted,
@@ -618,28 +644,35 @@ const styles = StyleSheet.create({
   toolGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 9,
+    gap: 10,
   },
   toolCard: {
-    minWidth: 150,
+    minWidth: 148,
     flex: 1,
-    borderRadius: 16,
-    padding: 12,
-    gap: 7,
-    borderWidth: 2,
+    borderRadius: 8,
+    padding: 14,
+    gap: 9,
+    borderWidth: 1,
+    borderBottomWidth: 4,
+  },
+  toolTop: {
+    minHeight: 42,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   toolIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 13,
+    width: 42,
+    height: 42,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
   },
   toolTitle: {
     color: colors.ink,
-    fontSize: 15,
-    lineHeight: 19,
-    fontWeight: '700',
+    fontSize: 16,
+    lineHeight: 20,
+    fontWeight: '900',
   },
   toolBody: {
     color: colors.muted,
@@ -654,17 +687,17 @@ const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
     justifyContent: 'flex-end',
-    backgroundColor: 'rgba(5, 15, 12, 0.45)',
+    backgroundColor: 'rgba(11, 13, 18, 0.58)',
   },
   guideModal: {
     maxHeight: '88%',
-    borderTopLeftRadius: 22,
-    borderTopRightRadius: 22,
-    padding: 12,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    padding: 14,
     gap: 10,
     backgroundColor: colors.paper,
     borderWidth: 1,
-    borderColor: '#dce8e2',
+    borderColor: '#dfe6f0',
   },
   modalHeader: {
     flexDirection: 'row',
@@ -687,10 +720,10 @@ const styles = StyleSheet.create({
   iconButton: {
     width: 36,
     height: 36,
-    borderRadius: 13,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.ink,
+    backgroundColor: colors.brandDeep,
   },
   messages: {
     maxHeight: 360,
@@ -702,17 +735,17 @@ const styles = StyleSheet.create({
   messageBubble: {
     alignSelf: 'flex-start',
     maxWidth: '92%',
-    borderRadius: 15,
+    borderRadius: 10,
     padding: 10,
     gap: 8,
     backgroundColor: '#ffffff',
     borderWidth: 1,
-    borderColor: colors.line,
+    borderColor: '#dfe6f0',
   },
   userBubble: {
     alignSelf: 'flex-end',
-    backgroundColor: colors.tealDark,
-    borderColor: colors.tealDark,
+    backgroundColor: colors.brand,
+    borderColor: colors.brand,
   },
   messageText: {
     color: colors.ink,
@@ -726,22 +759,22 @@ const styles = StyleSheet.create({
   listenAgain: {
     alignSelf: 'flex-start',
     minHeight: 25,
-    borderRadius: 10,
+    borderRadius: 8,
     paddingHorizontal: 8,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    backgroundColor: colors.softTeal,
+    backgroundColor: colors.softBlue,
   },
   listenAgainText: {
-    color: colors.tealDark,
+    color: colors.brandDeep,
     fontSize: 10,
     fontWeight: '700',
   },
   typingBubble: {
     alignSelf: 'flex-start',
     minHeight: 38,
-    borderRadius: 14,
+    borderRadius: 8,
     paddingHorizontal: 10,
     flexDirection: 'row',
     alignItems: 'center',
@@ -762,12 +795,12 @@ const styles = StyleSheet.create({
   },
   suggestionChip: {
     minHeight: 30,
-    borderRadius: 11,
+    borderRadius: 8,
     paddingHorizontal: 9,
     justifyContent: 'center',
     backgroundColor: '#ffffff',
     borderWidth: 1,
-    borderColor: colors.line,
+    borderColor: '#dfe6f0',
   },
   suggestionText: {
     color: colors.ink,
@@ -775,7 +808,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   noticeText: {
-    color: colors.tealDark,
+    color: colors.brandDeep,
     fontSize: 11,
     lineHeight: 16,
     fontWeight: '700',
@@ -788,22 +821,22 @@ const styles = StyleSheet.create({
   voiceButton: {
     width: 40,
     height: 40,
-    borderRadius: 14,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#ffffff',
     borderWidth: 1,
-    borderColor: colors.line,
+    borderColor: '#dfe6f0',
   },
   voiceButtonActive: {
-    backgroundColor: colors.tealDark,
-    borderColor: colors.tealDark,
+    backgroundColor: colors.brand,
+    borderColor: colors.brand,
   },
   chatInput: {
     flex: 1,
     minHeight: 40,
     maxHeight: 86,
-    borderRadius: 14,
+    borderRadius: 8,
     paddingHorizontal: 11,
     paddingVertical: 9,
     color: colors.ink,
@@ -812,15 +845,15 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     backgroundColor: '#ffffff',
     borderWidth: 1,
-    borderColor: colors.line,
+    borderColor: '#dfe6f0',
   },
   sendButton: {
     width: 40,
     height: 40,
-    borderRadius: 14,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.tealDark,
+    backgroundColor: colors.brand,
   },
   sendButtonDisabled: {
     opacity: 0.45,

@@ -54,8 +54,8 @@ export function AccessAccountScreen({
             size="large"
           />
           <View style={styles.flexText}>
-            <Text style={styles.recordTitle}>{values.profileName || 'Your profile'}</Text>
-            <Text style={styles.recordMeta}>{user.email}</Text>
+            <Text style={styles.recordTitle} numberOfLines={1}>{values.profileName || 'Your profile'}</Text>
+            <Text style={styles.recordMeta} numberOfLines={1}>{user.email}</Text>
           </View>
         </View>
         <Field label="Full name" value={values.profileName} onChangeText={onChange.setProfileName} placeholder="Your name" />
@@ -78,8 +78,8 @@ export function AccessAccountScreen({
       </Card>
 
       <Card>
-        <Text style={styles.cardTitle}>Access</Text>
-        <Text style={styles.cardBody}>
+        <Text style={styles.cardTitle} numberOfLines={1}>Access</Text>
+        <Text style={styles.cardBody} numberOfLines={3}>
           Your account is separate from school access. Schools decide which classes, lessons, crews, and admin tools this account can use.
         </Text>
       </Card>
@@ -111,7 +111,7 @@ const styles = StyleSheet.create({
     color: colors.ink,
     fontSize: 17,
     lineHeight: 22,
-    fontWeight: '700',
+    fontWeight: '900',
   },
   recordMeta: {
     color: colors.muted,
@@ -123,7 +123,7 @@ const styles = StyleSheet.create({
     color: colors.ink,
     fontSize: 17,
     lineHeight: 22,
-    fontWeight: '700',
+    fontWeight: '900',
   },
   cardBody: {
     color: '#33413b',

@@ -25,10 +25,10 @@ import { CrewScope } from '../../types';
 import { colors } from '../../theme/tokens';
 
 const tones = [
-  { background: '#fff4d4', accent: colors.gold },
-  { background: '#e9f6ff', accent: '#4aa6d9' },
-  { background: '#f3eaff', accent: '#8d68d8' },
-  { background: '#e8f8ee', accent: '#39a96b' },
+  { background: '#e9f1ff', accent: colors.brand },
+  { background: '#e3fbf7', accent: colors.teal },
+  { background: '#f3efff', accent: colors.violet },
+  { background: '#f1ffd7', accent: '#a3e635' },
 ];
 
 type CrewModal = 'create' | 'join' | null;
@@ -161,10 +161,10 @@ export function CrewHubScreen() {
         <View style={styles.heroCopy}>
           <View style={styles.heroPill}>
             <Sparkles size={15} color={colors.ink} />
-            <Text style={styles.heroPillText}>Study crews</Text>
+            <Text style={styles.heroPillText} numberOfLines={1}>Study crews</Text>
           </View>
-          <Text style={styles.heroTitle}>Small circles for serious learning</Text>
-          <Text style={styles.heroBody}>Open a crew, share study notes, ask lesson questions, and keep revision moving with classmates.</Text>
+          <Text style={styles.heroTitle} numberOfLines={2}>Small circles for serious learning</Text>
+          <Text style={styles.heroBody} numberOfLines={2}>Open a crew, share study notes, ask lesson questions, and keep revision moving with classmates.</Text>
           <View style={styles.heroActions}>
             <IconAction label="Create" icon={<Plus size={19} color="#ffffff" />} onPress={() => setActiveModal('create')} />
             <IconAction label="Join" icon={<QrCode size={19} color={colors.ink} />} onPress={() => setActiveModal('join')} light />
@@ -182,15 +182,15 @@ export function CrewHubScreen() {
 
       <View style={styles.sectionHeading}>
         <View>
-          <Text style={styles.sectionTitle}>Your crews</Text>
-          <Text style={styles.sectionMeta}>{filteredCrews.length ? `${filteredCrews.length} room${filteredCrews.length === 1 ? '' : 's'} ready` : 'Create or join your first crew'}</Text>
+          <Text style={styles.sectionTitle} numberOfLines={1}>Your crews</Text>
+          <Text style={styles.sectionMeta} numberOfLines={1}>{filteredCrews.length ? `${filteredCrews.length} room${filteredCrews.length === 1 ? '' : 's'} ready` : 'Create or join your first crew'}</Text>
         </View>
         <View style={styles.headingActions}>
           <Pressable onPress={() => setActiveModal('create')} style={styles.roundAction}>
             <Plus size={19} color="#ffffff" />
           </Pressable>
           <Pressable onPress={() => setActiveModal('join')} style={[styles.roundAction, styles.roundActionLight]}>
-            <QrCode size={19} color={colors.tealDark} />
+            <QrCode size={19} color={colors.brandDeep} />
           </Pressable>
         </View>
       </View>
@@ -200,7 +200,7 @@ export function CrewHubScreen() {
           const active = activeFilter === filter.id;
           return (
             <Pressable key={filter.id} onPress={() => setActiveFilter(filter.id)} style={[styles.filterChip, active && styles.filterChipActive]}>
-              <Text style={[styles.filterChipText, active && styles.filterChipTextActive]}>{filter.label}</Text>
+              <Text style={[styles.filterChipText, active && styles.filterChipTextActive]} numberOfLines={1}>{filter.label}</Text>
             </Pressable>
           );
         })}
@@ -209,16 +209,16 @@ export function CrewHubScreen() {
       <View style={styles.crewGrid}>
         {loading ? (
           <View style={styles.emptyPanel}>
-            <ActivityIndicator color={colors.tealDark} />
-            <Text style={styles.emptyMeta}>Loading crews...</Text>
+            <ActivityIndicator color={colors.brandDeep} />
+            <Text style={styles.emptyMeta} numberOfLines={1}>Loading crews...</Text>
           </View>
         ) : filteredCrews.length ? filteredCrews.map((crew, index) => (
           <CrewCard key={crew.id} crew={crew} tone={tones[index % tones.length]} />
         )) : (
           <View style={styles.emptyPanel}>
-            <Users size={28} color={colors.tealDark} />
-            <Text style={styles.emptyTitle}>No crew in this view</Text>
-            <Text style={styles.emptyMeta}>Switch filters or start a new study room.</Text>
+            <Users size={28} color={colors.brandDeep} />
+            <Text style={styles.emptyTitle} numberOfLines={1}>No crew in this view</Text>
+            <Text style={styles.emptyMeta} numberOfLines={2}>Switch filters or start a new study room.</Text>
           </View>
         )}
       </View>
@@ -230,7 +230,7 @@ export function CrewHubScreen() {
             {message ? <Text style={styles.errorText}>{message}</Text> : null}
 
             <View style={styles.field}>
-              <Text style={styles.fieldLabel}>Crew name</Text>
+              <Text style={styles.fieldLabel} numberOfLines={1}>Crew name</Text>
               <TextInput
                 value={crewName}
                 onChangeText={setCrewName}
@@ -241,7 +241,7 @@ export function CrewHubScreen() {
             </View>
 
             <View style={styles.field}>
-              <Text style={styles.fieldLabel}>School</Text>
+              <Text style={styles.fieldLabel} numberOfLines={1}>School</Text>
               <View style={styles.schoolPicker}>
                 {schools.length ? schools.map((school) => (
                   <Pressable
@@ -249,13 +249,13 @@ export function CrewHubScreen() {
                     onPress={() => setSelectedSchoolId(school.id)}
                     style={[styles.schoolPill, selectedSchoolId === school.id && styles.schoolPillActive]}
                   >
-                    <School size={16} color={selectedSchoolId === school.id ? '#ffffff' : colors.tealDark} />
+                    <School size={16} color={selectedSchoolId === school.id ? '#ffffff' : colors.brandDeep} />
                     <Text style={[styles.schoolPillText, selectedSchoolId === school.id && styles.schoolPillTextActive]} numberOfLines={1}>
                       {school.school.name}
                     </Text>
                   </Pressable>
                 )) : (
-                  <Text style={styles.emptyMeta}>Join or create a school first.</Text>
+                  <Text style={styles.emptyMeta} numberOfLines={2}>Join or create a school first.</Text>
                 )}
               </View>
             </View>
@@ -265,7 +265,7 @@ export function CrewHubScreen() {
                 selected={crewScope === 'school'}
                 title="School crew"
                 body="Members from this school"
-                icon={<ShieldCheck size={18} color={crewScope === 'school' ? '#ffffff' : colors.tealDark} />}
+                icon={<ShieldCheck size={18} color={crewScope === 'school' ? '#ffffff' : colors.brandDeep} />}
                 onPress={() => setCrewScope('school')}
               />
               <ScopeButton
@@ -296,7 +296,7 @@ export function CrewHubScreen() {
             {message ? <Text style={styles.errorText}>{message}</Text> : null}
 
             <View style={styles.codeBox}>
-              <Hash size={18} color={colors.tealDark} />
+              <Hash size={18} color={colors.brandDeep} />
               <TextInput
                 value={joinCode}
                 onChangeText={setJoinCode}
@@ -332,8 +332,8 @@ function CrewCard({ crew, tone }: { crew: CrewListItem; tone: { background: stri
           {crew.logoUrl ? <Image source={{ uri: crew.logoUrl }} style={styles.markImage} /> : <Users size={23} color="#ffffff" />}
         </View>
         <View style={styles.flexText}>
-          <Text style={styles.crewName}>{crew.name}</Text>
-          <Text style={styles.crewMeta}>/{crew.username} - {formatScope(crew.scope)} - {formatRole(crew.membershipRole)}</Text>
+          <Text style={styles.crewName} numberOfLines={1}>{crew.name}</Text>
+          <Text style={styles.crewMeta} numberOfLines={1}>/{crew.username} - {formatScope(crew.scope)} - {formatRole(crew.membershipRole)}</Text>
         </View>
       </View>
       <View style={styles.crewStats}>
@@ -341,7 +341,7 @@ function CrewCard({ crew, tone }: { crew: CrewListItem; tone: { background: stri
         <MiniStat label="Notes" value={crew.resourceCount} />
         <View style={styles.codePill}>
           <Copy size={14} color={colors.ink} />
-          <Text style={styles.codePillText}>{crew.inviteCode}</Text>
+          <Text style={styles.codePillText} numberOfLines={1}>{crew.inviteCode}</Text>
         </View>
       </View>
     </Pressable>
@@ -353,11 +353,11 @@ function ModalHeader({ icon, title, body, onClose }: { icon: ReactNode; title: s
     <View style={styles.modalHeader}>
       <View style={styles.modalIcon}>{icon}</View>
       <View style={styles.flexText}>
-        <Text style={styles.modalTitle}>{title}</Text>
-        <Text style={styles.modalBody}>{body}</Text>
+        <Text style={styles.modalTitle} numberOfLines={1}>{title}</Text>
+        <Text style={styles.modalBody} numberOfLines={2}>{body}</Text>
       </View>
       <Pressable onPress={onClose} style={styles.modalClose}>
-        <X size={18} color={colors.tealDark} />
+        <X size={18} color={colors.brandDeep} />
       </Pressable>
     </View>
   );
@@ -367,7 +367,7 @@ function IconAction({ label, icon, onPress, light }: { label: string; icon: Reac
   return (
     <Pressable onPress={onPress} style={[styles.iconAction, light && styles.iconActionLight]}>
       {icon}
-      <Text style={[styles.iconActionText, light && styles.iconActionTextLight]}>{label}</Text>
+      <Text style={[styles.iconActionText, light && styles.iconActionTextLight]} numberOfLines={1}>{label}</Text>
     </Pressable>
   );
 }
@@ -390,8 +390,8 @@ function ScopeButton({
   return (
     <Pressable disabled={disabled} onPress={onPress} style={[styles.scopeButton, selected && styles.scopeButtonActive, disabled && styles.scopeButtonDisabled]}>
       <View style={[styles.scopeIcon, selected && styles.scopeIconActive]}>{icon}</View>
-      <Text style={[styles.scopeTitle, selected && styles.scopeTitleActive]}>{title}</Text>
-      <Text style={[styles.scopeBody, selected && styles.scopeBodyActive]}>{body}</Text>
+      <Text style={[styles.scopeTitle, selected && styles.scopeTitleActive]} numberOfLines={1}>{title}</Text>
+      <Text style={[styles.scopeBody, selected && styles.scopeBodyActive]} numberOfLines={2}>{body}</Text>
     </Pressable>
   );
 }
@@ -411,8 +411,8 @@ function PrimaryButton({
 }) {
   return (
     <Pressable disabled={loading || disabled} onPress={onPress} style={[styles.primaryButton, (loading || disabled) && styles.buttonDisabled]}>
-      {loading ? <ActivityIndicator color="#ffffff" /> : icon}
-      <Text style={styles.primaryButtonText}>{label}</Text>
+      {loading ? <ActivityIndicator color="#ffffff" /> : <View style={styles.primaryButtonIcon}>{icon}</View>}
+      <Text style={styles.primaryButtonText} numberOfLines={1}>{label}</Text>
     </Pressable>
   );
 }
@@ -424,8 +424,8 @@ function StatSticker({ icon, label, value }: { icon: ReactNode; label: string; v
 function MiniStat({ label, value }: { label: string; value: number }) {
   return (
     <View style={styles.miniStat}>
-      <Text style={styles.miniStatValue}>{value}</Text>
-      <Text style={styles.miniStatLabel}>{label}</Text>
+      <Text style={styles.miniStatValue} numberOfLines={1}>{value}</Text>
+      <Text style={styles.miniStatLabel} numberOfLines={1}>{label}</Text>
     </View>
   );
 }
@@ -443,28 +443,30 @@ function formatScope(value: CrewScope) {
 
 const styles = StyleSheet.create({
   screen: {
-    gap: 8,
+    gap: 12,
   },
   hero: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     alignItems: 'center',
-    gap: 9,
+    gap: 14,
+    borderRadius: 8,
+    padding: 16,
   },
   heroCopy: {
     flex: 1.5,
     minWidth: 240,
-    gap: 7,
+    gap: 10,
   },
   heroPill: {
     alignSelf: 'flex-start',
-    minHeight: 23,
-    borderRadius: 11,
-    paddingHorizontal: 8,
+    minHeight: 30,
+    borderRadius: 8,
+    paddingHorizontal: 11,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 7,
-    backgroundColor: colors.gold,
+    backgroundColor: colors.mint,
   },
   heroPillText: {
     color: colors.ink,
@@ -473,15 +475,15 @@ const styles = StyleSheet.create({
   },
   heroTitle: {
     color: '#ffffff',
-    fontSize: 19,
-    lineHeight: 23,
-    fontWeight: '800',
+    fontSize: 28,
+    lineHeight: 34,
+    fontWeight: '900',
   },
   heroBody: {
-    color: '#dce7e1',
-    fontSize: 12,
-    lineHeight: 16,
-    fontWeight: '600',
+    color: '#d8e0ef',
+    fontSize: 14,
+    lineHeight: 21,
+    fontWeight: '700',
   },
   heroActions: {
     flexDirection: 'row',
@@ -489,14 +491,14 @@ const styles = StyleSheet.create({
     gap: 7,
   },
   iconAction: {
-    minHeight: 34,
-    borderRadius: 12,
-    paddingHorizontal: 10,
+    minHeight: 40,
+    borderRadius: 8,
+    paddingHorizontal: 13,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: colors.brandDeep,
+    backgroundColor: colors.brand,
   },
   iconActionLight: {
     backgroundColor: '#ffffff',
@@ -514,7 +516,7 @@ const styles = StyleSheet.create({
     minWidth: 220,
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 7,
+    gap: 9,
   },
   sectionHeading: {
     minHeight: 38,
@@ -525,9 +527,9 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     color: colors.ink,
-    fontSize: 16,
-    lineHeight: 20,
-    fontWeight: '800',
+    fontSize: 21,
+    lineHeight: 26,
+    fontWeight: '900',
   },
   sectionMeta: {
     color: colors.muted,
@@ -540,17 +542,17 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   roundAction: {
-    width: 34,
-    height: 34,
-    borderRadius: 12,
+    width: 40,
+    height: 40,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.brandDeep,
+    backgroundColor: colors.brand,
   },
   roundActionLight: {
-    backgroundColor: colors.softTeal,
+    backgroundColor: colors.softBlue,
     borderWidth: 1,
-    borderColor: '#d4e8df',
+    borderColor: '#c7d7ff',
   },
   filterRail: {
     minHeight: 36,
@@ -560,21 +562,21 @@ const styles = StyleSheet.create({
     gap: 7,
   },
   filterChip: {
-    minHeight: 31,
-    borderRadius: 12,
+    minHeight: 34,
+    borderRadius: 8,
     paddingHorizontal: 10,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#ffffff',
     borderWidth: 1,
-    borderColor: colors.line,
+    borderColor: '#dfe6f0',
   },
   filterChipActive: {
     backgroundColor: colors.brandDeep,
     borderColor: colors.brandDeep,
   },
   filterChipText: {
-    color: colors.tealDark,
+    color: colors.brandDeep,
     fontSize: 12,
     fontWeight: '700',
   },
@@ -584,33 +586,34 @@ const styles = StyleSheet.create({
   crewGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 10,
+    gap: 12,
   },
   crewCard: {
     overflow: 'hidden',
-    minWidth: 220,
+    minWidth: 230,
     flex: 1,
-    borderRadius: 14,
+    borderRadius: 8,
     borderWidth: 1,
+    borderBottomWidth: 4,
   },
   crewBanner: {
-    height: 32,
+    height: 46,
   },
   bannerImage: {
     width: '100%',
     height: '100%',
   },
   crewBody: {
-    padding: 10,
+    padding: 13,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
   },
   crewMark: {
     overflow: 'hidden',
-    width: 38,
-    height: 38,
-    borderRadius: 13,
+    width: 44,
+    height: 44,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
@@ -626,9 +629,9 @@ const styles = StyleSheet.create({
   },
   crewName: {
     color: colors.ink,
-    fontSize: 15,
-    lineHeight: 19,
-    fontWeight: '700',
+    fontSize: 17,
+    lineHeight: 22,
+    fontWeight: '900',
   },
   crewMeta: {
     color: colors.muted,
@@ -637,15 +640,15 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   crewStats: {
-    paddingHorizontal: 10,
-    paddingBottom: 11,
+    paddingHorizontal: 13,
+    paddingBottom: 13,
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
   },
   miniStat: {
     minWidth: 62,
-    borderRadius: 13,
+    borderRadius: 8,
     paddingHorizontal: 9,
     paddingVertical: 6,
     backgroundColor: 'rgba(255, 255, 255, 0.74)',
@@ -662,7 +665,7 @@ const styles = StyleSheet.create({
   },
   codePill: {
     minHeight: 32,
-    borderRadius: 13,
+    borderRadius: 8,
     paddingHorizontal: 9,
     flexDirection: 'row',
     alignItems: 'center',
@@ -678,18 +681,18 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     padding: 12,
-    backgroundColor: 'rgba(7, 12, 10, 0.58)',
+    backgroundColor: 'rgba(11, 13, 18, 0.62)',
   },
   modalSheet: {
     width: '100%',
     maxWidth: 500,
     alignSelf: 'center',
-    borderRadius: 16,
-    padding: 10,
-    gap: 9,
+    borderRadius: 8,
+    padding: 14,
+    gap: 12,
     backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: colors.line,
+    borderColor: '#dfe6f0',
   },
   modalHeader: {
     minHeight: 42,
@@ -698,12 +701,12 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   modalIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 13,
+    width: 40,
+    height: 40,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.brandDeep,
+    backgroundColor: colors.brand,
   },
   modalTitle: {
     color: colors.ink,
@@ -720,10 +723,10 @@ const styles = StyleSheet.create({
   modalClose: {
     width: 38,
     height: 38,
-    borderRadius: 14,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.softTeal,
+    backgroundColor: colors.softBlue,
   },
   field: {
     gap: 7,
@@ -734,13 +737,13 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   input: {
-    minHeight: 40,
-    borderRadius: 13,
-    paddingHorizontal: 10,
+    minHeight: 46,
+    borderRadius: 8,
+    paddingHorizontal: 12,
     color: colors.ink,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#f8fafc',
     borderWidth: 1,
-    borderColor: colors.line,
+    borderColor: '#dfe6f0',
     fontSize: 14,
     fontWeight: '600',
   },
@@ -752,22 +755,22 @@ const styles = StyleSheet.create({
   schoolPill: {
     minHeight: 34,
     maxWidth: '100%',
-    borderRadius: 14,
+    borderRadius: 8,
     paddingHorizontal: 11,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 7,
-    backgroundColor: colors.softTeal,
+    backgroundColor: colors.softBlue,
     borderWidth: 1,
-    borderColor: '#d4e8df',
+    borderColor: '#c7d7ff',
   },
   schoolPillActive: {
-    backgroundColor: colors.tealDark,
-    borderColor: colors.tealDark,
+    backgroundColor: colors.brandDeep,
+    borderColor: colors.brandDeep,
   },
   schoolPillText: {
     maxWidth: 210,
-    color: colors.tealDark,
+    color: colors.brandDeep,
     fontSize: 12,
     fontWeight: '700',
   },
@@ -782,16 +785,17 @@ const styles = StyleSheet.create({
   scopeButton: {
     flex: 1,
     minWidth: 140,
-    borderRadius: 16,
+    borderRadius: 8,
     padding: 12,
     gap: 7,
-    backgroundColor: colors.softTeal,
+    backgroundColor: colors.softBlue,
     borderWidth: 1,
-    borderColor: '#d4e8df',
+    borderBottomWidth: 4,
+    borderColor: '#c7d7ff',
   },
   scopeButtonActive: {
-    backgroundColor: colors.tealDark,
-    borderColor: colors.tealDark,
+    backgroundColor: colors.brandDeep,
+    borderColor: colors.brandDeep,
   },
   scopeButtonDisabled: {
     opacity: 0.55,
@@ -799,7 +803,7 @@ const styles = StyleSheet.create({
   scopeIcon: {
     width: 34,
     height: 34,
-    borderRadius: 13,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#ffffff',
@@ -823,36 +827,44 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   scopeBodyActive: {
-    color: '#dce7e1',
+    color: '#d8e0ef',
   },
   primaryButton: {
-    minHeight: 38,
-    borderRadius: 13,
+    minHeight: 44,
+    borderRadius: 8,
     paddingHorizontal: 10,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: colors.brandDeep,
+    backgroundColor: colors.brand,
   },
   primaryButtonText: {
     color: '#ffffff',
     fontSize: 14,
     fontWeight: '700',
   },
+  primaryButtonIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.14)',
+  },
   buttonDisabled: {
     opacity: 0.55,
   },
   codeBox: {
-    minHeight: 44,
-    borderRadius: 15,
+    minHeight: 50,
+    borderRadius: 8,
     paddingHorizontal: 12,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
     backgroundColor: '#ffffff',
     borderWidth: 1,
-    borderColor: colors.line,
+    borderColor: '#dfe6f0',
   },
   codeInput: {
     flex: 1,
@@ -865,13 +877,13 @@ const styles = StyleSheet.create({
     minHeight: 82,
     flex: 1,
     minWidth: 238,
-    borderRadius: 16,
+    borderRadius: 8,
     padding: 12,
     justifyContent: 'center',
     gap: 10,
     backgroundColor: '#ffffff',
     borderWidth: 1,
-    borderColor: colors.line,
+    borderColor: '#dfe6f0',
   },
   emptyTitle: {
     color: colors.ink,

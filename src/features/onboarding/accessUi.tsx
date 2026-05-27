@@ -1,5 +1,6 @@
 import { ReactNode } from 'react';
 import { ActivityIndicator, Image, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ArrowRight } from 'lucide-react-native';
 
 import { ImageUploadButton } from '../../components/ImageUploadButton';
 import { colors } from '../../theme/tokens';
@@ -28,8 +29,8 @@ export function ScreenHeader({
     <View style={styles.header}>
       <View style={styles.headerIcon}>{icon}</View>
       <View style={styles.flexText}>
-        <Text style={styles.headerTitle}>{title}</Text>
-        <Text style={styles.headerBody}>{body}</Text>
+        <Text style={styles.headerTitle} numberOfLines={2}>{title}</Text>
+        <Text style={styles.headerBody} numberOfLines={2}>{body}</Text>
       </View>
     </View>
   );
@@ -42,8 +43,8 @@ export function Card({ children }: { children: ReactNode }) {
 export function CardHeader({ icon, title }: { icon?: ReactNode; title: string }) {
   return (
     <View style={styles.cardHeader}>
-      {icon}
-      <Text style={styles.cardTitle}>{title}</Text>
+      {icon ? <View style={styles.cardHeaderIcon}>{icon}</View> : null}
+      <Text style={styles.cardTitle} numberOfLines={1}>{title}</Text>
     </View>
   );
 }
@@ -63,7 +64,7 @@ export function Field({
 }) {
   return (
     <View style={styles.field}>
-      <Text style={styles.fieldLabel}>{label}</Text>
+      <Text style={styles.fieldLabel} numberOfLines={1}>{label}</Text>
       <TextInput
         value={value}
         onChangeText={onChangeText}
@@ -89,7 +90,16 @@ export function SubmitButton({
 }) {
   return (
     <Pressable disabled={loading || disabled} onPress={onPress} style={[styles.primaryButton, (loading || disabled) && styles.buttonDisabled]}>
-      {loading ? <ActivityIndicator color="#ffffff" /> : <Text style={styles.primaryButtonText}>{label}</Text>}
+      {loading ? (
+        <ActivityIndicator color="#ffffff" />
+      ) : (
+        <>
+          <Text style={styles.primaryButtonText} numberOfLines={1}>{label}</Text>
+          <View style={styles.primaryButtonIcon}>
+            <ArrowRight size={15} color="#ffffff" />
+          </View>
+        </>
+      )}
     </Pressable>
   );
 }
@@ -97,7 +107,8 @@ export function SubmitButton({
 export function ChoicePill({ selected, label, onPress }: { selected: boolean; label: string; onPress: () => void }) {
   return (
     <Pressable onPress={onPress} style={[styles.choicePill, selected && styles.choicePillActive]}>
-      <Text style={[styles.choicePillText, selected && styles.choicePillTextActive]}>{label}</Text>
+      <View style={[styles.choiceDot, selected && styles.choiceDotActive]} />
+      <Text style={[styles.choicePillText, selected && styles.choicePillTextActive]} numberOfLines={1}>{label}</Text>
     </Pressable>
   );
 }
@@ -155,7 +166,7 @@ export function StickerPicker({ selectedKey, onSelect }: { selectedKey: string; 
           ]}
         >
           <View style={[styles.stickerSwatch, { backgroundColor: sticker.accent }]} />
-          <Text style={styles.stickerText}>{sticker.label}</Text>
+          <Text style={styles.stickerText} numberOfLines={1}>{sticker.label}</Text>
         </Pressable>
       ))}
     </View>
@@ -199,57 +210,74 @@ export function UploadPair({
 
 const styles = StyleSheet.create({
   screen: {
-    gap: 12,
+    gap: 14,
   },
   header: {
-    minHeight: 85,
-    borderRadius: 18,
-    padding: 14,
+    minHeight: 96,
+    borderRadius: 8,
+    padding: 16,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    backgroundColor: colors.ink,
+    backgroundColor: colors.brandDeep,
+    borderWidth: 1,
+    borderColor: 'rgba(99, 230, 255, 0.22)',
   },
   headerIcon: {
-    width: 54,
-    height: 54,
-    borderRadius: 15,
+    width: 56,
+    height: 56,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.tealDark,
+    backgroundColor: colors.brand,
   },
   headerTitle: {
     color: '#ffffff',
-    fontSize: 21,
-    lineHeight: 26,
-    fontWeight: '700',
+    fontSize: 24,
+    lineHeight: 30,
+    fontWeight: '900',
   },
   headerBody: {
-    color: '#dce7e1',
+    color: '#d8e0ef',
     fontSize: 13,
-    lineHeight: 18,
+    lineHeight: 19,
     fontWeight: '700',
   },
   card: {
-    borderRadius: 17,
-    padding: 14,
-    gap: 12,
+    borderRadius: 8,
+    padding: 16,
+    gap: 14,
     backgroundColor: colors.paper,
     borderWidth: 1,
-    borderColor: colors.line,
+    borderTopWidth: 4,
+    borderColor: '#dfe6f0',
+    shadowColor: '#111318',
+    shadowOpacity: 0.08,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 12 },
   },
   cardHeader: {
-    minHeight: 30,
+    minHeight: 36,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
   },
+  cardHeaderIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.softBlue,
+    borderWidth: 1,
+    borderColor: '#c7d7ff',
+  },
   cardTitle: {
     flex: 1,
     color: colors.ink,
-    fontSize: 17,
-    lineHeight: 22,
-    fontWeight: '700',
+    fontSize: 18,
+    lineHeight: 23,
+    fontWeight: '900',
   },
   field: {
     gap: 7,
@@ -257,52 +285,66 @@ const styles = StyleSheet.create({
   fieldLabel: {
     color: colors.ink,
     fontSize: 13,
-    fontWeight: '700',
+    fontWeight: '800',
   },
   input: {
-    minHeight: 48,
-    borderRadius: 14,
+    minHeight: 50,
+    borderRadius: 8,
     paddingHorizontal: 12,
     color: colors.ink,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#f8fafc',
     borderWidth: 1,
-    borderColor: colors.line,
+    borderColor: '#dfe6f0',
     fontSize: 15,
+    fontWeight: '700',
   },
   primaryButton: {
-    minHeight: 46,
-    borderRadius: 15,
+    minHeight: 48,
+    borderRadius: 8,
     paddingHorizontal: 14,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.tealDark,
+    gap: 8,
+    backgroundColor: colors.brand,
   },
   primaryButtonText: {
     color: '#ffffff',
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: '900',
+  },
+  primaryButtonIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.14)',
   },
   buttonDisabled: {
     opacity: 0.55,
   },
   choicePill: {
-    minHeight: 36,
-    borderRadius: 14,
+    minHeight: 38,
+    borderRadius: 8,
     paddingHorizontal: 12,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.softTeal,
+    gap: 7,
+    backgroundColor: colors.softBlue,
     borderWidth: 1,
-    borderColor: '#d4e8df',
+    borderColor: '#c7d7ff',
   },
   choicePillActive: {
-    backgroundColor: colors.tealDark,
-    borderColor: colors.tealDark,
+    backgroundColor: colors.brandDeep,
+    borderColor: colors.brandDeep,
   },
   choicePillText: {
-    color: colors.tealDark,
+    maxWidth: 140,
+    color: colors.brandDeep,
     fontSize: 13,
-    fontWeight: '700',
+    fontWeight: '800',
   },
   choicePillTextActive: {
     color: '#ffffff',
@@ -319,7 +361,7 @@ const styles = StyleSheet.create({
   identityMark: {
     width: 48,
     height: 48,
-    borderRadius: 16,
+    borderRadius: 8,
     overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
@@ -327,7 +369,7 @@ const styles = StyleSheet.create({
   identityMarkLarge: {
     width: 65,
     height: 62,
-    borderRadius: 18,
+    borderRadius: 8,
   },
   identityImage: {
     width: '100%',
@@ -339,8 +381,8 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   bannerStrip: {
-    height: 62,
-    borderRadius: 15,
+    height: 72,
+    borderRadius: 8,
     overflow: 'hidden',
   },
   bannerImage: {
@@ -354,22 +396,34 @@ const styles = StyleSheet.create({
   },
   stickerChoice: {
     minHeight: 40,
-    borderRadius: 14,
+    borderRadius: 8,
     paddingHorizontal: 10,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 7,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#f8fafc',
     borderWidth: 1,
   },
   stickerSwatch: {
     width: 18,
     height: 18,
-    borderRadius: 9,
+    borderRadius: 5,
   },
   stickerText: {
     color: colors.ink,
     fontSize: 12,
     fontWeight: '700',
+  },
+  choiceDot: {
+    width: 9,
+    height: 9,
+    borderRadius: 5,
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#c7d7ff',
+  },
+  choiceDotActive: {
+    backgroundColor: colors.mint,
+    borderColor: colors.mint,
   },
 });

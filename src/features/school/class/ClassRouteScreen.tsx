@@ -29,10 +29,10 @@ type SchoolClassRouteScreenProps = {
 type ClassPanel = 'studio' | 'library' | 'people' | 'tools';
 
 const tones = [
-  { background: '#fff4d4', accent: colors.gold },
-  { background: '#e9f6ff', accent: '#4aa6d9' },
-  { background: '#f3eaff', accent: '#8d68d8' },
-  { background: '#e8f8ee', accent: '#39a96b' },
+  { background: '#e9f1ff', accent: colors.brand },
+  { background: '#e3fbf7', accent: colors.teal },
+  { background: '#f3efff', accent: colors.violet },
+  { background: '#f1ffd7', accent: '#a3e635' },
 ];
 
 export function SchoolClassRouteScreen({
@@ -47,6 +47,7 @@ export function SchoolClassRouteScreen({
   const schoolClass = setup.classes.find((item) => item.id === classId);
   const canManageClass = ['owner', 'admin', 'teacher'].includes(membership.role);
   const [activePanel, setActivePanel] = useState<ClassPanel>(mode === 'teach' ? 'studio' : 'library');
+  const [toolsOpen, setToolsOpen] = useState(initialPanel === 'tools');
   const [subjectModalOpen, setSubjectModalOpen] = useState(false);
   const [subjectName, setSubjectName] = useState('');
   const [subjectDepartment, setSubjectDepartment] = useState('');
@@ -88,25 +89,25 @@ export function SchoolClassRouteScreen({
           id: 'studio' as ClassPanel,
           label: 'Teach',
           description: 'Record and publish',
-          icon: <BookOpen size={17} color={activePanel === 'studio' ? '#ffffff' : colors.tealDark} />,
+          icon: <BookOpen size={17} color={activePanel === 'studio' ? '#ffffff' : colors.brandDeep} />,
         },
         {
           id: 'library' as ClassPanel,
           label: 'Lessons',
           description: 'Published and live',
-          icon: <Headphones size={17} color={activePanel === 'library' ? '#ffffff' : colors.tealDark} />,
+          icon: <Headphones size={17} color={activePanel === 'library' ? '#ffffff' : colors.brandDeep} />,
         },
         {
           id: 'people' as ClassPanel,
           label: 'Students',
           description: 'Roster and access',
-          icon: <Users size={17} color={activePanel === 'people' ? '#ffffff' : colors.tealDark} />,
+          icon: <Users size={17} color={activePanel === 'people' ? '#ffffff' : colors.brandDeep} />,
         },
         {
           id: 'tools' as ClassPanel,
           label: 'Tools',
           description: 'Chat, voice, AI',
-          icon: <Brain size={17} color={activePanel === 'tools' ? '#ffffff' : colors.tealDark} />,
+          icon: <Brain size={17} color={toolsOpen ? '#ffffff' : colors.brandDeep} />,
         },
       ]
     : [
@@ -114,25 +115,25 @@ export function SchoolClassRouteScreen({
           id: 'studio' as ClassPanel,
           label: 'Learn',
           description: 'Start lessons',
-          icon: <BookOpen size={17} color={activePanel === 'studio' ? '#ffffff' : colors.tealDark} />,
+          icon: <BookOpen size={17} color={activePanel === 'studio' ? '#ffffff' : colors.brandDeep} />,
         },
         {
           id: 'library' as ClassPanel,
           label: 'Library',
           description: 'All lessons',
-          icon: <Headphones size={17} color={activePanel === 'library' ? '#ffffff' : colors.tealDark} />,
+          icon: <Headphones size={17} color={activePanel === 'library' ? '#ffffff' : colors.brandDeep} />,
         },
         {
           id: 'people' as ClassPanel,
           label: 'Practice',
           description: 'Quiz and cards',
-          icon: <Sparkles size={17} color={activePanel === 'people' ? '#ffffff' : colors.tealDark} />,
+          icon: <Sparkles size={17} color={activePanel === 'people' ? '#ffffff' : colors.brandDeep} />,
         },
         {
           id: 'tools' as ClassPanel,
           label: 'Class',
           description: 'Chat and voice',
-          icon: <Brain size={17} color={activePanel === 'tools' ? '#ffffff' : colors.tealDark} />,
+          icon: <Brain size={17} color={toolsOpen ? '#ffffff' : colors.brandDeep} />,
         },
       ];
 
@@ -146,6 +147,11 @@ export function SchoolClassRouteScreen({
 
   useEffect(() => {
     if (initialPanel) {
+      if (initialPanel === 'tools') {
+        setToolsOpen(true);
+        return;
+      }
+
       setActivePanel(initialPanel);
     }
   }, [initialPanel]);
@@ -247,6 +253,19 @@ export function SchoolClassRouteScreen({
     }
   }
 
+  function openTools() {
+    setToolsOpen(true);
+  }
+
+  function openPanel(id: ClassPanel) {
+    if (id === 'tools') {
+      openTools();
+      return;
+    }
+
+    setActivePanel(id);
+  }
+
   return (
     <View style={styles.stack}>
       <View style={styles.hero}>
@@ -264,14 +283,14 @@ export function SchoolClassRouteScreen({
           <View style={styles.flexText}>
             <View style={styles.heroPill}>
               <Sparkles size={12} color={colors.ink} />
-              <Text style={styles.heroPillText}>{mode === 'teach' ? 'Teacher studio' : 'Student classroom'}</Text>
+              <Text style={styles.heroPillText} numberOfLines={1}>{mode === 'teach' ? 'Teacher studio' : 'Student classroom'}</Text>
             </View>
-            <Text style={styles.title}>{schoolClass?.name ?? 'Class'}</Text>
-            <Text style={styles.meta}>{schoolClass?.grade_level ?? 'Learning group'} - {membership.school.name}</Text>
+            <Text style={styles.title} numberOfLines={2}>{schoolClass?.name ?? 'Class'}</Text>
+            <Text style={styles.meta} numberOfLines={1}>{schoolClass?.grade_level ?? 'Learning group'} - {membership.school.name}</Text>
             <View style={styles.classChips}>
-              <Text style={styles.classChip}>{subjectNames.length} subjects</Text>
-              <Text style={styles.classChip}>{classMemberCount} members</Text>
-              <Text style={styles.classChip}>{schoolClass?.username ?? 'class'}</Text>
+              <Text style={styles.classChip} numberOfLines={1}>{subjectNames.length} subjects</Text>
+              <Text style={styles.classChip} numberOfLines={1}>{classMemberCount} members</Text>
+              <Text style={styles.classChip} numberOfLines={1}>{schoolClass?.username ?? 'class'}</Text>
             </View>
           </View>
 
@@ -280,10 +299,10 @@ export function SchoolClassRouteScreen({
         <View style={styles.subjectStrip}>
           {subjectNames.length ? subjectNames.slice(0, 6).map((subject) => (
             <View key={subject} style={styles.heroSubjectPill}>
-              <Text style={styles.heroSubjectText}>{subject}</Text>
+              <Text style={styles.heroSubjectText} numberOfLines={1}>{subject}</Text>
             </View>
           )) : (
-            <Text style={styles.heroEmptyText}>No subjects yet. Add subjects to organize lessons.</Text>
+            <Text style={styles.heroEmptyText} numberOfLines={2}>No subjects yet. Add subjects to organize lessons.</Text>
           )}
         </View>
       </View>
@@ -294,6 +313,7 @@ export function SchoolClassRouteScreen({
         memberCount={classMemberCount}
         canManage={canManageClass}
         activePanel={activePanel}
+        toolsOpen={toolsOpen}
         onOpenStudio={() => {
           if (mode === 'teach' && !subjectNames.length) {
             setSubjectModalOpen(true);
@@ -304,7 +324,7 @@ export function SchoolClassRouteScreen({
         }}
         onOpenLibrary={() => setActivePanel('library')}
         onOpenPeople={() => setActivePanel('people')}
-        onOpenTools={() => setActivePanel('tools')}
+        onOpenTools={openTools}
         onSetup={() => setSubjectModalOpen(true)}
       />
 
@@ -317,13 +337,14 @@ export function SchoolClassRouteScreen({
             label={item.label}
             description={item.description}
             icon={item.icon}
-            onPress={setActivePanel}
+            activeOverride={item.id === 'tools' ? toolsOpen : undefined}
+            onPress={openPanel}
           />
         ))}
         {canManageClass ? (
           <Pressable onPress={() => setSubjectModalOpen(true)} style={styles.createSubjectAction}>
             <Plus size={18} color="#ffffff" />
-            <Text style={styles.createSubjectText}>Setup</Text>
+            <Text style={styles.createSubjectText} numberOfLines={1}>Setup</Text>
           </Pressable>
         ) : null}
       </ScrollView>
@@ -335,14 +356,14 @@ export function SchoolClassRouteScreen({
             <BookOpen size={22} color="#ffffff" />
           </View>
           <View style={styles.flexText}>
-            <Text style={styles.laneEyebrow}>{mode === 'teach' ? 'Live teaching console' : 'Class lesson space'}</Text>
-            <Text style={styles.laneTitle}>
+            <Text style={styles.laneEyebrow} numberOfLines={1}>{mode === 'teach' ? 'Live teaching console' : 'Class lesson space'}</Text>
+            <Text style={styles.laneTitle} numberOfLines={2}>
               {mode === 'teach' ? 'Record, prepare, and publish lessons' : 'Start with published lessons'}
             </Text>
           </View>
           <View style={styles.primaryBadge}>
             <Sparkles size={13} color={colors.ink} />
-            <Text style={styles.primaryBadgeText}>Primary</Text>
+            <Text style={styles.primaryBadgeText} numberOfLines={1}>Primary</Text>
           </View>
         </View>
 
@@ -364,8 +385,8 @@ export function SchoolClassRouteScreen({
               <Headphones size={22} color={colors.ink} />
             </View>
             <View style={styles.flexText}>
-              <Text style={styles.libraryEyebrow}>Lesson library</Text>
-              <Text style={styles.libraryTitle}>Published lessons and live sessions</Text>
+              <Text style={styles.libraryEyebrow} numberOfLines={1}>Lesson library</Text>
+              <Text style={styles.libraryTitle} numberOfLines={2}>Published lessons and live sessions</Text>
             </View>
           </View>
 
@@ -402,50 +423,18 @@ export function SchoolClassRouteScreen({
             subjectNames={subjectNames}
             classMemberCount={classMemberCount}
             onOpenLibrary={() => setActivePanel('library')}
-            onOpenTools={() => setActivePanel('tools')}
+            onOpenTools={openTools}
           />
         )
       ) : null}
 
-      {activePanel === 'tools' ? (
-        <View style={styles.secondaryLane}>
-        <View style={styles.secondaryHeader}>
-          <View style={styles.secondaryIcon}>
-            <Brain size={22} color={colors.ink} />
-          </View>
-          <View style={styles.flexText}>
-            <Text style={styles.laneEyebrow}>Second lane</Text>
-            <Text style={styles.secondaryTitle}>Class tools, study chat, voice notes, and shared AI</Text>
-          </View>
-        </View>
-
-        <View style={styles.subjectPanel}>
-          <View style={styles.panelTitleRow}>
-            <Layers size={20} color={colors.coral} />
-            <Text style={styles.panelTitle}>Study lanes</Text>
-          </View>
-          <View style={styles.subjectWrap}>
-            {subjectNames.length ? subjectNames.map((subject) => (
-              <View key={subject} style={styles.subjectPill}>
-                <Text style={styles.subjectText}>{subject}</Text>
-              </View>
-            )) : (
-              <Text style={styles.emptyText}>Subjects will appear after this class is assigned.</Text>
-            )}
-          </View>
-        </View>
-
-        {schoolClass ? (
-          <ClassStudyRoom
-            classId={schoolClass.id}
-            className={schoolClass.name}
-            classUsername={schoolClass.username}
-            gradeLevel={schoolClass.grade_level}
-            setup={setup}
-          />
-        ) : null}
-      </View>
-      ) : null}
+      <ClassToolsExperience
+        visible={toolsOpen}
+        onClose={() => setToolsOpen(false)}
+        schoolClass={schoolClass}
+        subjectNames={subjectNames}
+        setup={setup}
+      />
 
       <SubjectBuilderModal
         visible={subjectModalOpen}
@@ -469,12 +458,83 @@ export function SchoolClassRouteScreen({
 
 export default SchoolClassRouteScreen;
 
+function ClassToolsExperience({
+  visible,
+  onClose,
+  schoolClass,
+  subjectNames,
+  setup,
+}: {
+  visible: boolean;
+  onClose: () => void;
+  schoolClass: SchoolSetupState['classes'][number] | undefined;
+  subjectNames: string[];
+  setup: SchoolSetupState;
+}) {
+  return (
+    <Modal visible={visible} animationType="slide" presentationStyle="fullScreen" onRequestClose={onClose}>
+      <View style={styles.toolsScreen}>
+        <View style={styles.toolsTopBar}>
+          <View style={styles.toolsTopIcon}>
+            <Brain size={21} color={colors.ink} />
+          </View>
+          <View style={styles.flexText}>
+            <Text style={styles.toolsTopTitle} numberOfLines={1}>Classroom tools</Text>
+            <Text style={styles.toolsTopMeta} numberOfLines={1}>
+              {schoolClass?.name ?? 'Class workspace'}
+            </Text>
+          </View>
+          <Pressable onPress={onClose} style={styles.toolsClose}>
+            <X size={19} color="#ffffff" />
+          </Pressable>
+        </View>
+
+        <ScrollView contentContainerStyle={styles.toolsScroll} keyboardShouldPersistTaps="handled">
+          <View style={styles.toolsShell}>
+            <View style={styles.subjectPanel}>
+              <View style={styles.panelTitleRow}>
+                <Layers size={20} color={colors.coral} />
+                <Text style={styles.panelTitle} numberOfLines={1}>Study lanes</Text>
+              </View>
+              <View style={styles.subjectWrap}>
+                {subjectNames.length ? subjectNames.map((subject) => (
+                  <View key={subject} style={styles.subjectPill}>
+                    <Text style={styles.subjectText} numberOfLines={1}>{subject}</Text>
+                  </View>
+                )) : (
+                  <Text style={styles.emptyText} numberOfLines={2}>Subjects will appear after this class is assigned.</Text>
+                )}
+              </View>
+            </View>
+
+            {schoolClass ? (
+              <ClassStudyRoom
+                classId={schoolClass.id}
+                className={schoolClass.name}
+                classUsername={schoolClass.username}
+                gradeLevel={schoolClass.grade_level}
+                setup={setup}
+              />
+            ) : (
+              <View style={styles.emptyPanel}>
+                <Text style={styles.emptyTitle} numberOfLines={2}>Class tools are not ready</Text>
+                <Text style={styles.emptyText} numberOfLines={2}>Open a class first, then launch classroom tools.</Text>
+              </View>
+            )}
+          </View>
+        </ScrollView>
+      </View>
+    </Modal>
+  );
+}
+
 function ClassControlCenter({
   mode,
   subjectCount,
   memberCount,
   canManage,
   activePanel,
+  toolsOpen,
   onOpenStudio,
   onOpenLibrary,
   onOpenPeople,
@@ -486,6 +546,7 @@ function ClassControlCenter({
   memberCount: number;
   canManage: boolean;
   activePanel: ClassPanel;
+  toolsOpen: boolean;
   onOpenStudio: () => void;
   onOpenLibrary: () => void;
   onOpenPeople: () => void;
@@ -501,11 +562,11 @@ function ClassControlCenter({
           {teacherMode ? <BookOpen size={20} color="#ffffff" /> : <Headphones size={20} color="#ffffff" />}
         </View>
         <View style={styles.flexText}>
-          <Text style={styles.missionEyebrow}>{teacherMode ? 'Teacher next step' : 'Student next step'}</Text>
-          <Text style={styles.missionTitle}>
+          <Text style={styles.missionEyebrow} numberOfLines={1}>{teacherMode ? 'Teacher next step' : 'Student next step'}</Text>
+          <Text style={styles.missionTitle} numberOfLines={2}>
             {teacherMode ? (subjectCount ? 'Record the next lesson' : 'Add a subject first') : 'Open published lessons'}
           </Text>
-          <Text style={styles.missionMeta}>
+          <Text style={styles.missionMeta} numberOfLines={2}>
             {teacherMode ? `${subjectCount} subjects ready - ${memberCount} class members` : 'Listen, read, translate, quiz, and revise'}
           </Text>
         </View>
@@ -514,21 +575,21 @@ function ClassControlCenter({
       <View style={styles.commandGrid}>
         <ControlCard
           active={activePanel === 'library'}
-          icon={<Headphones size={17} color={activePanel === 'library' ? '#ffffff' : colors.tealDark} />}
+          icon={<Headphones size={17} color={activePanel === 'library' ? '#ffffff' : colors.brandDeep} />}
           title={teacherMode ? 'Published' : 'Lessons'}
           meta={teacherMode ? 'Live and published' : 'Study library'}
           onPress={onOpenLibrary}
         />
         <ControlCard
           active={activePanel === 'people'}
-          icon={<Users size={17} color={activePanel === 'people' ? '#ffffff' : colors.tealDark} />}
+          icon={<Users size={17} color={activePanel === 'people' ? '#ffffff' : colors.brandDeep} />}
           title={teacherMode ? 'Students' : 'Practice'}
           meta={teacherMode ? `${memberCount} active` : 'Quiz and cards'}
           onPress={onOpenPeople}
         />
         <ControlCard
-          active={activePanel === 'tools'}
-          icon={<Brain size={17} color={activePanel === 'tools' ? '#ffffff' : colors.tealDark} />}
+          active={toolsOpen}
+          icon={<Brain size={17} color={toolsOpen ? '#ffffff' : colors.brandDeep} />}
           title="Tools"
           meta="Chat, voice, AI"
           onPress={onOpenTools}
@@ -536,7 +597,7 @@ function ClassControlCenter({
         {canManage ? (
           <ControlCard
             active={false}
-            icon={<Layers size={17} color={colors.tealDark} />}
+            icon={<Layers size={17} color={colors.brandDeep} />}
             title="Subject"
             meta={subjectCount ? `${subjectCount} linked` : 'Setup needed'}
             onPress={onSetup}
@@ -564,8 +625,8 @@ function ControlCard({
     <Pressable onPress={onPress} style={[styles.controlCard, active && styles.controlCardActive]}>
       <View style={[styles.controlIcon, active && styles.controlIconActive]}>{icon}</View>
       <View style={styles.flexText}>
-        <Text style={[styles.controlTitle, active && styles.controlTextActive]}>{title}</Text>
-        <Text style={[styles.controlMeta, active && styles.controlMetaActive]}>{meta}</Text>
+        <Text style={[styles.controlTitle, active && styles.controlTextActive]} numberOfLines={1}>{title}</Text>
+        <Text style={[styles.controlMeta, active && styles.controlMetaActive]} numberOfLines={1}>{meta}</Text>
       </View>
     </Pressable>
   );
@@ -574,6 +635,7 @@ function ControlCard({
 function ClassPanelButton({
   id,
   activeId,
+  activeOverride,
   label,
   description,
   icon,
@@ -581,19 +643,20 @@ function ClassPanelButton({
 }: {
   id: ClassPanel;
   activeId: ClassPanel;
+  activeOverride?: boolean;
   label: string;
   description: string;
   icon: ReactNode;
   onPress: (id: ClassPanel) => void;
 }) {
-  const active = id === activeId;
+  const active = activeOverride ?? id === activeId;
 
   return (
     <Pressable onPress={() => onPress(id)} style={[styles.panelTab, active && styles.panelTabActive]}>
       <View style={[styles.panelTabIcon, active && styles.panelTabIconActive]}>{icon}</View>
       <View style={styles.flexText}>
-        <Text style={[styles.panelTabTitle, active && styles.panelTabTitleActive]}>{label}</Text>
-        <Text style={[styles.panelTabMeta, active && styles.panelTabMetaActive]}>{description}</Text>
+        <Text style={[styles.panelTabTitle, active && styles.panelTabTitleActive]} numberOfLines={1}>{label}</Text>
+        <Text style={[styles.panelTabMeta, active && styles.panelTabMetaActive]} numberOfLines={1}>{description}</Text>
       </View>
     </Pressable>
   );
@@ -635,12 +698,12 @@ function ClassRosterPanel({
           <Users size={19} color="#ffffff" />
         </View>
         <View style={styles.flexText}>
-          <Text style={styles.rosterEyebrow}>Class roster</Text>
-          <Text style={styles.rosterTitle}>{className}</Text>
+          <Text style={styles.rosterEyebrow} numberOfLines={1}>Class roster</Text>
+          <Text style={styles.rosterTitle} numberOfLines={1}>{className}</Text>
         </View>
         <Pressable onPress={onSetup} style={styles.rosterAction}>
           <Plus size={15} color={colors.ink} />
-          <Text style={styles.rosterActionText}>Subject</Text>
+          <Text style={styles.rosterActionText} numberOfLines={1}>Subject</Text>
         </Pressable>
       </View>
 
@@ -649,12 +712,12 @@ function ClassRosterPanel({
 
       <View style={styles.rosterStats}>
         <View style={styles.compactStat}>
-          <Text style={styles.compactStatValue}>{roster.length}</Text>
-          <Text style={styles.compactStatLabel}>Students</Text>
+          <Text style={styles.compactStatValue} numberOfLines={1}>{roster.length}</Text>
+          <Text style={styles.compactStatLabel} numberOfLines={1}>Students</Text>
         </View>
         <View style={styles.compactStat}>
-          <Text style={styles.compactStatValue}>{subjectCount}</Text>
-          <Text style={styles.compactStatLabel}>Subjects</Text>
+          <Text style={styles.compactStatValue} numberOfLines={1}>{subjectCount}</Text>
+          <Text style={styles.compactStatLabel} numberOfLines={1}>Subjects</Text>
         </View>
       </View>
 
@@ -665,8 +728,8 @@ function ClassRosterPanel({
               <Text style={styles.rosterAvatarText}>{initials(member.name)}</Text>
             </View>
             <View style={styles.flexText}>
-              <Text style={styles.rosterName}>{member.name}</Text>
-              <Text style={styles.rosterMeta}>{formatRole(member.role)} - {member.language}</Text>
+              <Text style={styles.rosterName} numberOfLines={1}>{member.name}</Text>
+              <Text style={styles.rosterMeta} numberOfLines={1}>{formatRole(member.role)} - {member.language}</Text>
             </View>
             {canManage ? (
               <Pressable
@@ -675,28 +738,28 @@ function ClassRosterPanel({
                 style={styles.rosterRemove}
               >
                 {saving === `remove-${member.id}` ? (
-                  <ActivityIndicator color={colors.tealDark} />
+                  <ActivityIndicator color={colors.brandDeep} />
                 ) : (
                   <>
-                    <UserMinus size={14} color={colors.tealDark} />
-                    <Text style={styles.rosterRemoveText}>Remove</Text>
+                    <UserMinus size={14} color={colors.brandDeep} />
+                    <Text style={styles.rosterRemoveText} numberOfLines={1}>Remove</Text>
                   </>
                 )}
               </Pressable>
             ) : (
-              <Text style={styles.rosterStatus}>{member.status}</Text>
+              <Text style={styles.rosterStatus} numberOfLines={1}>{member.status}</Text>
             )}
           </View>
         )) : (
-          <Text style={styles.emptyText}>No active students in this class yet.</Text>
+          <Text style={styles.emptyText} numberOfLines={2}>No active students in this class yet.</Text>
         )}
       </View>
 
       {canManage ? (
         <View style={styles.addMemberPanel}>
           <View style={styles.addMemberHeader}>
-            <UserPlus size={17} color={colors.tealDark} />
-            <Text style={styles.addMemberTitle}>Add school member</Text>
+            <UserPlus size={17} color={colors.brandDeep} />
+            <Text style={styles.addMemberTitle} numberOfLines={1}>Add school member</Text>
           </View>
           <View style={styles.memberChoiceWrap}>
             {availableMembers.length ? availableMembers.map((member) => {
@@ -710,11 +773,11 @@ function ClassRosterPanel({
                   style={[styles.memberChoice, active && styles.memberChoiceActive]}
                 >
                   <Text style={[styles.memberChoiceText, active && styles.memberChoiceTextActive]} numberOfLines={1}>{label}</Text>
-                  <Text style={[styles.memberChoiceMeta, active && styles.memberChoiceTextActive]}>{formatRole(member.role)}</Text>
+                  <Text style={[styles.memberChoiceMeta, active && styles.memberChoiceTextActive]} numberOfLines={1}>{formatRole(member.role)}</Text>
                 </Pressable>
               );
             }) : (
-              <Text style={styles.emptyText}>Every active school member is already in this class.</Text>
+              <Text style={styles.emptyText} numberOfLines={2}>Every active school member is already in this class.</Text>
             )}
           </View>
           <Pressable
@@ -723,7 +786,7 @@ function ClassRosterPanel({
             style={[styles.addMemberButton, (!selectedMemberId || saving === 'add-member') && styles.disabledAction]}
           >
             {saving === 'add-member' ? <ActivityIndicator color="#ffffff" /> : <UserPlus size={16} color="#ffffff" />}
-            <Text style={styles.addMemberButtonText}>Add to class</Text>
+            <Text style={styles.addMemberButtonText} numberOfLines={1}>Add to class</Text>
           </Pressable>
         </View>
       ) : null}
@@ -749,31 +812,31 @@ function StudentPracticePanel({
           <Sparkles size={19} color={colors.ink} />
         </View>
         <View style={styles.flexText}>
-          <Text style={styles.practiceEyebrow}>Practice lane</Text>
-          <Text style={styles.practiceTitle}>Review the lesson, then quiz yourself</Text>
+          <Text style={styles.practiceEyebrow} numberOfLines={1}>Practice lane</Text>
+          <Text style={styles.practiceTitle} numberOfLines={2}>Review the lesson, then quiz yourself</Text>
         </View>
       </View>
 
       <View style={styles.practiceGrid}>
         <Pressable onPress={onOpenLibrary} style={styles.practiceCard}>
-          <BookOpen size={18} color={colors.tealDark} />
-          <Text style={styles.practiceCardTitle}>Open lessons</Text>
-          <Text style={styles.practiceCardMeta}>Listen, read, cards, quiz</Text>
+          <BookOpen size={18} color={colors.brandDeep} />
+          <Text style={styles.practiceCardTitle} numberOfLines={1}>Open lessons</Text>
+          <Text style={styles.practiceCardMeta} numberOfLines={1}>Listen, read, cards, quiz</Text>
         </Pressable>
         <Pressable onPress={onOpenTools} style={styles.practiceCard}>
-          <Brain size={18} color={colors.tealDark} />
-          <Text style={styles.practiceCardTitle}>Study together</Text>
-          <Text style={styles.practiceCardMeta}>{classMemberCount} classmates available</Text>
+          <Brain size={18} color={colors.brandDeep} />
+          <Text style={styles.practiceCardTitle} numberOfLines={1}>Study together</Text>
+          <Text style={styles.practiceCardMeta} numberOfLines={1}>{classMemberCount} classmates available</Text>
         </Pressable>
       </View>
 
       <View style={styles.subjectWrap}>
         {subjectNames.length ? subjectNames.slice(0, 8).map((subject) => (
           <View key={subject} style={styles.subjectPill}>
-            <Text style={styles.subjectText}>{subject}</Text>
+            <Text style={styles.subjectText} numberOfLines={1}>{subject}</Text>
           </View>
         )) : (
-          <Text style={styles.emptyText}>Your teacher has not attached subjects yet.</Text>
+          <Text style={styles.emptyText} numberOfLines={2}>Your teacher has not attached subjects yet.</Text>
         )}
       </View>
     </View>
@@ -814,11 +877,11 @@ function SubjectBuilderModal({
               <Layers size={22} color="#ffffff" />
             </View>
             <View style={styles.flexText}>
-              <Text style={styles.modalTitle}>Class subjects</Text>
-              <Text style={styles.modalMeta}>Create a new subject or attach one already in this school.</Text>
+              <Text style={styles.modalTitle} numberOfLines={1}>Class subjects</Text>
+              <Text style={styles.modalMeta} numberOfLines={2}>Create a new subject or attach one already in this school.</Text>
             </View>
             <Pressable onPress={onClose} style={styles.modalClose}>
-              <X size={18} color={colors.tealDark} />
+              <X size={18} color={colors.brandDeep} />
             </Pressable>
           </View>
 
@@ -827,11 +890,11 @@ function SubjectBuilderModal({
           <View style={styles.modalGrid}>
             <View style={styles.modalPanel}>
               <View style={styles.modalPanelTitleRow}>
-                <Plus size={18} color={colors.tealDark} />
-                <Text style={styles.modalPanelTitle}>New subject</Text>
+                <Plus size={18} color={colors.brandDeep} />
+                <Text style={styles.modalPanelTitle} numberOfLines={1}>New subject</Text>
               </View>
               <View style={styles.fieldBlock}>
-                <Text style={styles.fieldLabel}>Subject name</Text>
+                <Text style={styles.fieldLabel} numberOfLines={1}>Subject name</Text>
                 <TextInput
                   value={subjectName}
                   onChangeText={onName}
@@ -841,7 +904,7 @@ function SubjectBuilderModal({
                 />
               </View>
               <View style={styles.fieldBlock}>
-                <Text style={styles.fieldLabel}>Department</Text>
+                <Text style={styles.fieldLabel} numberOfLines={1}>Department</Text>
                 <TextInput
                   value={subjectDepartment}
                   onChangeText={onDepartment}
@@ -856,62 +919,42 @@ function SubjectBuilderModal({
                 style={[styles.primaryAction, (saving === 'create' || !subjectName.trim()) && styles.disabledAction]}
               >
                 {saving === 'create' ? <ActivityIndicator color="#ffffff" /> : <Plus size={17} color="#ffffff" />}
-                <Text style={styles.primaryActionText}>Create and attach</Text>
+                <Text style={styles.primaryActionText} numberOfLines={1}>Create and attach</Text>
               </Pressable>
             </View>
 
             <View style={styles.modalPanel}>
               <View style={styles.modalPanelTitleRow}>
-                <Link2 size={18} color={colors.tealDark} />
-                <Text style={styles.modalPanelTitle}>Attach existing</Text>
+                <Link2 size={18} color={colors.brandDeep} />
+                <Text style={styles.modalPanelTitle} numberOfLines={1}>Attach existing</Text>
               </View>
               {availableSubjects.length ? (
                 <View style={styles.attachList}>
                   {availableSubjects.map((subject) => (
                     <View key={subject.id} style={styles.attachItem}>
                       <View style={styles.flexText}>
-                        <Text style={styles.attachTitle}>{subject.name}</Text>
-                        <Text style={styles.attachMeta}>{subject.department ?? 'No department'}</Text>
+                        <Text style={styles.attachTitle} numberOfLines={1}>{subject.name}</Text>
+                        <Text style={styles.attachMeta} numberOfLines={1}>{subject.department ?? 'No department'}</Text>
                       </View>
                       <Pressable
                         disabled={saving === `attach-${subject.id}`}
                         onPress={() => onAttach(subject.id)}
                         style={[styles.attachButton, saving === `attach-${subject.id}` && styles.disabledAction]}
                       >
-                        {saving === `attach-${subject.id}` ? <ActivityIndicator color={colors.tealDark} /> : <Plus size={15} color={colors.tealDark} />}
-                        <Text style={styles.attachButtonText}>Add</Text>
+                        {saving === `attach-${subject.id}` ? <ActivityIndicator color={colors.brandDeep} /> : <Plus size={15} color={colors.brandDeep} />}
+                        <Text style={styles.attachButtonText} numberOfLines={1}>Add</Text>
                       </Pressable>
                     </View>
                   ))}
                 </View>
               ) : (
-                <Text style={styles.emptyText}>Every school subject is already attached to this class.</Text>
+                <Text style={styles.emptyText} numberOfLines={2}>Every school subject is already attached to this class.</Text>
               )}
             </View>
           </View>
         </Pressable>
       </Pressable>
     </Modal>
-  );
-}
-
-function RoomStat({
-  icon,
-  label,
-  value,
-  tone,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: number;
-  tone: { background: string; accent: string };
-}) {
-  return (
-    <View style={[styles.roomStat, { backgroundColor: tone.background, borderColor: tone.accent }]}>
-      <View style={[styles.roomStatIcon, { backgroundColor: tone.accent }]}>{icon}</View>
-      <Text style={styles.roomStatValue}>{value}</Text>
-      <Text style={styles.roomStatLabel}>{label}</Text>
-    </View>
   );
 }
 
@@ -933,15 +976,15 @@ function formatRole(value: string) {
 
 const styles = StyleSheet.create({
   stack: {
-    gap: 8,
+    gap: 12,
   },
   hero: {
     overflow: 'hidden',
     position: 'relative',
-    borderRadius: 16,
-    backgroundColor: colors.night,
+    borderRadius: 8,
+    backgroundColor: colors.brandDeep,
     borderWidth: 1,
-    borderColor: 'rgba(25, 209, 163, 0.22)',
+    borderColor: 'rgba(99, 230, 255, 0.22)',
   },
   heroImage: {
     position: 'absolute',
@@ -951,19 +994,19 @@ const styles = StyleSheet.create({
   },
   heroShade: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(8, 21, 17, 0.82)',
+    backgroundColor: 'rgba(16, 21, 34, 0.88)',
   },
   heroBody: {
-    padding: 10,
+    padding: 16,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 9,
+    gap: 12,
   },
   classMark: {
     overflow: 'hidden',
-    width: 42,
-    height: 42,
-    borderRadius: 14,
+    width: 54,
+    height: 54,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
@@ -985,12 +1028,12 @@ const styles = StyleSheet.create({
   heroPill: {
     alignSelf: 'flex-start',
     minHeight: 22,
-    borderRadius: 11,
+    borderRadius: 8,
     paddingHorizontal: 7,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    backgroundColor: colors.gold,
+    backgroundColor: colors.mint,
   },
   heroPillText: {
     color: colors.ink,
@@ -999,14 +1042,14 @@ const styles = StyleSheet.create({
   },
   title: {
     color: '#ffffff',
-    fontSize: 18,
-    lineHeight: 22,
-    fontWeight: '800',
+    fontSize: 28,
+    lineHeight: 34,
+    fontWeight: '900',
   },
   meta: {
-    color: '#d9e5de',
-    fontSize: 12,
-    lineHeight: 17,
+    color: '#d8e0ef',
+    fontSize: 13,
+    lineHeight: 19,
     fontWeight: '700',
   },
   classChips: {
@@ -1016,7 +1059,7 @@ const styles = StyleSheet.create({
   },
   classChip: {
     minHeight: 22,
-    borderRadius: 11,
+    borderRadius: 8,
     paddingHorizontal: 7,
     paddingTop: 4,
     color: '#e9f4ef',
@@ -1028,14 +1071,14 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   heroAction: {
-    minHeight: 34,
-    borderRadius: 13,
-    paddingHorizontal: 10,
+    minHeight: 40,
+    borderRadius: 8,
+    paddingHorizontal: 13,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    backgroundColor: colors.gold,
+    backgroundColor: colors.mint,
   },
   heroActionText: {
     color: colors.ink,
@@ -1051,7 +1094,7 @@ const styles = StyleSheet.create({
   },
   heroSubjectPill: {
     minHeight: 24,
-    borderRadius: 12,
+    borderRadius: 8,
     paddingHorizontal: 8,
     alignItems: 'center',
     justifyContent: 'center',
@@ -1073,15 +1116,15 @@ const styles = StyleSheet.create({
   commandCenter: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 7,
+    gap: 10,
     alignItems: 'stretch',
   },
   missionCard: {
     flex: 1.15,
     minWidth: 240,
     minHeight: 72,
-    borderRadius: 15,
-    padding: 10,
+    borderRadius: 10,
+    padding: 14,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
@@ -1089,22 +1132,22 @@ const styles = StyleSheet.create({
   },
   teacherMission: {
     backgroundColor: colors.brandDeep,
-    borderColor: '#1d6f5f',
+    borderColor: 'rgba(99, 230, 255, 0.22)',
   },
   studentMission: {
-    backgroundColor: '#123047',
-    borderColor: '#245372',
+    backgroundColor: '#0f172a',
+    borderColor: 'rgba(99, 230, 255, 0.18)',
   },
   missionIcon: {
-    width: 38,
-    height: 38,
-    borderRadius: 13,
+    width: 42,
+    height: 42,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.teal,
+    backgroundColor: colors.brand,
   },
   missionEyebrow: {
-    color: colors.gold,
+    color: colors.brandGlow,
     fontSize: 10,
     lineHeight: 13,
     fontWeight: '700',
@@ -1112,12 +1155,12 @@ const styles = StyleSheet.create({
   },
   missionTitle: {
     color: '#ffffff',
-    fontSize: 15,
-    lineHeight: 19,
-    fontWeight: '800',
+    fontSize: 17,
+    lineHeight: 22,
+    fontWeight: '900',
   },
   missionMeta: {
-    color: '#dce7e1',
+    color: '#d8e0ef',
     fontSize: 11,
     lineHeight: 15,
     fontWeight: '600',
@@ -1132,27 +1175,27 @@ const styles = StyleSheet.create({
   controlCard: {
     minWidth: 118,
     flex: 1,
-    minHeight: 50,
-    borderRadius: 14,
-    padding: 8,
+    minHeight: 56,
+    borderRadius: 10,
+    padding: 10,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
     backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: colors.line,
+    borderColor: '#dfe6f0',
   },
   controlCardActive: {
     backgroundColor: colors.brandDeep,
     borderColor: colors.brandDeep,
   },
   controlIcon: {
-    width: 30,
-    height: 30,
-    borderRadius: 12,
+    width: 34,
+    height: 34,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.softTeal,
+    backgroundColor: colors.softBlue,
   },
   controlIconActive: {
     backgroundColor: 'rgba(255,255,255,0.16)',
@@ -1173,7 +1216,7 @@ const styles = StyleSheet.create({
     color: '#ffffff',
   },
   controlMetaActive: {
-    color: '#dce7e1',
+    color: '#d8e0ef',
   },
   panelScroller: {
     maxHeight: 42,
@@ -1188,7 +1231,7 @@ const styles = StyleSheet.create({
   panelTab: {
     minHeight: 36,
     minWidth: 108,
-    borderRadius: 13,
+    borderRadius: 8,
     paddingHorizontal: 8,
     paddingVertical: 5,
     flexDirection: 'row',
@@ -1196,7 +1239,7 @@ const styles = StyleSheet.create({
     gap: 8,
     backgroundColor: '#ffffff',
     borderWidth: 1,
-    borderColor: colors.line,
+    borderColor: '#dfe6f0',
   },
   panelTabActive: {
     backgroundColor: colors.brandDeep,
@@ -1205,10 +1248,10 @@ const styles = StyleSheet.create({
   panelTabIcon: {
     width: 26,
     height: 26,
-    borderRadius: 10,
+    borderRadius: 6,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.softTeal,
+    backgroundColor: colors.softBlue,
   },
   panelTabIconActive: {
     backgroundColor: 'rgba(255,255,255,0.16)',
@@ -1229,20 +1272,20 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   panelTabMetaActive: {
-    color: '#dce7e1',
+    color: '#d8e0ef',
   },
   createSubjectAction: {
     minHeight: 36,
     minWidth: 88,
-    borderRadius: 13,
+    borderRadius: 8,
     paddingHorizontal: 10,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: colors.teal,
+    backgroundColor: colors.brand,
     borderWidth: 1,
-    borderColor: '#1e8f7d',
+    borderColor: colors.brand,
   },
   createSubjectText: {
     color: '#ffffff',
@@ -1250,29 +1293,29 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   lessonLane: {
-    gap: 8,
+    gap: 10,
   },
   laneHeader: {
     minHeight: 52,
-    borderRadius: 15,
-    padding: 10,
+    borderRadius: 10,
+    padding: 12,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 9,
     backgroundColor: colors.brandDeep,
     borderWidth: 1,
-    borderColor: '#1d6f5f',
+    borderColor: 'rgba(99, 230, 255, 0.22)',
   },
   laneIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 13,
+    width: 40,
+    height: 40,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.teal,
+    backgroundColor: colors.brand,
   },
   laneEyebrow: {
-    color: colors.gold,
+    color: colors.brandGlow,
     fontSize: 10,
     lineHeight: 13,
     fontWeight: '700',
@@ -1282,17 +1325,17 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 15,
     lineHeight: 19,
-    fontWeight: '800',
+    fontWeight: '900',
   },
   primaryBadge: {
     minHeight: 28,
-    borderRadius: 14,
+    borderRadius: 8,
     paddingHorizontal: 8,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 5,
-    backgroundColor: colors.gold,
+    backgroundColor: colors.mint,
   },
   primaryBadgeText: {
     color: colors.ink,
@@ -1301,25 +1344,25 @@ const styles = StyleSheet.create({
   },
   libraryHeader: {
     minHeight: 50,
-    borderRadius: 15,
-    padding: 10,
+    borderRadius: 10,
+    padding: 12,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 9,
-    backgroundColor: '#e9f6ff',
+    backgroundColor: colors.softBlue,
     borderWidth: 1,
-    borderColor: '#bce0f4',
+    borderColor: '#c7d7ff',
   },
   libraryIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 13,
+    width: 40,
+    height: 40,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#4aa6d9',
+    backgroundColor: colors.brand,
   },
   libraryEyebrow: {
-    color: colors.tealDark,
+    color: colors.brand,
     fontSize: 11,
     lineHeight: 15,
     fontWeight: '700',
@@ -1331,62 +1374,65 @@ const styles = StyleSheet.create({
     lineHeight: 19,
     fontWeight: '800',
   },
-  secondaryLane: {
-    gap: 8,
+  toolsScreen: {
+    flex: 1,
+    backgroundColor: colors.canvas,
   },
-  secondaryHeader: {
-    minHeight: 50,
-    borderRadius: 15,
-    padding: 10,
+  toolsTopBar: {
+    minHeight: 64,
+    paddingHorizontal: 12,
+    paddingTop: 8,
+    paddingBottom: 8,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 9,
-    backgroundColor: '#fff6da',
-    borderWidth: 1,
-    borderColor: '#f0d489',
+    gap: 10,
+    backgroundColor: colors.brandDeep,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(99, 230, 255, 0.22)',
   },
-  secondaryIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 13,
+  toolsTopIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.gold,
+    backgroundColor: colors.mint,
   },
-  secondaryTitle: {
-    color: colors.ink,
-    fontSize: 15,
-    lineHeight: 19,
-    fontWeight: '800',
+  toolsTopTitle: {
+    color: '#ffffff',
+    fontSize: 18,
+    lineHeight: 23,
+    fontWeight: '900',
   },
-  roomStat: {
-    minWidth: 130,
-    flex: 1,
-    borderRadius: 17,
-    padding: 13,
-    gap: 6,
-    borderWidth: 2,
-  },
-  roomStatIcon: {
-    width: 38,
-    height: 38,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  roomStatValue: {
-    color: colors.ink,
-    fontSize: 21,
-    lineHeight: 26,
-    fontWeight: '700',
-  },
-  roomStatLabel: {
-    color: colors.muted,
+  toolsTopMeta: {
+    color: '#a8b3c7',
     fontSize: 12,
+    lineHeight: 16,
     fontWeight: '700',
+  },
+  toolsClose: {
+    width: 40,
+    height: 40,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#0f172a',
+    borderWidth: 1,
+    borderColor: 'rgba(99, 230, 255, 0.22)',
+  },
+  toolsScroll: {
+    flexGrow: 1,
+    padding: 12,
+    paddingBottom: 24,
+  },
+  toolsShell: {
+    width: '100%',
+    maxWidth: 1240,
+    alignSelf: 'center',
+    gap: 10,
   },
   subjectPanel: {
-    borderRadius: 15,
+    borderRadius: 8,
     padding: 10,
     gap: 8,
     backgroundColor: colors.surface,
@@ -1408,13 +1454,13 @@ const styles = StyleSheet.create({
   panelAction: {
     marginLeft: 'auto',
     minHeight: 34,
-    borderRadius: 17,
+    borderRadius: 10,
     paddingHorizontal: 11,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 5,
-    backgroundColor: colors.tealDark,
+    backgroundColor: colors.brandDeep,
   },
   panelActionText: {
     color: '#ffffff',
@@ -1428,16 +1474,16 @@ const styles = StyleSheet.create({
   },
   subjectPill: {
     minHeight: 30,
-    borderRadius: 14,
+    borderRadius: 8,
     paddingHorizontal: 9,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.softTeal,
+    backgroundColor: colors.softBlue,
     borderWidth: 1,
-    borderColor: '#d4e8df',
+    borderColor: '#c7d7ff',
   },
   subjectText: {
-    color: colors.tealDark,
+    color: colors.brandDeep,
     fontSize: 12,
     fontWeight: '700',
   },
@@ -1447,8 +1493,26 @@ const styles = StyleSheet.create({
     lineHeight: 19,
     fontWeight: '700',
   },
+  emptyPanel: {
+    minHeight: 110,
+    borderRadius: 8,
+    padding: 14,
+    gap: 7,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: colors.line,
+  },
+  emptyTitle: {
+    color: colors.ink,
+    fontSize: 17,
+    lineHeight: 22,
+    fontWeight: '800',
+    textAlign: 'center',
+  },
   rosterPanel: {
-    borderRadius: 16,
+    borderRadius: 10,
     padding: 11,
     gap: 10,
     backgroundColor: '#ffffff',
@@ -1464,13 +1528,13 @@ const styles = StyleSheet.create({
   rosterIcon: {
     width: 38,
     height: 38,
-    borderRadius: 13,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.tealDark,
+    backgroundColor: colors.brandDeep,
   },
   rosterEyebrow: {
-    color: colors.tealDark,
+    color: colors.brandDeep,
     fontSize: 10,
     lineHeight: 13,
     fontWeight: '700',
@@ -1484,7 +1548,7 @@ const styles = StyleSheet.create({
   },
   rosterAction: {
     minHeight: 32,
-    borderRadius: 14,
+    borderRadius: 8,
     paddingHorizontal: 9,
     flexDirection: 'row',
     alignItems: 'center',
@@ -1505,11 +1569,11 @@ const styles = StyleSheet.create({
   compactStat: {
     minWidth: 120,
     flex: 1,
-    borderRadius: 14,
+    borderRadius: 8,
     padding: 9,
-    backgroundColor: colors.softTeal,
+    backgroundColor: colors.softBlue,
     borderWidth: 1,
-    borderColor: '#d4e8df',
+    borderColor: '#c7d7ff',
   },
   compactStatValue: {
     color: colors.ink,
@@ -1528,19 +1592,19 @@ const styles = StyleSheet.create({
   },
   rosterItem: {
     minHeight: 50,
-    borderRadius: 14,
+    borderRadius: 8,
     padding: 9,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 9,
-    backgroundColor: '#f8fbf9',
+    backgroundColor: '#f8fafc',
     borderWidth: 1,
     borderColor: colors.line,
   },
   rosterAvatar: {
     width: 34,
     height: 34,
-    borderRadius: 12,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.teal,
@@ -1564,17 +1628,17 @@ const styles = StyleSheet.create({
   },
   rosterStatus: {
     overflow: 'hidden',
-    borderRadius: 11,
+    borderRadius: 8,
     paddingHorizontal: 7,
     paddingVertical: 4,
-    color: colors.tealDark,
-    backgroundColor: colors.softTeal,
+    color: colors.brandDeep,
+    backgroundColor: colors.softBlue,
     fontSize: 10,
     fontWeight: '700',
   },
   rosterRemove: {
     minHeight: 30,
-    borderRadius: 12,
+    borderRadius: 8,
     paddingHorizontal: 8,
     flexDirection: 'row',
     alignItems: 'center',
@@ -1583,15 +1647,15 @@ const styles = StyleSheet.create({
     backgroundColor: colors.softGold,
   },
   rosterRemoveText: {
-    color: colors.tealDark,
+    color: colors.brandDeep,
     fontSize: 10,
     fontWeight: '700',
   },
   addMemberPanel: {
-    borderRadius: 15,
+    borderRadius: 8,
     padding: 10,
     gap: 9,
-    backgroundColor: '#f8fbf9',
+    backgroundColor: '#f8fafc',
     borderWidth: 1,
     borderColor: colors.line,
   },
@@ -1614,7 +1678,7 @@ const styles = StyleSheet.create({
   memberChoice: {
     minWidth: 112,
     flex: 1,
-    borderRadius: 13,
+    borderRadius: 8,
     paddingHorizontal: 9,
     paddingVertical: 7,
     backgroundColor: '#ffffff',
@@ -1622,8 +1686,8 @@ const styles = StyleSheet.create({
     borderColor: colors.line,
   },
   memberChoiceActive: {
-    backgroundColor: colors.tealDark,
-    borderColor: colors.tealDark,
+    backgroundColor: colors.brandDeep,
+    borderColor: colors.brandDeep,
   },
   memberChoiceText: {
     color: colors.ink,
@@ -1642,13 +1706,13 @@ const styles = StyleSheet.create({
   },
   addMemberButton: {
     minHeight: 38,
-    borderRadius: 13,
+    borderRadius: 8,
     paddingHorizontal: 11,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 7,
-    backgroundColor: colors.tealDark,
+    backgroundColor: colors.brandDeep,
   },
   addMemberButtonText: {
     color: '#ffffff',
@@ -1656,7 +1720,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   practicePanel: {
-    borderRadius: 16,
+    borderRadius: 10,
     padding: 11,
     gap: 10,
     backgroundColor: '#fff8e3',
@@ -1672,13 +1736,13 @@ const styles = StyleSheet.create({
   practiceIcon: {
     width: 38,
     height: 38,
-    borderRadius: 13,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.gold,
   },
   practiceEyebrow: {
-    color: colors.tealDark,
+    color: colors.brandDeep,
     fontSize: 10,
     lineHeight: 13,
     fontWeight: '700',
@@ -1698,7 +1762,7 @@ const styles = StyleSheet.create({
   practiceCard: {
     minWidth: 160,
     flex: 1,
-    borderRadius: 15,
+    borderRadius: 8,
     padding: 10,
     gap: 5,
     backgroundColor: '#ffffff',
@@ -1721,13 +1785,13 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     padding: 12,
-    backgroundColor: 'rgba(7, 12, 10, 0.6)',
+    backgroundColor: 'rgba(11, 13, 18, 0.62)',
   },
   modalSheet: {
     width: '100%',
     maxWidth: 880,
     alignSelf: 'center',
-    borderRadius: 20,
+    borderRadius: 8,
     padding: 12,
     gap: 12,
     backgroundColor: colors.paper,
@@ -1743,10 +1807,10 @@ const styles = StyleSheet.create({
   modalIcon: {
     width: 46,
     height: 46,
-    borderRadius: 17,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.tealDark,
+    backgroundColor: colors.brandDeep,
   },
   modalTitle: {
     color: colors.ink,
@@ -1763,10 +1827,10 @@ const styles = StyleSheet.create({
   modalClose: {
     width: 38,
     height: 38,
-    borderRadius: 16,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.softTeal,
+    backgroundColor: colors.softBlue,
   },
   modalGrid: {
     flexDirection: 'row',
@@ -1776,7 +1840,7 @@ const styles = StyleSheet.create({
   modalPanel: {
     flex: 1,
     minWidth: 260,
-    borderRadius: 17,
+    borderRadius: 10,
     padding: 14,
     gap: 10,
     backgroundColor: '#ffffff',
@@ -1804,24 +1868,24 @@ const styles = StyleSheet.create({
   },
   input: {
     minHeight: 48,
-    borderRadius: 16,
+    borderRadius: 10,
     paddingHorizontal: 12,
     color: colors.ink,
     fontSize: 14,
     fontWeight: '700',
-    backgroundColor: '#f8fbf9',
+    backgroundColor: '#f8fafc',
     borderWidth: 1,
     borderColor: colors.line,
   },
   primaryAction: {
     minHeight: 48,
-    borderRadius: 15,
+    borderRadius: 8,
     paddingHorizontal: 12,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: colors.tealDark,
+    backgroundColor: colors.brandDeep,
   },
   primaryActionText: {
     color: '#ffffff',
@@ -1836,14 +1900,14 @@ const styles = StyleSheet.create({
   },
   attachItem: {
     minHeight: 52,
-    borderRadius: 15,
+    borderRadius: 8,
     padding: 10,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    backgroundColor: colors.softTeal,
+    backgroundColor: colors.softBlue,
     borderWidth: 1,
-    borderColor: '#d4e8df',
+    borderColor: '#c7d7ff',
   },
   attachTitle: {
     color: colors.ink,
@@ -1859,7 +1923,7 @@ const styles = StyleSheet.create({
   },
   attachButton: {
     minHeight: 34,
-    borderRadius: 17,
+    borderRadius: 10,
     paddingHorizontal: 10,
     flexDirection: 'row',
     alignItems: 'center',
@@ -1868,7 +1932,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
   },
   attachButtonText: {
-    color: colors.tealDark,
+    color: colors.brandDeep,
     fontSize: 11,
     fontWeight: '700',
   },
@@ -1879,7 +1943,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   successText: {
-    color: colors.tealDark,
+    color: colors.brandDeep,
     fontSize: 13,
     lineHeight: 19,
     fontWeight: '700',

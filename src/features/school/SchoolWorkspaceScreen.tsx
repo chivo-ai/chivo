@@ -77,7 +77,7 @@ export function SchoolWorkspaceScreen({
       label: 'Learn',
       description: 'Lessons and practice',
       group: 'School',
-      icon: <BookOpen size={19} color={activeSurface === 'learn' ? colors.tealDark : '#dce7e1'} />,
+      icon: <BookOpen size={19} color={activeSurface === 'learn' ? colors.brandDeep : '#d8e0ef'} />,
     },
     {
       id: 'teach',
@@ -85,7 +85,7 @@ export function SchoolWorkspaceScreen({
       description: 'Live class work',
       group: 'School',
       visible: canTeach,
-      icon: <GraduationCap size={19} color={activeSurface === 'teach' ? colors.tealDark : '#dce7e1'} />,
+      icon: <GraduationCap size={19} color={activeSurface === 'teach' ? colors.brandDeep : '#d8e0ef'} />,
     },
     {
       id: 'admin',
@@ -93,7 +93,7 @@ export function SchoolWorkspaceScreen({
       description: 'School console',
       group: 'School',
       visible: isAdmin,
-      icon: <ShieldCheck size={19} color="#dce7e1" />,
+      icon: <ShieldCheck size={19} color="#d8e0ef" />,
     },
   ], [activeSurface, canTeach, isAdmin]);
 
@@ -248,11 +248,11 @@ export function SchoolWorkspaceScreen({
         <View style={styles.shell}>
           <View style={styles.topRow}>
             <Pressable onPress={onSwitchSchool} style={styles.iconButton}>
-              <ArrowLeft size={20} color={colors.tealDark} />
+              <ArrowLeft size={20} color={colors.brandDeep} />
             </Pressable>
 
             <View style={styles.flexText}>
-              <Text style={styles.title}>{schoolName}</Text>
+              <Text style={styles.title} numberOfLines={1}>{schoolName}</Text>
               <Text style={styles.meta} numberOfLines={1}>
                 {schoolUsername || schoolPlace || formatRole(membership.role)}
               </Text>
@@ -260,11 +260,11 @@ export function SchoolWorkspaceScreen({
 
             <Pressable onPress={handleSignOut} style={styles.signOutButton}>
               {signingOut ? (
-                <ActivityIndicator color={colors.tealDark} />
+                <ActivityIndicator color={colors.brandDeep} />
               ) : (
                 <>
-                  <LogOut size={17} color={colors.tealDark} />
-                  <Text style={styles.signOutText}>Sign out</Text>
+                  <LogOut size={17} color={colors.brandDeep} />
+                  <Text style={styles.signOutText} numberOfLines={1}>Sign out</Text>
                 </>
               )}
             </Pressable>
@@ -277,10 +277,10 @@ export function SchoolWorkspaceScreen({
             <View style={styles.heroHeader}>
               <IdentityMark imageUrl={school.logoUrl} label={schoolName} />
               <View style={styles.flexText}>
-                <Text style={styles.heroTitle}>
+                <Text style={styles.heroTitle} numberOfLines={1}>
                   {activeSurface === 'teach' ? 'Teaching studio' : 'Learning space'}
                 </Text>
-                <Text style={styles.heroBody}>
+                <Text style={styles.heroBody} numberOfLines={2}>
                   {activeSurface === 'teach'
                     ? 'Start lessons, manage class work, and prepare materials for students.'
                     : 'Open classes, read lesson summaries, practise, and keep progress moving.'}
@@ -313,7 +313,7 @@ export function SchoolWorkspaceScreen({
 
           {loading ? (
             <View style={styles.loadingCard}>
-              <ActivityIndicator color={colors.tealDark} />
+              <ActivityIndicator color={colors.brandDeep} />
               <Text style={styles.meta}>Loading school data</Text>
             </View>
           ) : activeSurface === 'teach' ? (
@@ -377,8 +377,8 @@ function SchoolSetupDock({
           <Settings2 size={18} color="#ffffff" />
         </View>
         <View style={styles.flexText}>
-          <Text style={styles.setupTitle}>Setup path</Text>
-          <Text style={styles.setupMeta}>
+          <Text style={styles.setupTitle} numberOfLines={1}>Setup path</Text>
+          <Text style={styles.setupMeta} numberOfLines={2}>
             Step {activeStep}: {classCount === 0 ? 'create a class' : linkedSubjectCount === 0 ? 'add a subject' : 'record the first lesson'} - {classCount} classes, {subjectCount} subjects, {memberCount} members
           </Text>
         </View>
@@ -393,17 +393,17 @@ function SchoolSetupDock({
 
       <View style={styles.setupActions}>
         <Pressable onPress={nextAction.onPress} style={styles.setupPrimary}>
-          {nextAction.icon}
-          <Text style={styles.setupPrimaryText}>{nextAction.label}</Text>
+          <View style={styles.setupButtonIcon}>{nextAction.icon}</View>
+          <Text style={styles.setupPrimaryText} numberOfLines={1}>{nextAction.label}</Text>
         </Pressable>
         <Pressable onPress={() => router.push('/school/class' as never)} style={styles.setupAction}>
-          <Grid2X2 size={16} color={colors.tealDark} />
-          <Text style={styles.setupActionText}>Classes</Text>
+          <Grid2X2 size={16} color={colors.brandDeep} />
+          <Text style={styles.setupActionText} numberOfLines={1}>Classes</Text>
         </Pressable>
         {isAdmin ? (
           <Pressable onPress={() => router.push('/admin' as never)} style={styles.setupAction}>
-            <ShieldCheck size={16} color={colors.tealDark} />
-            <Text style={styles.setupActionText}>Admin</Text>
+            <ShieldCheck size={16} color={colors.brandDeep} />
+            <Text style={styles.setupActionText} numberOfLines={1}>Admin</Text>
           </Pressable>
         ) : null}
       </View>
@@ -414,8 +414,8 @@ function SchoolSetupDock({
 function SetupStep({ label, done, active }: { label: string; done?: boolean; active?: boolean }) {
   return (
     <View style={[styles.setupStep, active && styles.setupStepActive]}>
-      {done ? <CheckCircle2 size={14} color={colors.tealDark} /> : <Circle size={14} color={active ? colors.ink : colors.muted} />}
-      <Text style={[styles.setupStepText, active && styles.setupStepTextActive]}>{label}</Text>
+      {done ? <CheckCircle2 size={14} color={colors.brandDeep} /> : <Circle size={14} color={active ? colors.ink : colors.muted} />}
+      <Text style={[styles.setupStepText, active && styles.setupStepTextActive]} numberOfLines={1}>{label}</Text>
     </View>
   );
 }
@@ -454,18 +454,18 @@ function QuickClassModal({
               <Plus size={21} color="#ffffff" />
             </View>
             <View style={styles.flexText}>
-              <Text style={styles.modalTitle}>Create class</Text>
-              <Text style={styles.modalMeta}>Add another class to this school.</Text>
+              <Text style={styles.modalTitle} numberOfLines={1}>Create class</Text>
+              <Text style={styles.modalMeta} numberOfLines={2}>Add another class to this school.</Text>
             </View>
             <Pressable onPress={onClose} style={styles.modalClose}>
-              <X size={18} color={colors.tealDark} />
+              <X size={18} color={colors.brandDeep} />
             </Pressable>
           </View>
 
           {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
           <View style={styles.modalField}>
-            <Text style={styles.modalLabel}>Class name</Text>
+            <Text style={styles.modalLabel} numberOfLines={1}>Class name</Text>
             <TextInput
               value={className}
               onChangeText={onName}
@@ -476,7 +476,7 @@ function QuickClassModal({
           </View>
 
           <View style={styles.modalField}>
-            <Text style={styles.modalLabel}>Username</Text>
+            <Text style={styles.modalLabel} numberOfLines={1}>Username</Text>
             <TextInput
               value={classUsername}
               onChangeText={onUsername}
@@ -488,7 +488,7 @@ function QuickClassModal({
           </View>
 
           <View style={styles.modalField}>
-            <Text style={styles.modalLabel}>Grade level</Text>
+            <Text style={styles.modalLabel} numberOfLines={1}>Grade level</Text>
             <TextInput
               value={gradeLevel}
               onChangeText={onGradeLevel}
@@ -500,7 +500,7 @@ function QuickClassModal({
 
           <Pressable disabled={saving || !className.trim()} onPress={onSubmit} style={[styles.modalPrimary, (saving || !className.trim()) && styles.disabledButton]}>
             {saving ? <ActivityIndicator color="#ffffff" /> : <Plus size={17} color="#ffffff" />}
-            <Text style={styles.modalPrimaryText}>Create class</Text>
+            <Text style={styles.modalPrimaryText} numberOfLines={1}>Create class</Text>
           </Pressable>
         </Pressable>
       </Pressable>
@@ -543,32 +543,32 @@ function initials(value: string) {
 const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
-    paddingHorizontal: 10,
-    paddingTop: 8,
-    paddingBottom: 56,
-    backgroundColor: colors.surfaceSoft,
+    paddingHorizontal: 14,
+    paddingTop: 14,
+    paddingBottom: 90,
+    backgroundColor: colors.canvas,
   },
   shell: {
     width: '100%',
-    maxWidth: 1180,
+    maxWidth: 1240,
     alignSelf: 'center',
-    gap: 9,
+    gap: 12,
   },
   topRow: {
-    minHeight: 38,
+    minHeight: 46,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 10,
   },
   iconButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 12,
+    width: 40,
+    height: 40,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.softTeal,
+    backgroundColor: colors.softBlue,
     borderWidth: 1,
-    borderColor: colors.line,
+    borderColor: '#c7d7ff',
   },
   flexText: {
     flex: 1,
@@ -576,9 +576,9 @@ const styles = StyleSheet.create({
   },
   title: {
     color: colors.ink,
-    fontSize: 18,
-    lineHeight: 22,
-    fontWeight: '700',
+    fontSize: 22,
+    lineHeight: 27,
+    fontWeight: '900',
   },
   meta: {
     color: colors.muted,
@@ -587,51 +587,51 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   signOutButton: {
-    minHeight: 36,
-    borderRadius: 12,
+    minHeight: 40,
+    borderRadius: 8,
     paddingHorizontal: 10,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    backgroundColor: colors.softTeal,
+    backgroundColor: colors.softBlue,
     borderWidth: 1,
-    borderColor: colors.line,
+    borderColor: '#c7d7ff',
   },
   signOutText: {
-    color: colors.tealDark,
+    color: colors.brandDeep,
     fontSize: 12,
     fontWeight: '700',
   },
   heroPanel: {
     overflow: 'hidden',
-    borderRadius: 16,
-    backgroundColor: colors.night,
+    borderRadius: 8,
+    backgroundColor: colors.brandDeep,
     borderWidth: 1,
-    borderColor: 'rgba(25, 209, 163, 0.2)',
+    borderColor: 'rgba(99, 230, 255, 0.22)',
   },
   banner: {
-    height: 34,
-    backgroundColor: colors.brandDeep,
+    height: 62,
+    backgroundColor: '#0f172a',
   },
   bannerImage: {
     width: '100%',
     height: '100%',
   },
   heroHeader: {
-    padding: 10,
+    padding: 16,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 9,
+    gap: 12,
   },
   identityMark: {
     overflow: 'hidden',
-    width: 42,
-    height: 42,
-    borderRadius: 13,
+    width: 54,
+    height: 54,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.gold,
+    backgroundColor: colors.mint,
     borderWidth: 2,
     borderColor: '#ffffff',
   },
@@ -640,31 +640,31 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   identityInitials: {
-    color: colors.ink,
+    color: colors.brandDeep,
     fontSize: 17,
     fontWeight: '700',
   },
   heroTitle: {
     color: '#ffffff',
-    fontSize: 17,
-    lineHeight: 21,
-    fontWeight: '800',
+    fontSize: 24,
+    lineHeight: 30,
+    fontWeight: '900',
   },
   heroBody: {
-    color: '#dce7e1',
-    fontSize: 12,
-    lineHeight: 16,
-    fontWeight: '600',
+    color: '#d8e0ef',
+    fontSize: 14,
+    lineHeight: 20,
+    fontWeight: '700',
   },
   metricGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: 10,
   },
   metric: {
     minWidth: 112,
     flex: 1,
-    borderRadius: 12,
+    borderRadius: 8,
     padding: 10,
     backgroundColor: '#ffffff',
     borderWidth: 1,
@@ -683,15 +683,20 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   setupDock: {
-    borderRadius: 16,
-    padding: 10,
-    gap: 8,
+    borderRadius: 8,
+    padding: 14,
+    gap: 11,
     flexDirection: 'row',
     flexWrap: 'wrap',
     alignItems: 'center',
     backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: colors.line,
+    borderTopWidth: 4,
+    borderColor: '#dfe6f0',
+    shadowColor: '#111318',
+    shadowOpacity: 0.08,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 12 },
   },
   setupSteps: {
     flex: 1.2,
@@ -701,20 +706,20 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   setupStep: {
-    minHeight: 28,
-    borderRadius: 12,
+    minHeight: 32,
+    borderRadius: 8,
     paddingHorizontal: 8,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 5,
-    backgroundColor: '#f8fbf8',
+    backgroundColor: '#f8fafc',
     borderWidth: 1,
-    borderColor: colors.line,
+    borderColor: '#e5ebf5',
   },
   setupStepActive: {
-    backgroundColor: colors.softGold,
-    borderColor: '#efcf75',
+    backgroundColor: '#f1ffd7',
+    borderColor: '#a3e635',
   },
   setupStepText: {
     color: colors.muted,
@@ -732,18 +737,18 @@ const styles = StyleSheet.create({
     gap: 9,
   },
   setupIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 13,
+    width: 40,
+    height: 40,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.tealDark,
+    backgroundColor: colors.brand,
   },
   setupTitle: {
     color: colors.ink,
-    fontSize: 14,
-    lineHeight: 18,
-    fontWeight: '700',
+    fontSize: 16,
+    lineHeight: 20,
+    fontWeight: '900',
   },
   setupMeta: {
     color: colors.muted,
@@ -757,14 +762,22 @@ const styles = StyleSheet.create({
     gap: 7,
   },
   setupPrimary: {
-    minHeight: 32,
-    borderRadius: 13,
+    minHeight: 38,
+    borderRadius: 8,
     paddingHorizontal: 10,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    backgroundColor: colors.tealDark,
+    backgroundColor: colors.brand,
+  },
+  setupButtonIcon: {
+    width: 26,
+    height: 26,
+    borderRadius: 7,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.14)',
   },
   setupPrimaryText: {
     color: '#ffffff',
@@ -772,31 +785,31 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   setupAction: {
-    minHeight: 32,
-    borderRadius: 13,
+    minHeight: 38,
+    borderRadius: 8,
     paddingHorizontal: 10,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    backgroundColor: colors.softTeal,
+    backgroundColor: colors.softBlue,
     borderWidth: 1,
-    borderColor: '#d4e8df',
+    borderColor: '#c7d7ff',
   },
   setupActionText: {
-    color: colors.tealDark,
+    color: colors.brandDeep,
     fontSize: 12,
     fontWeight: '700',
   },
   loadingCard: {
     minHeight: 90,
-    borderRadius: 17,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 10,
     backgroundColor: '#ffffff',
     borderWidth: 1,
-    borderColor: colors.line,
+    borderColor: '#dfe6f0',
   },
   errorText: {
     color: '#9d2e24',
@@ -808,18 +821,18 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     padding: 12,
-    backgroundColor: 'rgba(7, 12, 10, 0.56)',
+    backgroundColor: 'rgba(11, 13, 18, 0.62)',
   },
   modalSheet: {
     width: '100%',
     maxWidth: 520,
     alignSelf: 'center',
-    borderRadius: 20,
-    padding: 14,
-    gap: 12,
+    borderRadius: 8,
+    padding: 16,
+    gap: 13,
     backgroundColor: colors.paper,
     borderWidth: 1,
-    borderColor: colors.line,
+    borderColor: '#dfe6f0',
   },
   modalHeader: {
     minHeight: 48,
@@ -830,10 +843,10 @@ const styles = StyleSheet.create({
   modalIcon: {
     width: 44,
     height: 44,
-    borderRadius: 16,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.tealDark,
+    backgroundColor: colors.brand,
   },
   modalTitle: {
     color: colors.ink,
@@ -850,10 +863,10 @@ const styles = StyleSheet.create({
   modalClose: {
     width: 38,
     height: 38,
-    borderRadius: 14,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.softTeal,
+    backgroundColor: colors.softBlue,
   },
   modalField: {
     gap: 7,
@@ -865,24 +878,24 @@ const styles = StyleSheet.create({
   },
   modalInput: {
     minHeight: 48,
-    borderRadius: 15,
+    borderRadius: 8,
     paddingHorizontal: 13,
     color: colors.ink,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#f8fafc',
     borderWidth: 1,
-    borderColor: colors.line,
+    borderColor: '#dfe6f0',
     fontSize: 14,
     fontWeight: '700',
   },
   modalPrimary: {
-    minHeight: 48,
-    borderRadius: 16,
+    minHeight: 50,
+    borderRadius: 8,
     paddingHorizontal: 12,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: colors.tealDark,
+    backgroundColor: colors.brand,
   },
   modalPrimaryText: {
     color: '#ffffff',

@@ -1,7 +1,7 @@
 import { router } from 'expo-router';
 import { ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
-import { Bell, BellRing, BookOpen, CheckCheck, MessageCircle, Sparkles, Users } from 'lucide-react-native';
+import { Bell, BellRing, BookOpen, CheckCheck, ChevronRight, MessageCircle, Sparkles, Users } from 'lucide-react-native';
 
 import {
   AppNotification,
@@ -13,10 +13,10 @@ import {
 import { colors } from '../../theme/tokens';
 
 const tones = [
-  { background: '#fff4d4', accent: colors.gold },
-  { background: '#e9f6ff', accent: '#4aa6d9' },
-  { background: '#f3eaff', accent: '#8d68d8' },
-  { background: '#e8f8ee', accent: '#39a96b' },
+  { background: '#e9f1ff', accent: colors.brand },
+  { background: '#e3fbf7', accent: colors.teal },
+  { background: '#f3efff', accent: colors.violet },
+  { background: '#f1ffd7', accent: '#a3e635' },
 ];
 
 export function NotificationsScreen() {
@@ -84,10 +84,10 @@ export function NotificationsScreen() {
         <View style={styles.heroCopy}>
           <View style={styles.heroPill}>
             <BellRing size={15} color={colors.ink} />
-            <Text style={styles.heroPillText}>Activity center</Text>
+            <Text style={styles.heroPillText} numberOfLines={1}>Activity center</Text>
           </View>
-          <Text style={styles.heroTitle}>Stay on top of every school move</Text>
-          <Text style={styles.heroBody}>Crew AI packs, class updates, requests, lesson events, and billing alerts land here.</Text>
+          <Text style={styles.heroTitle} numberOfLines={2}>Stay on top of every school move</Text>
+          <Text style={styles.heroBody} numberOfLines={2}>Crew AI packs, class updates, requests, lesson events, and billing alerts land here.</Text>
         </View>
 
         <View style={styles.heroStats}>
@@ -98,12 +98,12 @@ export function NotificationsScreen() {
 
       <View style={styles.sectionHeading}>
         <View>
-          <Text style={styles.sectionTitle}>Notifications</Text>
-          <Text style={styles.sectionMeta}>{unreadCount ? `${unreadCount} unread update${unreadCount === 1 ? '' : 's'}` : 'Everything is caught up'}</Text>
+          <Text style={styles.sectionTitle} numberOfLines={1}>Notifications</Text>
+          <Text style={styles.sectionMeta} numberOfLines={1}>{unreadCount ? `${unreadCount} unread update${unreadCount === 1 ? '' : 's'}` : 'Everything is caught up'}</Text>
         </View>
         <Pressable disabled={!unreadCount || saving} onPress={markEveryNotificationRead} style={[styles.readButton, (!unreadCount || saving) && styles.disabledButton]}>
           {saving ? <ActivityIndicator color="#ffffff" /> : <CheckCheck size={17} color="#ffffff" />}
-          <Text style={styles.readButtonText}>Mark read</Text>
+          <Text style={styles.readButtonText} numberOfLines={1}>Mark read</Text>
         </Pressable>
       </View>
 
@@ -112,8 +112,8 @@ export function NotificationsScreen() {
       <View style={styles.list}>
         {loading ? (
           <View style={styles.emptyPanel}>
-            <ActivityIndicator color={colors.tealDark} />
-            <Text style={styles.emptyMeta}>Loading activity...</Text>
+            <ActivityIndicator color={colors.brandDeep} />
+            <Text style={styles.emptyMeta} numberOfLines={1}>Loading activity...</Text>
           </View>
         ) : notifications.length ? notifications.map((notification, index) => (
           <NotificationCard
@@ -124,9 +124,9 @@ export function NotificationsScreen() {
           />
         )) : (
           <View style={styles.emptyPanel}>
-            <Bell size={30} color={colors.tealDark} />
-            <Text style={styles.emptyTitle}>No activity yet</Text>
-            <Text style={styles.emptyMeta}>When crews, lessons, classes, or requests move, they will appear here.</Text>
+            <Bell size={30} color={colors.brandDeep} />
+            <Text style={styles.emptyTitle} numberOfLines={1}>No activity yet</Text>
+            <Text style={styles.emptyMeta} numberOfLines={2}>When crews, lessons, classes, or requests move, they will appear here.</Text>
           </View>
         )}
       </View>
@@ -159,7 +159,12 @@ function NotificationCard({
         {notification.body ? <Text style={styles.notificationBody} numberOfLines={3}>{notification.body}</Text> : null}
         <View style={styles.metaRow}>
           <Text style={styles.notificationMeta}>{formatDate(notification.createdAt)}</Text>
-          {target ? <Text style={styles.openMeta}>Open</Text> : null}
+          {target ? (
+            <View style={styles.openMetaPill}>
+              <Text style={styles.openMeta} numberOfLines={1}>Open</Text>
+              <ChevronRight size={12} color={colors.brand} />
+            </View>
+          ) : null}
         </View>
       </View>
     </Pressable>
@@ -170,8 +175,8 @@ function StatCard({ icon, label, value, tone }: { icon: ReactNode; label: string
   return (
     <View style={[styles.statCard, { backgroundColor: tone.background }]}>
       <View style={[styles.statIcon, { backgroundColor: tone.accent }]}>{icon}</View>
-      <Text style={styles.statValue}>{value}</Text>
-      <Text style={styles.statLabel}>{label}</Text>
+      <Text style={styles.statValue} numberOfLines={1}>{value}</Text>
+      <Text style={styles.statLabel} numberOfLines={1}>{label}</Text>
     </View>
   );
 }
@@ -209,19 +214,19 @@ function formatDate(value: string) {
 
 const styles = StyleSheet.create({
   screen: {
-    gap: 14,
+    gap: 16,
   },
   hero: {
-    minHeight: 126,
-    borderRadius: 22,
-    padding: 16,
+    minHeight: 150,
+    borderRadius: 8,
+    padding: 18,
     flexDirection: 'row',
     flexWrap: 'wrap',
     alignItems: 'center',
     gap: 14,
-    backgroundColor: '#101916',
+    backgroundColor: colors.brandDeep,
     borderWidth: 1,
-    borderColor: '#20352f',
+    borderColor: 'rgba(99, 230, 255, 0.22)',
   },
   heroCopy: {
     flex: 1.5,
@@ -231,12 +236,12 @@ const styles = StyleSheet.create({
   heroPill: {
     alignSelf: 'flex-start',
     minHeight: 34,
-    borderRadius: 17,
+    borderRadius: 8,
     paddingHorizontal: 11,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 7,
-    backgroundColor: colors.gold,
+    backgroundColor: colors.mint,
   },
   heroPillText: {
     color: colors.ink,
@@ -245,12 +250,12 @@ const styles = StyleSheet.create({
   },
   heroTitle: {
     color: '#ffffff',
-    fontSize: 26,
-    lineHeight: 32,
-    fontWeight: '700',
+    fontSize: 30,
+    lineHeight: 36,
+    fontWeight: '900',
   },
   heroBody: {
-    color: '#dce7e1',
+    color: '#d8e0ef',
     fontSize: 15,
     lineHeight: 21,
     fontWeight: '700',
@@ -265,16 +270,17 @@ const styles = StyleSheet.create({
   statCard: {
     minWidth: 108,
     flex: 1,
-    borderRadius: 18,
+    borderRadius: 8,
     padding: 14,
     gap: 7,
-    borderWidth: 2,
-    borderColor: '#ffffff',
+    borderWidth: 1,
+    borderBottomWidth: 4,
+    borderColor: 'rgba(17, 19, 24, 0.1)',
   },
   statIcon: {
     width: 40,
     height: 40,
-    borderRadius: 15,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -282,7 +288,7 @@ const styles = StyleSheet.create({
     color: colors.ink,
     fontSize: 22,
     lineHeight: 27,
-    fontWeight: '700',
+    fontWeight: '900',
   },
   statLabel: {
     color: colors.muted,
@@ -298,9 +304,9 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     color: colors.ink,
-    fontSize: 20,
-    lineHeight: 25,
-    fontWeight: '700',
+    fontSize: 22,
+    lineHeight: 27,
+    fontWeight: '900',
   },
   sectionMeta: {
     color: colors.muted,
@@ -310,13 +316,13 @@ const styles = StyleSheet.create({
   },
   readButton: {
     minHeight: 42,
-    borderRadius: 16,
+    borderRadius: 8,
     paddingHorizontal: 12,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 7,
-    backgroundColor: colors.tealDark,
+    backgroundColor: colors.brand,
   },
   readButtonText: {
     color: '#ffffff',
@@ -331,17 +337,18 @@ const styles = StyleSheet.create({
   },
   notificationCard: {
     minHeight: 75,
-    borderRadius: 18,
+    borderRadius: 8,
     padding: 14,
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 10,
-    borderWidth: 2,
+    borderWidth: 1,
+    borderBottomWidth: 4,
   },
   notificationIcon: {
     width: 46,
     height: 46,
-    borderRadius: 17,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
@@ -362,7 +369,7 @@ const styles = StyleSheet.create({
     color: colors.ink,
     fontSize: 16,
     lineHeight: 20,
-    fontWeight: '700',
+    fontWeight: '900',
   },
   unreadDot: {
     width: 10,
@@ -379,6 +386,7 @@ const styles = StyleSheet.create({
   metaRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'center',
     gap: 8,
   },
   notificationMeta: {
@@ -387,19 +395,30 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   openMeta: {
-    color: colors.tealDark,
+    color: colors.brand,
     fontSize: 11,
     fontWeight: '700',
   },
+  openMetaPill: {
+    minHeight: 24,
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#dfe6f0',
+  },
   emptyPanel: {
     minHeight: 101,
-    borderRadius: 20,
+    borderRadius: 8,
     padding: 14,
     justifyContent: 'center',
     gap: 10,
     backgroundColor: '#ffffff',
     borderWidth: 1,
-    borderColor: colors.line,
+    borderColor: '#dfe6f0',
   },
   emptyTitle: {
     color: colors.ink,

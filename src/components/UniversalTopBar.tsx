@@ -54,19 +54,19 @@ export function UniversalTopBar() {
   const canAdmin = activeMembership ? ['owner', 'admin'].includes(activeMembership.role) : false;
 
   const routes = useMemo<TopRoute[]>(() => [
-    { label: 'Home', route: '/home', icon: <Home size={18} color={colors.tealDark} /> },
+    { label: 'Home', route: '/home', icon: <Home size={18} color={colors.brandDeep} /> },
     { label: 'Activity', route: '/notifications', icon: <Bell size={18} color={colors.coral} /> },
     { label: 'Learn', route: '/learn', icon: <BookOpen size={18} color={colors.blue} />, visible: Boolean(activeMembership) },
     { label: 'Teach', route: '/teach', icon: <GraduationCap size={18} color={colors.gold} />, visible: canTeach },
     { label: 'Admin', route: '/admin', icon: <ShieldCheck size={18} color={colors.teal} />, visible: canAdmin },
-    { label: 'My schools', route: '/school/my-school', icon: <Building2 size={18} color={colors.tealDark} /> },
+    { label: 'My schools', route: '/school/my-school', icon: <Building2 size={18} color={colors.brandDeep} /> },
     { label: 'Classes', route: '/school/class', icon: <Layers size={18} color={colors.coral} />, visible: Boolean(activeMembership) },
     { label: 'Lessons', route: '/lessons', icon: <BookOpen size={18} color={colors.blue} />, visible: Boolean(activeMembership) },
     { label: 'Create', route: '/create', icon: <Building2 size={18} color={colors.gold} /> },
     { label: 'Join', route: '/join', icon: <QrCode size={18} color={colors.teal} /> },
     { label: 'Request', route: '/request', icon: <UserPlus size={18} color={colors.coral} /> },
     { label: 'Crews', route: '/crews', icon: <Users size={18} color={colors.blue} /> },
-    { label: 'Account', route: '/account', icon: <UserCircle size={18} color={colors.tealDark} /> },
+    { label: 'Account', route: '/account', icon: <UserCircle size={18} color={colors.brandDeep} /> },
   ].filter((item) => item.visible !== false), [activeMembership, canAdmin, canTeach]);
 
   function go(route: string) {
@@ -162,22 +162,26 @@ export function UniversalTopBar() {
         <Pressable style={styles.backdrop} onPress={() => setOpen(false)}>
           <Pressable style={styles.sheet}>
             <View style={styles.sheetHeader}>
-              <View>
-                <Text style={styles.sheetTitle}>{branding.name}</Text>
-                <Text style={styles.sheetMeta}>Routes</Text>
+              <View style={styles.sheetHeaderCopy}>
+                <Text style={styles.sheetTitle} numberOfLines={1}>{branding.name}</Text>
+                <Text style={styles.sheetMeta} numberOfLines={1}>Routes</Text>
               </View>
               <Pressable onPress={() => setOpen(false)} style={styles.closeButton}>
-                <X size={18} color={colors.tealDark} />
+                <X size={18} color={colors.brandDeep} />
               </Pressable>
             </View>
 
             <View style={styles.routeGrid}>
-              {routes.map((item) => (
-                <Pressable key={item.route} onPress={() => go(item.route)} style={styles.routeItem}>
-                  <View style={styles.routeIcon}>{item.icon}</View>
-                  <Text style={styles.routeLabel}>{item.label}</Text>
-                </Pressable>
-              ))}
+              {routes.map((item) => {
+                const active = pathname === item.route || pathname.startsWith(`${item.route}/`);
+
+                return (
+                  <Pressable key={item.route} onPress={() => go(item.route)} style={[styles.routeItem, active && styles.routeItemActive]}>
+                    <View style={[styles.routeIcon, active && styles.routeIconActive]}>{item.icon}</View>
+                    <Text style={[styles.routeLabel, active && styles.routeLabelActive]} numberOfLines={1}>{item.label}</Text>
+                  </Pressable>
+                );
+              })}
             </View>
           </Pressable>
         </Pressable>
@@ -188,48 +192,48 @@ export function UniversalTopBar() {
 
 const styles = StyleSheet.create({
   wrap: {
-    minHeight: 48,
-    paddingHorizontal: 10,
-    paddingTop: 6,
-    paddingBottom: 6,
+    minHeight: 60,
+    paddingHorizontal: 12,
+    paddingTop: 8,
+    paddingBottom: 8,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 7,
-    backgroundColor: colors.night,
+    gap: 8,
+    backgroundColor: colors.brandDeep,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(25, 209, 163, 0.18)',
+    borderBottomColor: 'rgba(99, 230, 255, 0.22)',
   },
   menuButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 13,
+    width: 42,
+    height: 42,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.nightSoft,
+    backgroundColor: '#0f172a',
     borderWidth: 1,
-    borderColor: '#3d4738',
+    borderColor: 'rgba(99, 230, 255, 0.22)',
   },
   brand: {
     flex: 1,
     minWidth: 0,
-    height: 38,
-    borderRadius: 14,
+    height: 42,
+    borderRadius: 8,
     paddingHorizontal: 0,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 10,
     backgroundColor: 'transparent',
   },
   logoMark: {
-    width: 32,
-    height: 32,
-    borderRadius: 11,
+    width: 36,
+    height: 36,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
-    backgroundColor: '#0a201b',
+    backgroundColor: '#0f172a',
     borderWidth: 1,
-    borderColor: '#0ef4b4',
+    borderColor: colors.brandGlow,
   },
   logoImage: {
     width: '100%',
@@ -241,26 +245,26 @@ const styles = StyleSheet.create({
   },
   brandTitle: {
     color: '#ffffff',
-    fontSize: 15,
-    lineHeight: 17,
+    fontSize: 16,
+    lineHeight: 19,
     fontWeight: '800',
   },
   brandMeta: {
-    color: '#f6d979',
-    fontSize: 10,
+    color: '#a8b3c7',
+    fontSize: 11,
     lineHeight: 14,
     fontWeight: '700',
   },
   notificationButton: {
     position: 'relative',
-    width: 36,
-    height: 36,
-    borderRadius: 13,
+    width: 42,
+    height: 42,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.nightSoft,
+    backgroundColor: '#0f172a',
     borderWidth: 1,
-    borderColor: '#3d4738',
+    borderColor: 'rgba(99, 230, 255, 0.22)',
   },
   badge: {
     position: 'absolute',
@@ -274,7 +278,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: colors.coral,
     borderWidth: 2,
-    borderColor: '#111710',
+    borderColor: colors.brandDeep,
   },
   badgeText: {
     color: '#ffffff',
@@ -283,29 +287,33 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   accountButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 13,
+    width: 42,
+    height: 42,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.brandDeep,
+    backgroundColor: colors.brand,
     borderWidth: 1,
-    borderColor: '#0ef4b4',
+    borderColor: '#6b8cff',
   },
   backdrop: {
     flex: 1,
     justifyContent: 'flex-start',
-    backgroundColor: 'rgba(7, 12, 10, 0.5)',
+    backgroundColor: 'rgba(11, 13, 18, 0.58)',
   },
   sheet: {
-    margin: 10,
-    marginTop: 52,
-    borderRadius: 16,
-    padding: 10,
-    gap: 10,
+    margin: 12,
+    marginTop: 66,
+    borderRadius: 8,
+    padding: 12,
+    gap: 12,
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.line,
+    shadowColor: '#111318',
+    shadowOpacity: 0.18,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 14 },
   },
   sheetHeader: {
     minHeight: 40,
@@ -314,10 +322,14 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: 10,
   },
+  sheetHeaderCopy: {
+    flex: 1,
+    minWidth: 0,
+  },
   sheetTitle: {
     color: colors.ink,
-    fontSize: 16,
-    lineHeight: 20,
+    fontSize: 18,
+    lineHeight: 22,
     fontWeight: '800',
   },
   sheetMeta: {
@@ -326,39 +338,58 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   closeButton: {
-    width: 34,
-    height: 34,
-    borderRadius: 12,
+    width: 36,
+    height: 36,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.softTeal,
+    backgroundColor: colors.softBlue,
   },
   routeGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: 10,
   },
   routeItem: {
-    minWidth: 122,
+    minWidth: 96,
     flex: 1,
-    minHeight: 46,
-    borderRadius: 14,
+    minHeight: 86,
+    borderRadius: 8,
     paddingHorizontal: 10,
-    flexDirection: 'row',
+    paddingVertical: 10,
     alignItems: 'center',
-    gap: 9,
-    backgroundColor: '#ffffff',
+    justifyContent: 'center',
+    gap: 7,
+    backgroundColor: '#f8fafc',
     borderWidth: 1,
-    borderColor: colors.line,
+    borderColor: '#e5ebf5',
+  },
+  routeItemActive: {
+    backgroundColor: colors.brandDeep,
+    borderColor: colors.brandGlow,
   },
   routeIcon: {
-    width: 28,
+    width: 40,
+    height: 40,
+    borderRadius: 7,
     alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#e5ebf5',
+  },
+  routeIconActive: {
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    borderColor: 'rgba(255, 255, 255, 0.2)',
   },
   routeLabel: {
-    flex: 1,
+    maxWidth: '100%',
     color: colors.ink,
     fontSize: 12,
     fontWeight: '800',
+    textAlign: 'center',
+  },
+  routeLabelActive: {
+    color: '#ffffff',
   },
 });

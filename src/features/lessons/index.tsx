@@ -40,13 +40,13 @@ export function LessonsRouteScreen({
           <BookOpen size={19} color="#ffffff" />
         </View>
         <View style={styles.flexText}>
-          <Text style={styles.heroTitle}>Study library</Text>
-          <Text style={styles.heroMeta}>Open class lessons with audio, transcript, quiz, cards, and translation.</Text>
+          <Text style={styles.heroTitle} numberOfLines={1}>Study library</Text>
+          <Text style={styles.heroMeta} numberOfLines={2}>Open class lessons with audio, transcript, quiz, cards, and translation.</Text>
         </View>
         <View style={styles.statRail}>
-          <MiniStat icon={<Headphones size={15} color={colors.tealDark} />} label="Classes" value={visibleClassCount} />
-          <MiniStat icon={<Brain size={15} color={colors.tealDark} />} label="Subjects" value={setup.subjects.length} />
-          <MiniStat icon={<Layers size={15} color={colors.tealDark} />} label="Mode" value={mode === 'teach' ? 'Teach' : 'Learn'} />
+          <MiniStat icon={<Headphones size={15} color={colors.brandDeep} />} label="Classes" value={visibleClassCount} />
+          <MiniStat icon={<Brain size={15} color={colors.brandDeep} />} label="Subjects" value={setup.subjects.length} />
+          <MiniStat icon={<Layers size={15} color={colors.brandDeep} />} label="Mode" value={mode === 'teach' ? 'Teach' : 'Learn'} />
         </View>
       </ChivoCard>
 
@@ -70,41 +70,43 @@ function MiniStat({ icon, label, value }: { icon: React.ReactNode; label: string
 
 const styles = StyleSheet.create({
   stack: {
-    gap: 8,
+    gap: 12,
   },
   hero: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     alignItems: 'center',
-    gap: 9,
+    gap: 14,
+    borderRadius: 8,
+    padding: 16,
   },
   heroIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 14,
+    width: 46,
+    height: 46,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.tealDark,
+    backgroundColor: colors.brand,
   },
   flexText: {
     flex: 1,
-    minWidth: 190,
+    minWidth: 240,
   },
   heroTitle: {
     color: '#ffffff',
-    fontSize: 17,
-    lineHeight: 21,
-    fontWeight: '800',
+    fontSize: 24,
+    lineHeight: 30,
+    fontWeight: '900',
   },
   heroMeta: {
-    color: '#dce7e1',
-    fontSize: 12,
-    lineHeight: 16,
-    fontWeight: '600',
+    color: '#d8e0ef',
+    fontSize: 14,
+    lineHeight: 20,
+    fontWeight: '700',
   },
   statRail: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 7,
+    gap: 9,
   },
 });

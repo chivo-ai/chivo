@@ -12,6 +12,7 @@ import {
   View,
 } from 'react-native';
 import {
+  ArrowRight,
   BookOpen,
   CalendarDays,
   CheckCircle2,
@@ -623,7 +624,7 @@ export function AdminConsoleRoute({ section }: { section: AdminSection }) {
 }
 
 function adminNavItems(section: AdminSection, counts: CountState): AppNavItem[] {
-  const color = (id: AdminSection) => (section === id ? colors.tealDark : '#dce7e1');
+  const color = (id: AdminSection) => (section === id ? colors.brandDeep : '#d8e0ef');
 
   return [
     { id: 'overview', label: 'Overview', description: 'School status', group: 'Admin', icon: <Sparkles size={19} color={color('overview')} /> },
@@ -654,9 +655,9 @@ function AdminHero({
   return (
     <View style={styles.hero}>
       <View style={styles.heroCopy}>
-        <Text style={styles.eyebrow}>Admin console</Text>
-        <Text style={styles.heroTitle}>{sectionTitle(section)}</Text>
-        <Text style={styles.heroBody}>
+        <Text style={styles.eyebrow} numberOfLines={1}>Admin console</Text>
+        <Text style={styles.heroTitle} numberOfLines={1}>{sectionTitle(section)}</Text>
+        <Text style={styles.heroBody} numberOfLines={2}>
           {schoolName} {username ? `- ${username}` : ''} is {completionPercent}% ready for structured teaching.
         </Text>
       </View>
@@ -963,7 +964,7 @@ function SubjectsSection({
           {subjects.map((subject) => (
             <View key={subject.id} style={styles.recordCard}>
               <View style={styles.recordIcon}>
-                <GraduationCap size={18} color={colors.tealDark} />
+                <GraduationCap size={18} color={colors.brandDeep} />
               </View>
               <View style={styles.flexText}>
                 <Text style={styles.recordTitle}>{subject.name}</Text>
@@ -1219,8 +1220,8 @@ function Panel({ children, wide }: { children: ReactNode; wide?: boolean }) {
 function PanelTitle({ icon, title }: { icon: ReactNode; title: string }) {
   return (
     <View style={styles.panelTitleRow}>
-      {icon}
-      <Text style={styles.panelTitle}>{title}</Text>
+      <View style={styles.panelTitleIcon}>{icon}</View>
+      <Text style={styles.panelTitle} numberOfLines={1}>{title}</Text>
     </View>
   );
 }
@@ -1244,7 +1245,7 @@ function Field({
 }) {
   return (
     <View style={[styles.field, compact && styles.fieldCompact]}>
-      <Text style={styles.fieldLabel}>{label}</Text>
+      <Text style={styles.fieldLabel} numberOfLines={1}>{label}</Text>
       <TextInput
         value={value}
         onChangeText={onChangeText}
@@ -1261,7 +1262,16 @@ function Field({
 function PrimaryButton({ label, loading, disabled, onPress }: { label: string; loading: boolean; disabled?: boolean; onPress: () => void }) {
   return (
     <Pressable disabled={loading || disabled} onPress={onPress} style={[styles.primaryButton, (loading || disabled) && styles.disabledButton]}>
-      {loading ? <ActivityIndicator color="#ffffff" /> : <Text style={styles.primaryButtonText}>{label}</Text>}
+      {loading ? (
+        <ActivityIndicator color="#ffffff" />
+      ) : (
+        <>
+          <Text style={styles.primaryButtonText} numberOfLines={1}>{label}</Text>
+          <View style={styles.primaryButtonIcon}>
+            <ArrowRight size={15} color="#ffffff" />
+          </View>
+        </>
+      )}
     </Pressable>
   );
 }
@@ -1269,7 +1279,7 @@ function PrimaryButton({ label, loading, disabled, onPress }: { label: string; l
 function SmallButton({ label, loading, onPress }: { label: string; loading: boolean; onPress: () => void }) {
   return (
     <Pressable disabled={loading} onPress={onPress} style={[styles.smallButton, loading && styles.disabledButton]}>
-      {loading ? <ActivityIndicator color={colors.tealDark} /> : <Text style={styles.smallButtonText}>{label}</Text>}
+      {loading ? <ActivityIndicator color={colors.brandDeep} /> : <Text style={styles.smallButtonText} numberOfLines={1}>{label}</Text>}
     </Pressable>
   );
 }
@@ -1279,8 +1289,8 @@ function ActionRail({ actions }: { actions: Array<{ label: string; icon: ReactNo
     <View style={styles.actionRail}>
       {actions.map((action) => (
         <Pressable key={action.label} onPress={action.onPress} style={styles.railButton}>
-          {action.icon}
-          <Text style={styles.railButtonText}>{action.label}</Text>
+          <View style={styles.railIcon}>{action.icon}</View>
+          <Text style={styles.railButtonText} numberOfLines={1}>{action.label}</Text>
         </Pressable>
       ))}
     </View>
@@ -1292,8 +1302,8 @@ function MetricTile({ label, value, tone }: { label: string; value: number; tone
   return (
     <View style={styles.metricTile}>
       <View style={[styles.metricDot, { backgroundColor: toneColor }]} />
-      <Text style={styles.metricValue}>{value}</Text>
-      <Text style={styles.metricLabel}>{label}</Text>
+      <Text style={styles.metricValue} numberOfLines={1}>{value}</Text>
+      <Text style={styles.metricLabel} numberOfLines={1}>{label}</Text>
     </View>
   );
 }
@@ -1302,10 +1312,10 @@ function SelectableRecord({ selected, title, meta, onPress }: { selected: boolea
   return (
     <Pressable onPress={onPress} style={[styles.recordCard, selected && styles.recordCardSelected]}>
       <View style={styles.flexText}>
-        <Text style={styles.recordTitle}>{title}</Text>
-        <Text style={styles.recordMeta}>{meta}</Text>
+        <Text style={styles.recordTitle} numberOfLines={1}>{title}</Text>
+        <Text style={styles.recordMeta} numberOfLines={1}>{meta}</Text>
       </View>
-      {selected ? <Text style={styles.selectedText}>Selected</Text> : null}
+      {selected ? <Text style={styles.selectedText} numberOfLines={1}>Selected</Text> : null}
     </Pressable>
   );
 }
@@ -1326,15 +1336,15 @@ function ChipRow<T extends { id: string }>({
   includeNoneLabel?: string;
 }) {
   if (!items.length && !includeNoneLabel) {
-    return <Text style={styles.emptyText}>{emptyText}</Text>;
+    return <Text style={styles.emptyText} numberOfLines={2}>{emptyText}</Text>;
   }
 
   return (
     <View style={styles.chipWrap}>
-      {includeNoneLabel ? <Pressable onPress={() => (onSelect as (id: string | null) => void)(null)} style={[styles.choiceChip, selectedId === null && styles.choiceChipActive]}><Text style={[styles.choiceChipText, selectedId === null && styles.choiceChipTextActive]}>{includeNoneLabel}</Text></Pressable> : null}
+      {includeNoneLabel ? <Pressable onPress={() => (onSelect as (id: string | null) => void)(null)} style={[styles.choiceChip, selectedId === null && styles.choiceChipActive]}><Text style={[styles.choiceChipText, selectedId === null && styles.choiceChipTextActive]} numberOfLines={1}>{includeNoneLabel}</Text></Pressable> : null}
       {items.map((item) => (
         <Pressable key={item.id} onPress={() => onSelect(item.id)} style={[styles.choiceChip, item.id === selectedId && styles.choiceChipActive]}>
-          <Text style={[styles.choiceChipText, item.id === selectedId && styles.choiceChipTextActive]}>{getLabel(item)}</Text>
+          <Text style={[styles.choiceChipText, item.id === selectedId && styles.choiceChipTextActive]} numberOfLines={1}>{getLabel(item)}</Text>
         </Pressable>
       ))}
     </View>
@@ -1346,7 +1356,7 @@ function SegmentedRole({ value, onChange }: { value: SchoolMembershipRole; onCha
     <View style={styles.segmented}>
       {inviteRoles.map((role) => (
         <Pressable key={role} onPress={() => onChange(role)} style={[styles.segment, value === role && styles.segmentActive]}>
-          <Text style={[styles.segmentText, value === role && styles.segmentTextActive]}>{formatRole(role)}</Text>
+          <Text style={[styles.segmentText, value === role && styles.segmentTextActive]} numberOfLines={1}>{formatRole(role)}</Text>
         </Pressable>
       ))}
     </View>
@@ -1359,7 +1369,7 @@ function StickerPicker({ selectedKey, onSelect }: { selectedKey: string; onSelec
       {stickerPack.map((sticker) => (
         <Pressable key={sticker.key} onPress={() => onSelect(sticker.key)} style={[styles.stickerChoice, selectedKey === sticker.key && styles.stickerChoiceActive, { borderColor: selectedKey === sticker.key ? sticker.accent : colors.line }]}>
           <View style={[styles.stickerSwatch, { backgroundColor: sticker.accent }]} />
-          <Text style={styles.stickerText}>{sticker.label}</Text>
+          <Text style={styles.stickerText} numberOfLines={1}>{sticker.label}</Text>
         </Pressable>
       ))}
     </View>
@@ -1453,27 +1463,27 @@ const styles = StyleSheet.create({
   scroll: {
     flexGrow: 1,
     paddingHorizontal: 14,
-    paddingTop: 28,
+    paddingTop: 18,
     paddingBottom: 106,
     backgroundColor: colors.canvas,
   },
   shell: {
     width: '100%',
-    maxWidth: 1180,
+    maxWidth: 1240,
     alignSelf: 'center',
     gap: 14,
   },
   hero: {
-    minHeight: 111,
-    borderRadius: 20,
-    padding: 17,
-    gap: 14,
+    minHeight: 150,
+    borderRadius: 8,
+    padding: 18,
+    gap: 16,
     flexDirection: 'row',
     flexWrap: 'wrap',
     alignItems: 'center',
-    backgroundColor: '#101916',
+    backgroundColor: colors.brandDeep,
     borderWidth: 1,
-    borderColor: '#20352f',
+    borderColor: 'rgba(99, 230, 255, 0.22)',
   },
   heroCopy: {
     flex: 1.4,
@@ -1481,7 +1491,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   eyebrow: {
-    color: colors.gold,
+    color: colors.brandGlow,
     fontSize: 11,
     lineHeight: 16,
     fontWeight: '700',
@@ -1489,12 +1499,12 @@ const styles = StyleSheet.create({
   },
   heroTitle: {
     color: '#ffffff',
-    fontSize: 25,
-    lineHeight: 31,
-    fontWeight: '700',
+    fontSize: 31,
+    lineHeight: 38,
+    fontWeight: '900',
   },
   heroBody: {
-    color: '#dce7e1',
+    color: '#d8e0ef',
     fontSize: 14,
     lineHeight: 19,
     fontWeight: '700',
@@ -1512,34 +1522,45 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   panel: {
-    minWidth: 300,
+    minWidth: 260,
     flex: 1,
-    borderRadius: 18,
-    padding: 14,
-    gap: 12,
+    borderRadius: 8,
+    padding: 16,
+    gap: 14,
     backgroundColor: '#ffffff',
     borderWidth: 1,
-    borderColor: colors.line,
-    shadowColor: '#16251f',
+    borderTopWidth: 4,
+    borderColor: '#dfe6f0',
+    shadowColor: '#111318',
     shadowOpacity: 0.08,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 8 },
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 12 },
   },
   panelWide: {
     flex: 2,
-    minWidth: 360,
+    minWidth: 280,
   },
   panelTitleRow: {
-    minHeight: 30,
+    minHeight: 36,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
   },
+  panelTitleIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.softBlue,
+    borderWidth: 1,
+    borderColor: '#c7d7ff',
+  },
   panelTitle: {
     color: colors.ink,
-    fontSize: 18,
-    lineHeight: 23,
-    fontWeight: '700',
+    fontSize: 19,
+    lineHeight: 24,
+    fontWeight: '900',
   },
   progressRow: {
     flexDirection: 'row',
@@ -1550,10 +1571,10 @@ const styles = StyleSheet.create({
   progressCircle: {
     width: 103,
     height: 98,
-    borderRadius: 48,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.ink,
+    backgroundColor: colors.brandDeep,
   },
   progressNumber: {
     color: '#ffffff',
@@ -1562,31 +1583,34 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   progressLabel: {
-    color: '#dce7e1',
+    color: '#d8e0ef',
     fontSize: 12,
     fontWeight: '700',
   },
   checkGrid: {
     flex: 1,
-    minWidth: 260,
+    minWidth: 220,
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
   },
   checkItem: {
     minHeight: 40,
-    borderRadius: 15,
+    borderRadius: 8,
     paddingHorizontal: 11,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 7,
-    backgroundColor: colors.softTeal,
+    backgroundColor: colors.softBlue,
+    borderWidth: 1,
+    borderColor: '#c7d7ff',
   },
   checkItemDone: {
-    backgroundColor: colors.tealDark,
+    backgroundColor: colors.brandDeep,
+    borderColor: colors.brandDeep,
   },
   checkText: {
-    color: colors.tealDark,
+    color: colors.brandDeep,
     fontSize: 12,
     fontWeight: '700',
   },
@@ -1601,12 +1625,13 @@ const styles = StyleSheet.create({
   metricTile: {
     minWidth: 110,
     flex: 1,
-    borderRadius: 15,
+    borderRadius: 8,
     padding: 14,
     gap: 7,
-    backgroundColor: '#f7faf7',
+    backgroundColor: '#f8fafc',
     borderWidth: 1,
-    borderColor: '#e1e9e3',
+    borderBottomWidth: 4,
+    borderColor: '#e5ebf5',
   },
   metricDot: {
     width: 12,
@@ -1629,12 +1654,20 @@ const styles = StyleSheet.create({
   },
   railButton: {
     minHeight: 48,
-    borderRadius: 16,
+    borderRadius: 8,
     paddingHorizontal: 13,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 9,
-    backgroundColor: colors.tealDark,
+    backgroundColor: colors.brand,
+  },
+  railIcon: {
+    width: 30,
+    height: 30,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.14)',
   },
   railButtonText: {
     color: '#ffffff',
@@ -1643,10 +1676,10 @@ const styles = StyleSheet.create({
   },
   identityPreview: {
     overflow: 'hidden',
-    borderRadius: 17,
-    backgroundColor: '#f7faf7',
+    borderRadius: 8,
+    backgroundColor: '#f8fafc',
     borderWidth: 1,
-    borderColor: '#e1e9e3',
+    borderColor: '#e5ebf5',
   },
   identityBody: {
     padding: 14,
@@ -1661,13 +1694,13 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   identityMeta: {
-    color: colors.tealDark,
+    color: colors.brand,
     fontSize: 13,
     lineHeight: 19,
     fontWeight: '700',
   },
   banner: {
-    height: 70,
+    height: 82,
   },
   bannerImage: {
     width: '100%',
@@ -1677,7 +1710,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     width: 54,
     height: 54,
-    borderRadius: 15,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1710,12 +1743,12 @@ const styles = StyleSheet.create({
   },
   input: {
     minHeight: 48,
-    borderRadius: 15,
+    borderRadius: 8,
     paddingHorizontal: 13,
     color: colors.ink,
-    backgroundColor: '#f7faf7',
+    backgroundColor: '#f8fafc',
     borderWidth: 1,
-    borderColor: '#e1e9e3',
+    borderColor: '#dfe6f0',
     fontSize: 14,
     fontWeight: '700',
   },
@@ -1735,29 +1768,39 @@ const styles = StyleSheet.create({
   },
   primaryButton: {
     minHeight: 48,
-    borderRadius: 16,
+    borderRadius: 8,
     paddingHorizontal: 12,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.tealDark,
+    gap: 8,
+    backgroundColor: colors.brand,
   },
   primaryButtonText: {
     color: '#ffffff',
     fontSize: 14,
     fontWeight: '700',
   },
+  primaryButtonIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.14)',
+  },
   smallButton: {
     minHeight: 38,
-    borderRadius: 14,
+    borderRadius: 8,
     paddingHorizontal: 11,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.softTeal,
+    backgroundColor: colors.softBlue,
     borderWidth: 1,
-    borderColor: '#d4e8df',
+    borderColor: '#c7d7ff',
   },
   smallButtonText: {
-    color: colors.tealDark,
+    color: colors.brandDeep,
     fontSize: 12,
     fontWeight: '700',
   },
@@ -1766,7 +1809,7 @@ const styles = StyleSheet.create({
   },
   stickerChoice: {
     minHeight: 36,
-    borderRadius: 15,
+    borderRadius: 8,
     paddingHorizontal: 10,
     flexDirection: 'row',
     alignItems: 'center',
@@ -1795,16 +1838,17 @@ const styles = StyleSheet.create({
   classCard: {
     minWidth: 280,
     flex: 1,
-    borderRadius: 16,
+    borderRadius: 8,
     padding: 14,
     gap: 10,
-    backgroundColor: '#f7faf7',
+    backgroundColor: '#f8fafc',
     borderWidth: 1,
-    borderColor: '#e1e9e3',
+    borderBottomWidth: 4,
+    borderColor: '#e5ebf5',
   },
   classCardActive: {
-    backgroundColor: colors.softTeal,
-    borderColor: colors.teal,
+    backgroundColor: colors.softBlue,
+    borderColor: colors.brand,
   },
   classCardTop: {
     flexDirection: 'row',
@@ -1816,26 +1860,26 @@ const styles = StyleSheet.create({
   },
   recordCard: {
     minHeight: 50,
-    borderRadius: 17,
+    borderRadius: 8,
     padding: 12,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    backgroundColor: '#f7faf7',
+    backgroundColor: '#f8fafc',
     borderWidth: 1,
-    borderColor: '#e1e9e3',
+    borderColor: '#e5ebf5',
   },
   recordCardSelected: {
-    backgroundColor: colors.softTeal,
-    borderColor: colors.teal,
+    backgroundColor: colors.softBlue,
+    borderColor: colors.brand,
   },
   recordIcon: {
     width: 36,
     height: 36,
-    borderRadius: 13,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.softTeal,
+    backgroundColor: colors.softBlue,
   },
   recordTitle: {
     color: colors.ink,
@@ -1850,32 +1894,32 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   selectedText: {
-    color: colors.tealDark,
+    color: colors.brand,
     fontSize: 12,
     fontWeight: '700',
   },
   memberCard: {
     minHeight: 59,
-    borderRadius: 15,
+    borderRadius: 8,
     padding: 12,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 11,
-    backgroundColor: '#f7faf7',
+    backgroundColor: '#f8fafc',
     borderWidth: 1,
-    borderColor: '#e1e9e3',
+    borderColor: '#e5ebf5',
   },
   memberCardActive: {
-    backgroundColor: colors.softTeal,
-    borderColor: colors.teal,
+    backgroundColor: colors.softBlue,
+    borderColor: colors.brand,
   },
   memberAvatar: {
     width: 42,
     height: 42,
-    borderRadius: 15,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.ink,
+    backgroundColor: colors.brandDeep,
   },
   memberInitials: {
     color: '#ffffff',
@@ -1889,7 +1933,7 @@ const styles = StyleSheet.create({
   },
   softChip: {
     minHeight: 28,
-    borderRadius: 14,
+    borderRadius: 8,
     paddingHorizontal: 9,
     alignItems: 'center',
     justifyContent: 'center',
@@ -1898,26 +1942,26 @@ const styles = StyleSheet.create({
     borderColor: colors.line,
   },
   softChipText: {
-    color: colors.tealDark,
+    color: colors.brandDeep,
     fontSize: 11,
     fontWeight: '700',
   },
   choiceChip: {
     minHeight: 36,
-    borderRadius: 15,
+    borderRadius: 8,
     paddingHorizontal: 11,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.softTeal,
+    backgroundColor: colors.softBlue,
     borderWidth: 1,
-    borderColor: '#d4e8df',
+    borderColor: '#c7d7ff',
   },
   choiceChipActive: {
-    backgroundColor: colors.tealDark,
-    borderColor: colors.tealDark,
+    backgroundColor: colors.brandDeep,
+    borderColor: colors.brandDeep,
   },
   choiceChipText: {
-    color: colors.tealDark,
+    color: colors.brandDeep,
     fontSize: 12,
     fontWeight: '700',
   },
@@ -1929,18 +1973,20 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: 7,
     padding: 5,
-    borderRadius: 15,
-    backgroundColor: '#eef2ee',
+    borderRadius: 8,
+    backgroundColor: '#eef3fb',
+    borderWidth: 1,
+    borderColor: '#d9e1ee',
   },
   segment: {
     minHeight: 38,
-    borderRadius: 13,
+    borderRadius: 8,
     paddingHorizontal: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
   segmentActive: {
-    backgroundColor: colors.tealDark,
+    backgroundColor: colors.brandDeep,
   },
   segmentText: {
     color: colors.muted,
@@ -1952,10 +1998,10 @@ const styles = StyleSheet.create({
   },
   inviteCard: {
     minHeight: 59,
-    borderRadius: 15,
+    borderRadius: 8,
     padding: 14,
     gap: 4,
-    backgroundColor: '#101916',
+    backgroundColor: colors.brandDeep,
   },
   inviteCode: {
     color: '#ffffff',
@@ -1965,12 +2011,12 @@ const styles = StyleSheet.create({
   },
   billingHero: {
     minHeight: 77,
-    borderRadius: 16,
+    borderRadius: 8,
     padding: 12,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    backgroundColor: '#101916',
+    backgroundColor: colors.brandDeep,
   },
   billingPlan: {
     color: '#ffffff',
@@ -1979,14 +2025,14 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   billingMeta: {
-    color: '#dce7e1',
+    color: '#d8e0ef',
     fontSize: 13,
     lineHeight: 19,
     fontWeight: '700',
   },
   billingBadge: {
     minHeight: 34,
-    borderRadius: 17,
+    borderRadius: 8,
     paddingHorizontal: 11,
     alignItems: 'center',
     justifyContent: 'center',
@@ -1999,42 +2045,42 @@ const styles = StyleSheet.create({
   },
   billingPeriod: {
     minHeight: 52,
-    borderRadius: 17,
+    borderRadius: 8,
     padding: 12,
-    backgroundColor: '#f7faf7',
+    backgroundColor: '#f8fafc',
     borderWidth: 1,
-    borderColor: '#e1e9e3',
+    borderColor: '#e5ebf5',
   },
   planCard: {
     minHeight: 58,
-    borderRadius: 15,
+    borderRadius: 8,
     padding: 13,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    backgroundColor: '#f7faf7',
+    backgroundColor: '#f8fafc',
     borderWidth: 1,
-    borderColor: '#e1e9e3',
+    borderColor: '#e5ebf5',
   },
   planCardActive: {
-    backgroundColor: colors.softTeal,
-    borderColor: colors.teal,
+    backgroundColor: colors.softBlue,
+    borderColor: colors.brand,
   },
   planPrice: {
-    color: colors.tealDark,
+    color: colors.brand,
     fontSize: 16,
     fontWeight: '700',
   },
   paymentCard: {
     minHeight: 61,
-    borderRadius: 15,
+    borderRadius: 8,
     padding: 13,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    backgroundColor: '#f7faf7',
+    backgroundColor: '#f8fafc',
     borderWidth: 1,
-    borderColor: '#e1e9e3',
+    borderColor: '#e5ebf5',
   },
   paymentHash: {
     color: colors.muted,
@@ -2044,14 +2090,14 @@ const styles = StyleSheet.create({
   },
   paymentStatus: {
     minHeight: 30,
-    borderRadius: 15,
+    borderRadius: 8,
     paddingHorizontal: 9,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.softGold,
   },
   paymentStatusConfirmed: {
-    backgroundColor: colors.tealDark,
+    backgroundColor: colors.brandDeep,
   },
   paymentStatusText: {
     color: colors.ink,
@@ -2063,15 +2109,15 @@ const styles = StyleSheet.create({
   },
   requestCard: {
     minHeight: 69,
-    borderRadius: 15,
+    borderRadius: 8,
     padding: 14,
     flexDirection: 'row',
     flexWrap: 'wrap',
     alignItems: 'center',
     gap: 10,
-    backgroundColor: '#fff8ec',
+    backgroundColor: '#fff1f4',
     borderWidth: 1,
-    borderColor: '#f2d995',
+    borderColor: '#ffc4cf',
   },
   requestMessage: {
     color: '#33413b',
@@ -2095,7 +2141,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   successText: {
-    color: colors.tealDark,
+    color: colors.brandDeep,
     fontSize: 13,
     lineHeight: 19,
     fontWeight: '700',

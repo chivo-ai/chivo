@@ -4,6 +4,7 @@ import { ActivityIndicator, Image, Pressable, StyleSheet, Text, View } from 'rea
 import {
   BookOpen,
   Brain,
+  ChevronRight,
   CheckCircle2,
   Clock3,
   DoorOpen,
@@ -32,11 +33,11 @@ type ClassTone = {
 };
 
 const classTones: ClassTone[] = [
-  { background: '#fff4d4', accent: colors.gold },
-  { background: '#e9f6ff', accent: '#4aa6d9' },
-  { background: '#f3eaff', accent: '#8d68d8' },
-  { background: '#e8f8ee', accent: '#39a96b' },
-  { background: '#fff0ed', accent: colors.coral },
+  { background: '#e9f1ff', accent: colors.brand },
+  { background: '#e3fbf7', accent: colors.teal },
+  { background: '#f3efff', accent: colors.violet },
+  { background: '#f1ffd7', accent: '#a3e635' },
+  { background: '#fff1f4', accent: colors.coral },
 ];
 
 export function LearnerScreen({ membership, setup, onWorkspaceChanged }: LearnerScreenProps) {
@@ -150,12 +151,12 @@ function LearnerOverview({
         <Sparkles size={19} color={colors.ink} />
       </View>
       <View style={styles.flexText}>
-        <Text style={styles.overviewTitle}>Learning launchpad</Text>
-        <Text style={styles.overviewMeta}>{schoolName} lessons are organized by class, with audio, transcript, quiz, cards, and progress inside each room.</Text>
+        <Text style={styles.overviewTitle} numberOfLines={1}>Learning launchpad</Text>
+        <Text style={styles.overviewMeta} numberOfLines={3}>{schoolName} lessons are organized by class, with audio, transcript, quiz, cards, and progress inside each room.</Text>
       </View>
       <View style={styles.overviewActions}>
         <ChivoAction compact label="Classes" icon={<DoorOpen size={15} color="#ffffff" />} onPress={() => router.push('/school/class' as never)} />
-        <ChivoAction compact variant="ghost" label="Lessons" icon={<BookOpen size={15} color={colors.tealDark} />} onPress={() => router.push('/lessons' as never)} />
+        <ChivoAction compact variant="ghost" label="Lessons" icon={<BookOpen size={15} color={colors.brandDeep} />} onPress={() => router.push('/lessons' as never)} />
       </View>
 
       <View style={styles.statRow}>
@@ -193,9 +194,10 @@ function ToolChip({ icon, label, body, tone }: { icon: ReactNode; label: string;
     <View style={[styles.toolChip, { backgroundColor: tone.background, borderColor: tone.accent }]}>
       <View style={[styles.toolIcon, { backgroundColor: tone.accent }]}>{icon}</View>
       <View style={styles.flexText}>
-        <Text style={styles.toolTitle}>{label}</Text>
-        <Text style={styles.toolBody}>{body}</Text>
+        <Text style={styles.toolTitle} numberOfLines={1}>{label}</Text>
+        <Text style={styles.toolBody} numberOfLines={1}>{body}</Text>
       </View>
+      <ChevronRight size={16} color={colors.brandDeep} />
     </View>
   );
 }
@@ -230,10 +232,10 @@ function ClassAccessPanel({
       <View style={styles.sectionHeader}>
         <View>
           <Text style={styles.sectionTitle}>Classes</Text>
-          <Text style={styles.sectionMeta}>{learnerClasses.length ? `${learnerClasses.length} active class${learnerClasses.length === 1 ? '' : 'es'}` : 'Join a class to begin learning'}</Text>
+          <Text style={styles.sectionMeta} numberOfLines={1}>{learnerClasses.length ? `${learnerClasses.length} active class${learnerClasses.length === 1 ? '' : 'es'}` : 'Join a class to begin learning'}</Text>
         </View>
         <Pressable onPress={() => router.push('/school/class' as never)} style={styles.iconAction}>
-          <DoorOpen size={17} color={colors.tealDark} />
+          <DoorOpen size={17} color={colors.brandDeep} />
         </Pressable>
       </View>
 
@@ -266,8 +268,8 @@ function ClassAccessPanel({
           })
         ) : (
           <View style={styles.emptyPanel}>
-            <Text style={styles.emptyTitle}>No classes yet</Text>
-            <Text style={styles.emptyMeta}>Classes will appear after the school creates them.</Text>
+            <Text style={styles.emptyTitle} numberOfLines={1}>No classes yet</Text>
+            <Text style={styles.emptyMeta} numberOfLines={2}>Classes will appear after the school creates them.</Text>
           </View>
         )}
       </View>
@@ -307,17 +309,17 @@ function ClassCard({
         <ClassStatus joined={joined} pending={pending} />
       </View>
 
-      <Text style={styles.classTitle}>{schoolClass.name}</Text>
-      <Text style={styles.classMeta}>{schoolClass.grade_level ?? schoolClass.username}</Text>
+      <Text style={styles.classTitle} numberOfLines={1}>{schoolClass.name}</Text>
+      <Text style={styles.classMeta} numberOfLines={1}>{schoolClass.grade_level ?? schoolClass.username}</Text>
 
       <View style={styles.subjectRow}>
         {subjectNames.length ? subjectNames.slice(0, 3).map((subject) => (
           <View key={subject} style={styles.subjectPill}>
-            <Text style={styles.subjectText}>{subject}</Text>
+            <Text style={styles.subjectText} numberOfLines={1}>{subject}</Text>
           </View>
         )) : (
           <View style={styles.subjectPill}>
-            <Text style={styles.subjectText}>Subjects soon</Text>
+            <Text style={styles.subjectText} numberOfLines={1}>Subjects soon</Text>
           </View>
         )}
       </View>
@@ -325,17 +327,17 @@ function ClassCard({
       {joined ? (
         <Pressable onPress={() => router.push(`/school/class/${schoolClass.username}` as never)} style={styles.enterButton}>
           <PlayCircle size={15} color="#ffffff" />
-          <Text style={styles.enterButtonText}>Enter class</Text>
+          <Text style={styles.enterButtonText} numberOfLines={1}>Enter class</Text>
         </Pressable>
       ) : pending ? (
         <View style={styles.pendingButton}>
-          <Clock3 size={15} color={colors.tealDark} />
-          <Text style={styles.pendingButtonText}>Waiting</Text>
+          <Clock3 size={15} color={colors.brandDeep} />
+          <Text style={styles.pendingButtonText} numberOfLines={1}>Waiting</Text>
         </View>
       ) : (
         <Pressable disabled={loading} onPress={onRequest} style={styles.requestButton}>
           {loading ? <ActivityIndicator color="#ffffff" /> : <UserPlus size={15} color="#ffffff" />}
-          <Text style={styles.enterButtonText}>Request</Text>
+          <Text style={styles.enterButtonText} numberOfLines={1}>Request</Text>
         </Pressable>
       )}
     </View>
@@ -347,7 +349,7 @@ function ClassStatus({ joined, pending }: { joined: boolean; pending: boolean })
     return (
       <View style={styles.statusActive}>
         <CheckCircle2 size={13} color="#ffffff" />
-        <Text style={styles.statusActiveText}>Joined</Text>
+        <Text style={styles.statusActiveText} numberOfLines={1}>Joined</Text>
       </View>
     );
   }
@@ -355,16 +357,16 @@ function ClassStatus({ joined, pending }: { joined: boolean; pending: boolean })
   if (pending) {
     return (
       <View style={styles.statusSoft}>
-        <Clock3 size={13} color={colors.tealDark} />
-        <Text style={styles.statusSoftText}>Pending</Text>
+        <Clock3 size={13} color={colors.brandDeep} />
+        <Text style={styles.statusSoftText} numberOfLines={1}>Pending</Text>
       </View>
     );
   }
 
   return (
     <View style={styles.statusSoft}>
-      <DoorOpen size={13} color={colors.tealDark} />
-      <Text style={styles.statusSoftText}>Open</Text>
+      <DoorOpen size={13} color={colors.brandDeep} />
+      <Text style={styles.statusSoftText} numberOfLines={1}>Open</Text>
     </View>
   );
 }
@@ -380,26 +382,26 @@ function initials(value: string) {
 
 const styles = StyleSheet.create({
   stack: {
-    gap: 8,
+    gap: 12,
   },
   overview: {
-    borderRadius: 15,
-    padding: 10,
-    gap: 9,
+    borderRadius: 8,
+    padding: 16,
+    gap: 12,
     flexDirection: 'row',
     flexWrap: 'wrap',
     alignItems: 'center',
     backgroundColor: '#ffffff',
     borderWidth: 1,
-    borderColor: colors.line,
+    borderColor: '#dfe6f0',
   },
   overviewIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 14,
+    width: 44,
+    height: 44,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.gold,
+    backgroundColor: colors.mint,
   },
   flexText: {
     flex: 1,
@@ -407,14 +409,14 @@ const styles = StyleSheet.create({
   },
   overviewTitle: {
     color: colors.ink,
-    fontSize: 15,
-    lineHeight: 19,
-    fontWeight: '700',
+    fontSize: 20,
+    lineHeight: 25,
+    fontWeight: '900',
   },
   overviewMeta: {
     color: colors.muted,
-    fontSize: 11,
-    lineHeight: 15,
+    fontSize: 13,
+    lineHeight: 19,
     fontWeight: '700',
   },
   overviewActions: {
@@ -424,13 +426,13 @@ const styles = StyleSheet.create({
   },
   primaryAction: {
     minHeight: 34,
-    borderRadius: 13,
+    borderRadius: 8,
     paddingHorizontal: 10,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    backgroundColor: colors.tealDark,
+    backgroundColor: colors.brandDeep,
   },
   primaryActionText: {
     color: '#ffffff',
@@ -439,18 +441,18 @@ const styles = StyleSheet.create({
   },
   softAction: {
     minHeight: 34,
-    borderRadius: 13,
+    borderRadius: 8,
     paddingHorizontal: 10,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    backgroundColor: colors.softTeal,
+    backgroundColor: colors.softBlue,
     borderWidth: 1,
-    borderColor: '#d4e8df',
+    borderColor: '#c7d7ff',
   },
   softActionText: {
-    color: colors.tealDark,
+    color: colors.brandDeep,
     fontSize: 12,
     fontWeight: '700',
   },
@@ -458,14 +460,14 @@ const styles = StyleSheet.create({
     width: '100%',
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 7,
+    gap: 9,
   },
   miniStat: {
     minWidth: 86,
     flex: 1,
-    borderRadius: 13,
+    borderRadius: 8,
     padding: 8,
-    backgroundColor: '#f8fbf9',
+    backgroundColor: '#f8fafc',
     borderWidth: 1,
     borderColor: colors.line,
   },
@@ -484,30 +486,31 @@ const styles = StyleSheet.create({
   toolRail: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: 10,
   },
   toolChip: {
     minWidth: 145,
     flex: 1,
-    borderRadius: 14,
-    padding: 9,
+    borderRadius: 8,
+    padding: 12,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
     borderWidth: 1,
+    borderBottomWidth: 4,
   },
   toolIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 11,
+    width: 36,
+    height: 36,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
   },
   toolTitle: {
     color: colors.ink,
-    fontSize: 12,
-    lineHeight: 16,
-    fontWeight: '700',
+    fontSize: 14,
+    lineHeight: 18,
+    fontWeight: '900',
   },
   toolBody: {
     color: colors.muted,
@@ -516,10 +519,10 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   classSection: {
-    gap: 8,
+    gap: 10,
   },
   sectionHeader: {
-    minHeight: 36,
+    minHeight: 44,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -527,9 +530,9 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     color: colors.ink,
-    fontSize: 16,
-    lineHeight: 20,
-    fontWeight: '700',
+    fontSize: 21,
+    lineHeight: 26,
+    fontWeight: '900',
   },
   sectionMeta: {
     color: colors.muted,
@@ -538,17 +541,17 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   iconAction: {
-    width: 36,
-    height: 36,
-    borderRadius: 13,
+    width: 40,
+    height: 40,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.softTeal,
+    backgroundColor: colors.softBlue,
     borderWidth: 1,
-    borderColor: '#d4e8df',
+    borderColor: '#c7d7ff',
   },
   successText: {
-    color: colors.tealDark,
+    color: colors.brandDeep,
     fontSize: 12,
     lineHeight: 17,
     fontWeight: '700',
@@ -562,15 +565,16 @@ const styles = StyleSheet.create({
   classGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 9,
+    gap: 11,
   },
   classCard: {
-    minWidth: 210,
+    minWidth: 230,
     flex: 1,
-    borderRadius: 15,
-    padding: 10,
-    gap: 7,
+    borderRadius: 8,
+    padding: 14,
+    gap: 9,
     borderWidth: 1,
+    borderBottomWidth: 4,
   },
   classTop: {
     flexDirection: 'row',
@@ -580,9 +584,9 @@ const styles = StyleSheet.create({
   },
   classMark: {
     overflow: 'hidden',
-    width: 38,
-    height: 38,
-    borderRadius: 12,
+    width: 42,
+    height: 42,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
@@ -599,9 +603,9 @@ const styles = StyleSheet.create({
   },
   classTitle: {
     color: colors.ink,
-    fontSize: 14,
-    lineHeight: 18,
-    fontWeight: '700',
+    fontSize: 16,
+    lineHeight: 21,
+    fontWeight: '900',
   },
   classMeta: {
     color: colors.muted,
@@ -616,7 +620,7 @@ const styles = StyleSheet.create({
   },
   subjectPill: {
     minHeight: 25,
-    borderRadius: 12,
+    borderRadius: 8,
     paddingHorizontal: 8,
     alignItems: 'center',
     justifyContent: 'center',
@@ -625,29 +629,29 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(24, 36, 33, 0.08)',
   },
   subjectText: {
-    color: colors.tealDark,
+    color: colors.brandDeep,
     fontSize: 10,
     fontWeight: '700',
   },
   enterButton: {
-    minHeight: 34,
-    borderRadius: 12,
+    minHeight: 38,
+    borderRadius: 8,
     paddingHorizontal: 10,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 7,
-    backgroundColor: colors.ink,
+    backgroundColor: colors.brandDeep,
   },
   requestButton: {
-    minHeight: 34,
-    borderRadius: 12,
+    minHeight: 38,
+    borderRadius: 8,
     paddingHorizontal: 10,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 7,
-    backgroundColor: colors.tealDark,
+    backgroundColor: colors.brand,
   },
   enterButtonText: {
     color: '#ffffff',
@@ -655,8 +659,8 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   pendingButton: {
-    minHeight: 34,
-    borderRadius: 12,
+    minHeight: 38,
+    borderRadius: 8,
     paddingHorizontal: 10,
     flexDirection: 'row',
     alignItems: 'center',
@@ -665,18 +669,18 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
   },
   pendingButtonText: {
-    color: colors.tealDark,
+    color: colors.brandDeep,
     fontSize: 12,
     fontWeight: '700',
   },
   statusActive: {
     minHeight: 26,
-    borderRadius: 13,
+    borderRadius: 8,
     paddingHorizontal: 8,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    backgroundColor: colors.tealDark,
+    backgroundColor: colors.brandDeep,
   },
   statusActiveText: {
     color: '#ffffff',
@@ -685,7 +689,7 @@ const styles = StyleSheet.create({
   },
   statusSoft: {
     minHeight: 26,
-    borderRadius: 13,
+    borderRadius: 8,
     paddingHorizontal: 8,
     flexDirection: 'row',
     alignItems: 'center',
@@ -693,18 +697,18 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
   },
   statusSoftText: {
-    color: colors.tealDark,
+    color: colors.brandDeep,
     fontSize: 10,
     fontWeight: '700',
   },
   emptyPanel: {
     flex: 1,
-    borderRadius: 15,
-    padding: 12,
+    borderRadius: 8,
+    padding: 14,
     gap: 5,
     backgroundColor: '#ffffff',
     borderWidth: 1,
-    borderColor: colors.line,
+    borderColor: '#dfe6f0',
   },
   emptyTitle: {
     color: colors.ink,

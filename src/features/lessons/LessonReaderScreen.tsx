@@ -62,11 +62,11 @@ const learningModeOptions: Array<{ id: LearningMode; label: string; body: string
 ];
 
 const tones = {
-  gold: { background: '#fff2c8', accent: colors.gold },
-  blue: { background: '#e6f3ff', accent: '#4aa6d9' },
-  purple: { background: '#f3eaff', accent: '#8d68d8' },
-  green: { background: '#e8f8ee', accent: '#39a96b' },
-  coral: { background: '#ffe9e5', accent: colors.coral },
+  gold: { background: '#f1ffd7', accent: '#a3e635' },
+  blue: { background: '#e9f1ff', accent: colors.brand },
+  purple: { background: '#f3efff', accent: colors.violet },
+  green: { background: '#e3fbf7', accent: colors.teal },
+  coral: { background: '#fff1f4', accent: colors.coral },
 };
 
 export function LessonReaderScreen({ lessonId, membership, setup }: LessonReaderScreenProps) {
@@ -259,7 +259,7 @@ export function LessonReaderScreen({ lessonId, membership, setup }: LessonReader
   if (loading) {
     return (
       <View style={styles.loadingPanel}>
-        <ActivityIndicator color={colors.tealDark} />
+        <ActivityIndicator color={colors.brandDeep} />
         <Text style={styles.metaStrong}>Opening lesson</Text>
       </View>
     );
@@ -279,10 +279,10 @@ export function LessonReaderScreen({ lessonId, membership, setup }: LessonReader
         <View style={styles.heroCopy}>
           <View style={styles.heroPill}>
             <Sparkles size={15} color={colors.ink} />
-            <Text style={styles.heroPillText}>{subjectName}</Text>
+            <Text style={styles.heroPillText} numberOfLines={1}>{subjectName}</Text>
           </View>
-          <Text style={styles.heroTitle}>{personalContent.title || detail.output?.title || detail.lesson.title}</Text>
-          <Text style={styles.heroBody}>
+          <Text style={styles.heroTitle} numberOfLines={2}>{personalContent.title || detail.output?.title || detail.lesson.title}</Text>
+          <Text style={styles.heroBody} numberOfLines={2}>
             {className} - {formatDate(detail.lesson.published_at ?? detail.lesson.recorded_at ?? detail.lesson.created_at)}
           </Text>
           <View style={styles.heroActions}>
@@ -295,9 +295,9 @@ export function LessonReaderScreen({ lessonId, membership, setup }: LessonReader
                 onPress={speechState === 'speaking' ? pauseLesson : playLesson}
               />
             )}
-            <ActionButton label="Stop" variant="soft" icon={<Square size={15} color={colors.tealDark} />} onPress={stopLesson} />
+            <ActionButton label="Stop" variant="soft" icon={<Square size={15} color={colors.brandDeep} />} onPress={stopLesson} />
           </View>
-          {speechMessage ? <Text style={styles.speechMessage}>{speechMessage}</Text> : null}
+          {speechMessage ? <Text style={styles.speechMessage} numberOfLines={2}>{speechMessage}</Text> : null}
         </View>
 
         <View style={styles.heroStats}>
@@ -316,8 +316,8 @@ export function LessonReaderScreen({ lessonId, membership, setup }: LessonReader
             <Sparkles size={20} color="#ffffff" />
           </View>
           <View style={styles.flexText}>
-            <Text style={styles.panelTitle}>Personalize this lesson</Text>
-            <Text style={styles.panelMeta}>Choose a language and study style before listening or reading.</Text>
+            <Text style={styles.panelTitle} numberOfLines={1}>Personalize this lesson</Text>
+            <Text style={styles.panelMeta} numberOfLines={2}>Choose a language and study style before listening or reading.</Text>
           </View>
         </View>
 
@@ -329,7 +329,7 @@ export function LessonReaderScreen({ lessonId, membership, setup }: LessonReader
             style={[styles.personalizeButton, (isPersonalizing || !detail.output || !languageValue.trim()) && styles.disabledButton]}
           >
             {isPersonalizing ? <ActivityIndicator color={colors.ink} /> : <RefreshCw size={17} color={colors.ink} />}
-            <Text style={styles.personalizeText}>{detail.personalization ? 'Refresh' : 'Create'}</Text>
+            <Text style={styles.personalizeText} numberOfLines={1}>{detail.personalization ? 'Refresh' : 'Create'}</Text>
           </Pressable>
         </View>
 
@@ -340,8 +340,8 @@ export function LessonReaderScreen({ lessonId, membership, setup }: LessonReader
               onPress={() => setLearningMode(mode.id)}
               style={[styles.modeCard, learningMode === mode.id && styles.modeCardActive]}
             >
-              <Text style={[styles.modeTitle, learningMode === mode.id && styles.modeTitleActive]}>{mode.label}</Text>
-              <Text style={[styles.modeBody, learningMode === mode.id && styles.modeBodyActive]}>{mode.body}</Text>
+              <Text style={[styles.modeTitle, learningMode === mode.id && styles.modeTitleActive]} numberOfLines={1}>{mode.label}</Text>
+              <Text style={[styles.modeBody, learningMode === mode.id && styles.modeBodyActive]} numberOfLines={1}>{mode.body}</Text>
             </Pressable>
           ))}
         </View>
@@ -350,10 +350,10 @@ export function LessonReaderScreen({ lessonId, membership, setup }: LessonReader
       <ProgressStrip detail={detail} latestScore={result?.score ?? (latestAttempt?.score == null ? null : Number(latestAttempt.score))} />
 
       <View style={styles.tabRow}>
-        <ReaderTabButton active={activeTab === 'listen'} label="Listen" icon={<Headphones size={16} color={activeTab === 'listen' ? '#ffffff' : colors.tealDark} />} onPress={() => setActiveTab('listen')} />
-        <ReaderTabButton active={activeTab === 'read'} label="Transcript" icon={<FileText size={16} color={activeTab === 'read' ? '#ffffff' : colors.tealDark} />} onPress={() => setActiveTab('read')} />
-        <ReaderTabButton active={activeTab === 'quiz'} label="Quiz" icon={<Brain size={16} color={activeTab === 'quiz' ? '#ffffff' : colors.tealDark} />} onPress={() => setActiveTab('quiz')} />
-        <ReaderTabButton active={activeTab === 'cards'} label="Cards" icon={<Layers size={16} color={activeTab === 'cards' ? '#ffffff' : colors.tealDark} />} onPress={() => setActiveTab('cards')} />
+        <ReaderTabButton active={activeTab === 'listen'} label="Listen" icon={<Headphones size={16} color={activeTab === 'listen' ? '#ffffff' : colors.brandDeep} />} onPress={() => setActiveTab('listen')} />
+        <ReaderTabButton active={activeTab === 'read'} label="Transcript" icon={<FileText size={16} color={activeTab === 'read' ? '#ffffff' : colors.brandDeep} />} onPress={() => setActiveTab('read')} />
+        <ReaderTabButton active={activeTab === 'quiz'} label="Quiz" icon={<Brain size={16} color={activeTab === 'quiz' ? '#ffffff' : colors.brandDeep} />} onPress={() => setActiveTab('quiz')} />
+        <ReaderTabButton active={activeTab === 'cards'} label="Cards" icon={<Layers size={16} color={activeTab === 'cards' ? '#ffffff' : colors.brandDeep} />} onPress={() => setActiveTab('cards')} />
       </View>
 
       {activeTab === 'listen' ? (
@@ -461,7 +461,7 @@ function ListenPane({
       {content.vocabulary.length ? (
         <View style={styles.panel}>
           <View style={styles.panelTitleRow}>
-          <Languages size={21} color={colors.tealDark} />
+          <Languages size={21} color={colors.brandDeep} />
           <Text style={styles.panelTitle}>Vocabulary</Text>
           <ViewFullButton onPress={() => onOpenFull('vocabulary')} />
         </View>
@@ -498,7 +498,7 @@ function TranscriptPane({
   return (
     <View style={styles.panel}>
       <View style={styles.panelTitleRow}>
-        <FileText size={21} color={colors.tealDark} />
+        <FileText size={21} color={colors.brandDeep} />
         <View style={styles.flexText}>
           <Text style={styles.panelTitle}>Transcript</Text>
           <Text style={styles.panelMeta}>{personalLanguage ? `${personalLanguage} version` : `${originalLanguage} original`}</Text>
@@ -581,7 +581,7 @@ function QuizPane({
 
       <Pressable disabled={!allAnswered || saving || Boolean(result)} onPress={onSubmit} style={[styles.submitButton, (!allAnswered || saving || Boolean(result)) && styles.disabledButton]}>
         {saving ? <ActivityIndicator color="#ffffff" /> : <CheckCircle2 size={17} color="#ffffff" />}
-        <Text style={styles.submitText}>{result ? 'Quiz submitted' : 'Submit quiz'}</Text>
+        <Text style={styles.submitText} numberOfLines={1}>{result ? 'Quiz submitted' : 'Submit quiz'}</Text>
       </Pressable>
     </View>
   );
@@ -602,7 +602,7 @@ function QuizCard({
 }) {
   return (
     <View style={styles.quizCard}>
-      <Text style={styles.quizPrompt}>{index + 1}. {question.prompt}</Text>
+      <Text style={styles.quizPrompt} numberOfLines={5}>{index + 1}. {question.prompt}</Text>
       <View style={styles.optionGrid}>
         {question.options.map((option) => {
           const selected = selectedAnswer === option;
@@ -620,7 +620,7 @@ function QuizCard({
                 wrong && styles.optionWrong,
               ]}
             >
-              <Text style={[styles.optionText, (selected || correct || wrong) && styles.optionTextActive]}>{option}</Text>
+              <Text style={[styles.optionText, (selected || correct || wrong) && styles.optionTextActive]} numberOfLines={3}>{option}</Text>
             </Pressable>
           );
         })}
@@ -659,9 +659,9 @@ function CardsPane({
             onPress={() => onFlip(flipped ? null : card.id)}
             style={[styles.flashcard, { backgroundColor: tone.background, borderColor: tone.accent }]}
           >
-            <Text style={styles.flashCounter}>Card {index + 1}</Text>
-            <Text style={styles.flashFront}>{flipped ? card.back : card.front}</Text>
-            <Text style={styles.flashBack}>{flipped ? 'Tap to see the question' : 'Tap to reveal the answer'}</Text>
+            <Text style={styles.flashCounter} numberOfLines={1}>Card {index + 1}</Text>
+            <Text style={styles.flashFront} numberOfLines={5}>{flipped ? card.back : card.front}</Text>
+            <Text style={styles.flashBack} numberOfLines={1}>{flipped ? 'Tap to see the question' : 'Tap to reveal the answer'}</Text>
           </Pressable>
         );
       })}
@@ -702,13 +702,13 @@ function FullLessonPanel({
       <View style={styles.fullScreen}>
         <View style={styles.fullHeader}>
           <View style={styles.flexText}>
-            <Text style={styles.fullTitle}>{title}</Text>
-            <Text style={styles.fullMeta}>
+            <Text style={styles.fullTitle} numberOfLines={1}>{title}</Text>
+            <Text style={styles.fullMeta} numberOfLines={1}>
               {panel === 'transcript' ? (personalLanguage ? `${personalLanguage} version` : `${originalLanguage} original`) : 'Full view'}
             </Text>
           </View>
           <Pressable onPress={onClose} style={styles.fullClose}>
-            <X size={20} color={colors.tealDark} />
+            <X size={20} color={colors.brandDeep} />
           </Pressable>
         </View>
 
@@ -792,8 +792,8 @@ function ProgressStrip({ detail, latestScore }: { detail: LessonDetail; latestSc
 function ReaderTabButton({ active, label, icon, onPress }: { active: boolean; label: string; icon: React.ReactNode; onPress: () => void }) {
   return (
     <Pressable onPress={onPress} style={[styles.tabButton, active && styles.tabButtonActive]}>
-      {icon}
-      <Text style={[styles.tabText, active && styles.tabTextActive]}>{label}</Text>
+      <View style={[styles.tabIcon, active && styles.tabIconActive]}>{icon}</View>
+      <Text style={[styles.tabText, active && styles.tabTextActive]} numberOfLines={1}>{label}</Text>
     </Pressable>
   );
 }
@@ -801,7 +801,7 @@ function ReaderTabButton({ active, label, icon, onPress }: { active: boolean; la
 function ViewFullButton({ onPress }: { onPress: () => void }) {
   return (
     <Pressable onPress={onPress} style={styles.viewFullButton}>
-      <Text style={styles.viewFullText}>View full</Text>
+      <Text style={styles.viewFullText} numberOfLines={1}>View full</Text>
     </Pressable>
   );
 }
@@ -838,8 +838,8 @@ function ActionButton({
 }) {
   return (
     <Pressable onPress={onPress} style={[styles.actionButton, variant === 'soft' && styles.actionButtonSoft]}>
-      {icon}
-      <Text style={[styles.actionButtonText, variant === 'soft' && styles.actionButtonTextSoft]}>{label}</Text>
+      <View style={[styles.actionIcon, variant === 'soft' && styles.actionIconSoft]}>{icon}</View>
+      <Text style={[styles.actionButtonText, variant === 'soft' && styles.actionButtonTextSoft]} numberOfLines={1}>{label}</Text>
     </Pressable>
   );
 }
@@ -851,8 +851,8 @@ function MiniStat({ icon, label, value, tone }: { icon: React.ReactNode; label: 
 function ProgressTile({ label, value, tone }: { label: string; value: string | number; tone: { background: string; accent: string } }) {
   return (
     <View style={[styles.progressTile, { backgroundColor: tone.background, borderColor: tone.accent }]}>
-      <Text style={styles.progressValue}>{value}</Text>
-      <Text style={styles.progressLabel}>{label}</Text>
+      <Text style={styles.progressValue} numberOfLines={1}>{value}</Text>
+      <Text style={styles.progressLabel} numberOfLines={1}>{label}</Text>
     </View>
   );
 }
@@ -926,28 +926,30 @@ function formatDate(value: string) {
 
 const styles = StyleSheet.create({
   stack: {
-    gap: 8,
+    gap: 12,
   },
   hero: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     alignItems: 'center',
-    gap: 9,
+    gap: 14,
+    borderRadius: 8,
+    padding: 16,
   },
   heroCopy: {
     flex: 1.4,
-    minWidth: 190,
-    gap: 6,
+    minWidth: 260,
+    gap: 9,
   },
   heroPill: {
     alignSelf: 'flex-start',
-    minHeight: 23,
-    borderRadius: 11,
-    paddingHorizontal: 8,
+    minHeight: 30,
+    borderRadius: 8,
+    paddingHorizontal: 11,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    backgroundColor: colors.gold,
+    backgroundColor: colors.mint,
   },
   heroPillText: {
     color: colors.ink,
@@ -956,15 +958,15 @@ const styles = StyleSheet.create({
   },
   heroTitle: {
     color: '#ffffff',
-    fontSize: 19,
-    lineHeight: 23,
-    fontWeight: '800',
+    fontSize: 28,
+    lineHeight: 34,
+    fontWeight: '900',
   },
   heroBody: {
-    color: '#dce7e1',
-    fontSize: 12,
-    lineHeight: 16,
-    fontWeight: '600',
+    color: '#d8e0ef',
+    fontSize: 14,
+    lineHeight: 20,
+    fontWeight: '700',
   },
   heroActions: {
     flexDirection: 'row',
@@ -979,19 +981,32 @@ const styles = StyleSheet.create({
     gap: 7,
   },
   actionButton: {
-    minHeight: 32,
-    borderRadius: 12,
+    minHeight: 38,
+    borderRadius: 8,
     paddingHorizontal: 9,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    backgroundColor: colors.brandDeep,
+    backgroundColor: colors.brand,
+  },
+  actionIcon: {
+    width: 26,
+    height: 26,
+    borderRadius: 7,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.14)',
+  },
+  actionIconSoft: {
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#dce5f2',
   },
   actionButtonSoft: {
-    backgroundColor: colors.softTeal,
+    backgroundColor: colors.softBlue,
     borderWidth: 1,
-    borderColor: '#d4e8df',
+    borderColor: '#c7d7ff',
   },
   actionButtonText: {
     color: '#ffffff',
@@ -999,13 +1014,10 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   actionButtonTextSoft: {
-    color: colors.tealDark,
+    color: colors.brandDeep,
   },
   learningPanel: {
-    shadowColor: '#05110d',
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
+    borderRadius: 8,
   },
   panelTitleRow: {
     minHeight: 28,
@@ -1014,18 +1026,18 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   panelIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 13,
+    width: 40,
+    height: 40,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.tealDark,
+    backgroundColor: colors.brand,
   },
   panelTitle: {
     color: colors.ink,
-    fontSize: 15,
-    lineHeight: 19,
-    fontWeight: '800',
+    fontSize: 18,
+    lineHeight: 23,
+    fontWeight: '900',
   },
   panelMeta: {
     color: colors.muted,
@@ -1035,16 +1047,16 @@ const styles = StyleSheet.create({
   },
   viewFullButton: {
     minHeight: 30,
-    borderRadius: 12,
+    borderRadius: 8,
     paddingHorizontal: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.softTeal,
+    backgroundColor: colors.softBlue,
     borderWidth: 1,
-    borderColor: '#d4e8df',
+    borderColor: '#c7d7ff',
   },
   viewFullText: {
-    color: colors.tealDark,
+    color: colors.brandDeep,
     fontSize: 10,
     fontWeight: '700',
   },
@@ -1066,24 +1078,24 @@ const styles = StyleSheet.create({
   },
   input: {
     minHeight: 42,
-    borderRadius: 13,
+    borderRadius: 8,
     paddingHorizontal: 10,
     color: colors.ink,
-    backgroundColor: '#f7faf7',
+    backgroundColor: '#f8fafc',
     borderWidth: 1,
-    borderColor: '#e1e9e3',
+    borderColor: '#dfe6f0',
     fontSize: 13,
     fontWeight: '700',
   },
   personalizeButton: {
     minHeight: 36,
-    borderRadius: 12,
+    borderRadius: 8,
     paddingHorizontal: 10,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    backgroundColor: colors.amber,
+    backgroundColor: colors.mint,
   },
   personalizeText: {
     color: colors.ink,
@@ -1099,21 +1111,21 @@ const styles = StyleSheet.create({
     minWidth: 112,
     flex: 1,
     minHeight: 40,
-    borderRadius: 12,
+    borderRadius: 8,
     paddingHorizontal: 8,
     paddingVertical: 6,
     justifyContent: 'center',
     gap: 3,
-    backgroundColor: colors.softTeal,
+    backgroundColor: colors.softBlue,
     borderWidth: 1,
-    borderColor: '#d4e8df',
+    borderColor: '#c7d7ff',
   },
   modeCardActive: {
     backgroundColor: colors.brandDeep,
     borderColor: colors.brandDeep,
   },
   modeTitle: {
-    color: colors.tealDark,
+    color: colors.brandDeep,
     fontSize: 12,
     lineHeight: 15,
     fontWeight: '700',
@@ -1128,7 +1140,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   modeBodyActive: {
-    color: '#dce7e1',
+    color: '#d8e0ef',
   },
   progressGrid: {
     flexDirection: 'row',
@@ -1138,10 +1150,11 @@ const styles = StyleSheet.create({
   progressTile: {
     minWidth: 96,
     flex: 1,
-    borderRadius: 13,
+    borderRadius: 8,
     padding: 8,
     gap: 2,
     borderWidth: 1,
+    borderBottomWidth: 4,
   },
   progressValue: {
     color: colors.ink,
@@ -1159,27 +1172,41 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: 6,
     padding: 4,
-    borderRadius: 14,
+    borderRadius: 8,
     backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: colors.line,
+    borderColor: '#dfe6f0',
   },
   tabButton: {
-    minHeight: 32,
+    minHeight: 38,
     flex: 1,
     minWidth: 82,
-    borderRadius: 12,
+    borderRadius: 8,
     paddingHorizontal: 8,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 5,
   },
+  tabIcon: {
+    width: 26,
+    height: 26,
+    borderRadius: 7,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.softBlue,
+    borderWidth: 1,
+    borderColor: '#c7d7ff',
+  },
+  tabIconActive: {
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderColor: 'rgba(255,255,255,0.22)',
+  },
   tabButtonActive: {
     backgroundColor: colors.brandDeep,
   },
   tabText: {
-    color: colors.tealDark,
+    color: colors.brandDeep,
     fontSize: 11,
     fontWeight: '700',
   },
@@ -1194,12 +1221,13 @@ const styles = StyleSheet.create({
   panel: {
     minWidth: 230,
     flex: 1,
-    borderRadius: 14,
-    padding: 9,
-    gap: 7,
+    borderRadius: 8,
+    padding: 12,
+    gap: 9,
     backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: colors.line,
+    borderBottomWidth: 4,
+    borderColor: '#dfe6f0',
   },
   panelWide: {
     flex: 1.5,
@@ -1216,21 +1244,21 @@ const styles = StyleSheet.create({
   },
   pointCard: {
     minHeight: 42,
-    borderRadius: 13,
+    borderRadius: 8,
     padding: 9,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: colors.softTeal,
+    backgroundColor: colors.softBlue,
   },
   pointIndex: {
     width: 28,
     height: 28,
-    borderRadius: 11,
+    borderRadius: 6,
     textAlign: 'center',
     textAlignVertical: 'center',
     color: '#ffffff',
-    backgroundColor: colors.tealDark,
+    backgroundColor: colors.brand,
     fontSize: 11,
     fontWeight: '700',
   },
@@ -1247,22 +1275,22 @@ const styles = StyleSheet.create({
   },
   studyStep: {
     minHeight: 36,
-    borderRadius: 13,
+    borderRadius: 8,
     paddingHorizontal: 8,
     paddingVertical: 6,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: colors.softTeal,
+    backgroundColor: colors.softBlue,
   },
   studyStepNumber: {
     width: 26,
     height: 26,
-    borderRadius: 13,
+    borderRadius: 8,
     textAlign: 'center',
     textAlignVertical: 'center',
     color: '#ffffff',
-    backgroundColor: colors.tealDark,
+    backgroundColor: colors.brand,
     fontSize: 12,
     fontWeight: '700',
   },
@@ -1281,7 +1309,7 @@ const styles = StyleSheet.create({
   vocabCard: {
     minWidth: 120,
     flex: 1,
-    borderRadius: 13,
+    borderRadius: 8,
     padding: 9,
     gap: 3,
     backgroundColor: colors.softGold,
@@ -1302,17 +1330,17 @@ const styles = StyleSheet.create({
     gap: 7,
   },
   transcriptBlock: {
-    borderRadius: 13,
+    borderRadius: 8,
     padding: 9,
     flexDirection: 'row',
     gap: 8,
-    backgroundColor: '#f7faf7',
+    backgroundColor: '#f8fafc',
     borderWidth: 1,
-    borderColor: '#e1e9e3',
+    borderColor: '#dfe6f0',
   },
   transcriptNumber: {
     width: 28,
-    color: colors.tealDark,
+    color: colors.brand,
     fontSize: 10,
     lineHeight: 14,
     fontWeight: '700',
@@ -1326,7 +1354,7 @@ const styles = StyleSheet.create({
   },
   fullScreen: {
     flex: 1,
-    backgroundColor: colors.surfaceSoft,
+    backgroundColor: colors.canvas,
   },
   fullHeader: {
     minHeight: 54,
@@ -1338,7 +1366,7 @@ const styles = StyleSheet.create({
     gap: 10,
     backgroundColor: colors.surface,
     borderBottomWidth: 1,
-    borderBottomColor: colors.line,
+    borderBottomColor: '#dfe6f0',
   },
   fullTitle: {
     color: colors.ink,
@@ -1355,10 +1383,10 @@ const styles = StyleSheet.create({
   fullClose: {
     width: 36,
     height: 36,
-    borderRadius: 13,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.softTeal,
+    backgroundColor: colors.softBlue,
   },
   fullBody: {
     width: '100%',
@@ -1375,17 +1403,17 @@ const styles = StyleSheet.create({
   },
   fullPoint: {
     minHeight: 42,
-    borderRadius: 13,
+    borderRadius: 8,
     padding: 9,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
     backgroundColor: '#ffffff',
     borderWidth: 1,
-    borderColor: colors.line,
+    borderColor: '#dfe6f0',
   },
   fullVocab: {
-    borderRadius: 13,
+    borderRadius: 8,
     padding: 10,
     gap: 4,
     backgroundColor: colors.softGold,
@@ -1393,7 +1421,7 @@ const styles = StyleSheet.create({
     borderColor: '#efd27f',
   },
   resultCard: {
-    borderRadius: 14,
+    borderRadius: 8,
     padding: 9,
     alignItems: 'center',
     backgroundColor: colors.softGold,
@@ -1415,10 +1443,10 @@ const styles = StyleSheet.create({
     gap: 7,
   },
   quizCard: {
-    borderRadius: 14,
+    borderRadius: 8,
     padding: 10,
     gap: 8,
-    backgroundColor: '#f7faf7',
+    backgroundColor: '#f8fafc',
     borderWidth: 1,
     borderColor: '#e1e9e3',
   },
@@ -1433,7 +1461,7 @@ const styles = StyleSheet.create({
   },
   optionButton: {
     minHeight: 36,
-    borderRadius: 13,
+    borderRadius: 8,
     paddingHorizontal: 10,
     justifyContent: 'center',
     backgroundColor: '#ffffff',
@@ -1441,12 +1469,12 @@ const styles = StyleSheet.create({
     borderColor: colors.line,
   },
   optionSelected: {
-    backgroundColor: colors.ink,
+    backgroundColor: colors.brandDeep,
     borderColor: colors.ink,
   },
   optionCorrect: {
-    backgroundColor: colors.tealDark,
-    borderColor: colors.tealDark,
+    backgroundColor: colors.brandDeep,
+    borderColor: colors.brandDeep,
   },
   optionWrong: {
     backgroundColor: colors.coral,
@@ -1469,13 +1497,13 @@ const styles = StyleSheet.create({
   },
   submitButton: {
     minHeight: 40,
-    borderRadius: 13,
+    borderRadius: 8,
     paddingHorizontal: 11,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    backgroundColor: colors.tealDark,
+    backgroundColor: colors.brandDeep,
   },
   submitText: {
     color: '#ffffff',
@@ -1491,7 +1519,7 @@ const styles = StyleSheet.create({
     minWidth: 210,
     flex: 1,
     minHeight: 92,
-    borderRadius: 15,
+    borderRadius: 8,
     padding: 10,
     gap: 7,
     borderWidth: 1,
@@ -1516,7 +1544,7 @@ const styles = StyleSheet.create({
   },
   loadingPanel: {
     minHeight: 86,
-    borderRadius: 15,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
@@ -1543,7 +1571,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   encouragement: {
-    color: colors.tealDark,
+    color: colors.brandDeep,
     fontSize: 12,
     lineHeight: 16,
     fontWeight: '700',
@@ -1555,7 +1583,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   successText: {
-    color: colors.tealDark,
+    color: colors.brandDeep,
     fontSize: 12,
     lineHeight: 16,
     fontWeight: '700',
@@ -1574,7 +1602,7 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   richBold: {
-    color: colors.tealDark,
+    color: colors.brandDeep,
     fontWeight: '700',
   },
 });

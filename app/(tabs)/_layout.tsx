@@ -53,7 +53,7 @@ function activeRouteFromPath(pathname: string): AccessRoute {
 }
 
 function accessNavItems(activeId: AccessRoute): AppNavItem[] {
-  const iconColor = (id: AccessRoute) => (activeId === id ? colors.tealDark : '#dce7e1');
+  const iconColor = (id: AccessRoute) => (activeId === id ? colors.brandDeep : '#d8e0ef');
 
   return [
     {

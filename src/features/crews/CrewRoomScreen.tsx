@@ -108,20 +108,20 @@ type SavingState = 'message' | 'resource' | 'ai' | 'voice' | 'transcribe' | 'liv
 type SpeechState = 'idle' | 'speaking' | 'paused';
 
 const tabs: Array<{ id: CrewTab; label: string; icon: ReactNode }> = [
-  { id: 'chat', label: 'Chat', icon: <MessageCircle size={16} color={colors.tealDark} /> },
+  { id: 'chat', label: 'Chat', icon: <MessageCircle size={16} color={colors.brandDeep} /> },
   { id: 'ai', label: 'AI pack', icon: <Sparkles size={16} color={colors.gold} /> },
   { id: 'notes', label: 'Notes', icon: <BookOpen size={16} color={colors.blue} /> },
   { id: 'voice', label: 'Voice', icon: <Mic size={16} color={colors.coral} /> },
   { id: 'live', label: 'Live', icon: <Radio size={16} color={colors.teal} /> },
-  { id: 'members', label: 'Members', icon: <Users size={16} color={colors.tealDark} /> },
+  { id: 'members', label: 'Members', icon: <Users size={16} color={colors.brandDeep} /> },
 ];
 
 const tones = {
-  gold: { background: '#fff4d4', accent: colors.gold },
-  blue: { background: '#e9f6ff', accent: '#4aa6d9' },
-  violet: { background: '#f3eaff', accent: '#8d68d8' },
-  green: { background: '#e8f8ee', accent: '#39a96b' },
-  coral: { background: '#fde8e4', accent: colors.coral },
+  gold: { background: '#f1ffd7', accent: '#a3e635' },
+  blue: { background: '#e9f1ff', accent: colors.brand },
+  violet: { background: '#f3efff', accent: colors.violet },
+  green: { background: '#e3fbf7', accent: colors.teal },
+  coral: { background: '#fff1f4', accent: colors.coral },
 };
 
 export function CrewRoomScreen({ crewId }: { crewId: string }) {
@@ -648,8 +648,8 @@ export function CrewRoomScreen({ crewId }: { crewId: string }) {
   if (loading && !room) {
     return (
       <View style={styles.centerPanel}>
-        <ActivityIndicator color={colors.tealDark} />
-        <Text style={styles.emptyMeta}>Opening crew room...</Text>
+        <ActivityIndicator color={colors.brandDeep} />
+        <Text style={styles.emptyMeta} numberOfLines={1}>Opening crew room...</Text>
       </View>
     );
   }
@@ -657,9 +657,9 @@ export function CrewRoomScreen({ crewId }: { crewId: string }) {
   if (!room) {
     return (
       <View style={styles.centerPanel}>
-        <Users size={28} color={colors.tealDark} />
-        <Text style={styles.emptyTitle}>Crew unavailable</Text>
-        <Text style={styles.emptyMeta}>{error ?? 'This crew could not be opened.'}</Text>
+        <Users size={28} color={colors.brandDeep} />
+        <Text style={styles.emptyTitle} numberOfLines={1}>Crew unavailable</Text>
+        <Text style={styles.emptyMeta} numberOfLines={2}>{error ?? 'This crew could not be opened.'}</Text>
         <PrimaryAction label="Back to crews" icon={<ArrowLeft size={17} color="#ffffff" />} onPress={() => router.push('/crews' as never)} />
       </View>
     );
@@ -675,14 +675,14 @@ export function CrewRoomScreen({ crewId }: { crewId: string }) {
           <View style={styles.flexText}>
             <View style={styles.heroPill}>
               <Sparkles size={15} color={colors.ink} />
-              <Text style={styles.heroPillText}>{room.crew.scope === 'cross_school' ? 'Cross-school crew' : 'School crew'}</Text>
+              <Text style={styles.heroPillText} numberOfLines={1}>{room.crew.scope === 'cross_school' ? 'Cross-school crew' : 'School crew'}</Text>
             </View>
-            <Text style={styles.heroTitle}>{room.crew.name}</Text>
-            <Text style={styles.heroSlug}>/{room.crew.username}</Text>
+            <Text style={styles.heroTitle} numberOfLines={1}>{room.crew.name}</Text>
+            <Text style={styles.heroSlug} numberOfLines={1}>/{room.crew.username}</Text>
           </View>
           <Pressable onPress={() => setAiModalOpen(true)} style={styles.heroAiButton}>
             <Bot size={18} color="#ffffff" />
-            <Text style={styles.heroAiText}>AI</Text>
+            <Text style={styles.heroAiText} numberOfLines={1}>AI</Text>
           </Pressable>
         </View>
 
@@ -695,11 +695,11 @@ export function CrewRoomScreen({ crewId }: { crewId: string }) {
 
         <View style={styles.inviteStrip}>
           <View style={styles.inviteCopy}>
-            <Text style={styles.inviteLabel}>Invite code</Text>
-            <Text style={styles.inviteCode}>{room.crew.inviteCode}</Text>
+            <Text style={styles.inviteLabel} numberOfLines={1}>Invite code</Text>
+            <Text style={styles.inviteCode} numberOfLines={1}>{room.crew.inviteCode}</Text>
           </View>
           <Pressable onPress={copyInviteCode} style={styles.copyButton}>
-            <Copy size={17} color={colors.tealDark} />
+            <Copy size={17} color={colors.brandDeep} />
           </Pressable>
         </View>
       </View>
@@ -847,7 +847,7 @@ function ChatSection({
 }) {
   return (
     <View style={styles.section}>
-      <PanelTitle icon={<MessageCircle size={20} color={colors.tealDark} />} title="Study chat" action={<RefreshButton loading={loading} onPress={onRefresh} />} />
+      <PanelTitle icon={<MessageCircle size={20} color={colors.brandDeep} />} title="Study chat" action={<RefreshButton loading={loading} onPress={onRefresh} />} />
 
       <View style={styles.utilityRow}>
         <UtilityButton label="AI pack" icon={<Sparkles size={16} color="#ffffff" />} onPress={onOpenAi} />
@@ -866,7 +866,7 @@ function ChatSection({
           );
         }) : (
           <View style={styles.emptyThread}>
-            <MessageCircle size={22} color={colors.tealDark} />
+            <MessageCircle size={22} color={colors.brandDeep} />
             <Text style={styles.emptyMeta}>No messages yet.</Text>
           </View>
         )}
@@ -930,7 +930,7 @@ function AiSection({
           <SpeechControls speechState={speechState} onSpeak={() => onSpeak(spoken)} onPause={onPause} onResume={onResume} onStop={onStop} />
         </>
       ) : (
-        <EmptyPanel icon={<Bot size={28} color={colors.tealDark} />} title="No shared AI pack yet" body="Open Chivo AI to create one from crew notes and messages." />
+        <EmptyPanel icon={<Bot size={28} color={colors.brandDeep} />} title="No shared AI pack yet" body="Open Chivo AI to create one from crew notes and messages." />
       )}
     </View>
   );
@@ -988,7 +988,7 @@ function NotesSection({
         {noteResources.length ? noteResources.map((resource) => (
           <ResourceCard key={resource.id} resource={resource} onSpeak={() => onSpeak(resourceNoteText(resource.content))} />
         )) : (
-          <EmptyPanel icon={<FileText size={28} color={colors.tealDark} />} title="No shared notes yet" body="Notes saved here can power the shared AI pack." />
+          <EmptyPanel icon={<FileText size={28} color={colors.brandDeep} />} title="No shared notes yet" body="Notes saved here can power the shared AI pack." />
         )}
       </View>
     </View>
@@ -1120,16 +1120,16 @@ function VoiceSection({
                 style={[styles.miniActionButton, saving === 'transcribe' && transcribingResourceId === resource.id && styles.buttonDisabled]}
               >
                 {saving === 'transcribe' && transcribingResourceId === resource.id ? (
-                  <ActivityIndicator color={colors.tealDark} />
+                  <ActivityIndicator color={colors.brandDeep} />
                 ) : (
-                  <Sparkles size={14} color={colors.tealDark} />
+                  <Sparkles size={14} color={colors.brandDeep} />
                 )}
                 <Text style={styles.miniActionText}>{voiceResourceText(resource) ? 'Refresh' : 'Transcribe'}</Text>
               </Pressable>
             )}
           />
         )) : (
-          <EmptyPanel icon={<Headphones size={28} color={colors.tealDark} />} title="No voice notes yet" body="Record and save the first crew voice note." />
+          <EmptyPanel icon={<Headphones size={28} color={colors.brandDeep} />} title="No voice notes yet" body="Record and save the first crew voice note." />
         )}
       </View>
     </View>
@@ -1197,7 +1197,7 @@ function LiveSection({
         {liveResources.length ? liveResources.map((resource) => (
           <ResourceCard key={resource.id} resource={resource} />
         )) : (
-          <EmptyPanel icon={<Radio size={28} color={colors.tealDark} />} title="No live circles yet" body="Start a session when the crew is ready." />
+          <EmptyPanel icon={<Radio size={28} color={colors.brandDeep} />} title="No live circles yet" body="Start a session when the crew is ready." />
         )}
       </View>
     </View>
@@ -1207,7 +1207,7 @@ function LiveSection({
 function MembersSection({ room }: { room: CrewRoom }) {
   return (
     <View style={styles.section}>
-      <PanelTitle icon={<Users size={20} color={colors.tealDark} />} title="Crew members" />
+      <PanelTitle icon={<Users size={20} color={colors.brandDeep} />} title="Crew members" />
       <View style={styles.memberGrid}>
         {room.members.map((member) => (
           <View key={member.id} style={styles.memberCard}>
@@ -1255,7 +1255,7 @@ function AiPackModal({
               <Text style={styles.modalMeta}>Summary, quiz, cards, and group tasks</Text>
             </View>
             <Pressable onPress={onClose} style={styles.closeButton}>
-              <X size={18} color={colors.tealDark} />
+              <X size={18} color={colors.brandDeep} />
             </Pressable>
           </View>
 
@@ -1275,7 +1275,7 @@ function AiPackModal({
                 <UtilityButton label="Read aloud" icon={<Volume2 size={16} color="#ffffff" />} onPress={() => onSpeak(buildAiPackSpeech(latestAiPack))} />
               </>
             ) : (
-              <EmptyPanel icon={<Sparkles size={28} color={colors.tealDark} />} title="Ready when the crew is ready" body="Add notes or chat messages, then generate." />
+              <EmptyPanel icon={<Sparkles size={28} color={colors.brandDeep} />} title="Ready when the crew is ready" body="Add notes or chat messages, then generate." />
             )}
           </ScrollView>
         </Pressable>
@@ -1356,17 +1356,17 @@ function ResourceCard({ resource, onSpeak, action }: { resource: CrewResource; o
       <View style={styles.resourceHeader}>
         <View style={styles.resourceIcon}>{iconForResource(resource)}</View>
         <View style={styles.flexText}>
-          <Text style={styles.resourceTitle}>{resource.title}</Text>
-          <Text style={styles.resourceMeta}>{formatResourceType(resource.resourceType)} - {formatDate(resource.createdAt)}</Text>
+          <Text style={styles.resourceTitle} numberOfLines={1}>{resource.title}</Text>
+          <Text style={styles.resourceMeta} numberOfLines={1}>{formatResourceType(resource.resourceType)} - {formatDate(resource.createdAt)}</Text>
         </View>
         {action}
         {onSpeak ? (
           <Pressable onPress={onSpeak} style={styles.miniIconButton}>
-            <Volume2 size={15} color={colors.tealDark} />
+            <Volume2 size={15} color={colors.brandDeep} />
           </Pressable>
         ) : null}
       </View>
-      <Text style={styles.resourceBody}>{resourcePreview(resource)}</Text>
+      <Text style={styles.resourceBody} numberOfLines={4}>{resourcePreview(resource)}</Text>
     </View>
   );
 }
@@ -1402,7 +1402,7 @@ function PanelTitle({ icon, title, action }: { icon: ReactNode; title: string; a
   return (
     <View style={styles.panelTitleRow}>
       <View style={styles.panelTitleIcon}>{icon}</View>
-      <Text style={styles.panelTitle}>{title}</Text>
+      <Text style={styles.panelTitle} numberOfLines={1}>{title}</Text>
       {action}
     </View>
   );
@@ -1415,7 +1415,7 @@ function StatBox({ icon, label, value }: { icon: ReactNode; label: string; value
 function RefreshButton({ loading, onPress }: { loading: boolean; onPress: () => void }) {
   return (
     <Pressable onPress={onPress} style={styles.refreshButton}>
-      {loading ? <ActivityIndicator color={colors.tealDark} /> : <RefreshCcw size={17} color={colors.tealDark} />}
+      {loading ? <ActivityIndicator color={colors.brandDeep} /> : <RefreshCcw size={17} color={colors.brandDeep} />}
     </Pressable>
   );
 }
@@ -1423,8 +1423,8 @@ function RefreshButton({ loading, onPress }: { loading: boolean; onPress: () => 
 function UtilityButton({ label, icon, onPress, light }: { label: string; icon: ReactNode; onPress: () => void; light?: boolean }) {
   return (
     <Pressable onPress={onPress} style={[styles.utilityButton, light && styles.utilityButtonLight]}>
-      {icon}
-      <Text style={[styles.utilityText, light && styles.utilityTextLight]}>{label}</Text>
+      <View style={[styles.utilityIcon, light && styles.utilityIconLight]}>{icon}</View>
+      <Text style={[styles.utilityText, light && styles.utilityTextLight]} numberOfLines={1}>{label}</Text>
     </Pressable>
   );
 }
@@ -1444,8 +1444,8 @@ function PrimaryAction({
 }) {
   return (
     <Pressable disabled={loading || disabled} onPress={onPress} style={[styles.primaryButton, (loading || disabled) && styles.buttonDisabled]}>
-      {loading ? <ActivityIndicator color="#ffffff" /> : icon}
-      <Text style={styles.primaryButtonText}>{label}</Text>
+      {loading ? <ActivityIndicator color="#ffffff" /> : <View style={styles.primaryButtonIcon}>{icon}</View>}
+      <Text style={styles.primaryButtonText} numberOfLines={1}>{label}</Text>
     </Pressable>
   );
 }
@@ -1454,8 +1454,8 @@ function EmptyPanel({ icon, title, body }: { icon: ReactNode; title: string; bod
   return (
     <View style={styles.emptyPanel}>
       {icon}
-      <Text style={styles.emptyTitle}>{title}</Text>
-      <Text style={styles.emptyMeta}>{body}</Text>
+      <Text style={styles.emptyTitle} numberOfLines={2}>{title}</Text>
+      <Text style={styles.emptyMeta} numberOfLines={3}>{body}</Text>
     </View>
   );
 }
@@ -1579,16 +1579,16 @@ function formatDuration(milliseconds: number | null | undefined) {
 
 const styles = StyleSheet.create({
   screen: {
-    gap: 8,
+    gap: 12,
   },
   hero: {
-    minHeight: 96,
-    borderRadius: 16,
-    padding: 10,
-    gap: 8,
-    backgroundColor: colors.night,
+    minHeight: 126,
+    borderRadius: 8,
+    padding: 14,
+    gap: 12,
+    backgroundColor: colors.brandDeep,
     borderWidth: 1,
-    borderColor: 'rgba(25, 209, 163, 0.2)',
+    borderColor: 'rgba(99, 230, 255, 0.22)',
   },
   heroTop: {
     flexDirection: 'row',
@@ -1596,14 +1596,14 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   backButton: {
-    width: 34,
-    height: 34,
-    borderRadius: 12,
+    width: 40,
+    height: 40,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.nightSoft,
+    backgroundColor: '#0f172a',
     borderWidth: 1,
-    borderColor: '#3d4738',
+    borderColor: 'rgba(99, 230, 255, 0.22)',
   },
   flexText: {
     flex: 1,
@@ -1612,12 +1612,12 @@ const styles = StyleSheet.create({
   heroPill: {
     alignSelf: 'flex-start',
     minHeight: 22,
-    borderRadius: 11,
+    borderRadius: 8,
     paddingHorizontal: 8,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 7,
-    backgroundColor: colors.gold,
+    backgroundColor: colors.mint,
   },
   heroPillText: {
     color: colors.ink,
@@ -1626,12 +1626,12 @@ const styles = StyleSheet.create({
   },
   heroTitle: {
     color: '#ffffff',
-    fontSize: 19,
-    lineHeight: 23,
-    fontWeight: '800',
+    fontSize: 26,
+    lineHeight: 32,
+    fontWeight: '900',
   },
   heroSlug: {
-    color: '#f6d979',
+    color: colors.brandGlow,
     fontSize: 12,
     lineHeight: 16,
     fontWeight: '600',
@@ -1639,15 +1639,15 @@ const styles = StyleSheet.create({
   heroAiButton: {
     minWidth: 48,
     height: 34,
-    borderRadius: 12,
+    borderRadius: 8,
     paddingHorizontal: 10,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    backgroundColor: colors.brandDeep,
+    backgroundColor: colors.brand,
     borderWidth: 1,
-    borderColor: '#0ef4b4',
+    borderColor: '#6b8cff',
   },
   heroAiText: {
     color: '#ffffff',
@@ -1661,7 +1661,7 @@ const styles = StyleSheet.create({
   },
   inviteStrip: {
     minHeight: 38,
-    borderRadius: 13,
+    borderRadius: 8,
     paddingHorizontal: 10,
     flexDirection: 'row',
     alignItems: 'center',
@@ -1689,7 +1689,7 @@ const styles = StyleSheet.create({
   copyButton: {
     width: 31,
     height: 31,
-    borderRadius: 12,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#ffffff',
@@ -1707,7 +1707,7 @@ const styles = StyleSheet.create({
   tabButton: {
     minWidth: 78,
     minHeight: 34,
-    borderRadius: 12,
+    borderRadius: 8,
     paddingHorizontal: 8,
     flexDirection: 'row',
     alignItems: 'center',
@@ -1718,14 +1718,21 @@ const styles = StyleSheet.create({
     backgroundColor: colors.brandDeep,
   },
   tabIcon: {
-    width: 21,
+    width: 26,
+    height: 26,
+    borderRadius: 7,
     alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.softBlue,
+    borderWidth: 1,
+    borderColor: '#c7d7ff',
   },
   tabIconActive: {
-    opacity: 1,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderColor: 'rgba(255,255,255,0.22)',
   },
   tabText: {
-    color: colors.tealDark,
+    color: colors.brandDeep,
     fontSize: 11,
     fontWeight: '700',
   },
@@ -1733,12 +1740,12 @@ const styles = StyleSheet.create({
     color: '#ffffff',
   },
   section: {
-    borderRadius: 14,
-    padding: 9,
-    gap: 8,
+    borderRadius: 8,
+    padding: 12,
+    gap: 10,
     backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: colors.line,
+    borderColor: '#dfe6f0',
   },
   twoColumn: {
     flexDirection: 'row',
@@ -1755,10 +1762,10 @@ const styles = StyleSheet.create({
   panelTitleIcon: {
     width: 34,
     height: 34,
-    borderRadius: 12,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.softTeal,
+    backgroundColor: colors.softBlue,
   },
   panelTitle: {
     flex: 1,
@@ -1770,10 +1777,10 @@ const styles = StyleSheet.create({
   refreshButton: {
     width: 34,
     height: 34,
-    borderRadius: 12,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.softTeal,
+    backgroundColor: colors.softBlue,
   },
   utilityRow: {
     flexDirection: 'row',
@@ -1782,18 +1789,31 @@ const styles = StyleSheet.create({
   },
   utilityButton: {
     minHeight: 32,
-    borderRadius: 12,
+    borderRadius: 8,
     paddingHorizontal: 9,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 7,
-    backgroundColor: colors.brandDeep,
+    backgroundColor: colors.brand,
+  },
+  utilityIcon: {
+    width: 24,
+    height: 24,
+    borderRadius: 7,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.14)',
+  },
+  utilityIconLight: {
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#dce5f2',
   },
   utilityButtonLight: {
-    backgroundColor: colors.softTeal,
+    backgroundColor: colors.softBlue,
     borderWidth: 1,
-    borderColor: '#d4e8df',
+    borderColor: '#c7d7ff',
   },
   utilityText: {
     color: '#ffffff',
@@ -1810,15 +1830,15 @@ const styles = StyleSheet.create({
   messageBubble: {
     maxWidth: '88%',
     alignSelf: 'flex-start',
-    borderRadius: 14,
+    borderRadius: 8,
     paddingHorizontal: 11,
     paddingVertical: 8,
     gap: 4,
-    backgroundColor: colors.softTeal,
+    backgroundColor: colors.softBlue,
   },
   messageBubbleMine: {
     alignSelf: 'flex-end',
-    backgroundColor: colors.tealDark,
+    backgroundColor: colors.brand,
   },
   messageBody: {
     color: colors.ink,
@@ -1835,29 +1855,29 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   messageTimeMine: {
-    color: '#dce7e1',
+    color: '#d8e0ef',
   },
   emptyThread: {
     minHeight: 86,
-    borderRadius: 14,
+    borderRadius: 10,
     padding: 10,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: '#f8fbf8',
+    backgroundColor: '#f8fafc',
     borderWidth: 1,
-    borderColor: colors.line,
+    borderColor: '#dfe6f0',
   },
   composer: {
     minHeight: 44,
-    borderRadius: 13,
+    borderRadius: 10,
     padding: 6,
     flexDirection: 'row',
     alignItems: 'flex-end',
     gap: 8,
-    backgroundColor: '#f8fbf8',
+    backgroundColor: '#f8fafc',
     borderWidth: 1,
-    borderColor: colors.line,
+    borderColor: '#dfe6f0',
   },
   composerInput: {
     flex: 1,
@@ -1871,19 +1891,19 @@ const styles = StyleSheet.create({
   sendButton: {
     width: 38,
     height: 38,
-    borderRadius: 14,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.tealDark,
+    backgroundColor: colors.brand,
   },
   aiActionBand: {
-    borderRadius: 14,
-    padding: 10,
+    borderRadius: 10,
+    padding: 12,
     flexDirection: 'row',
     flexWrap: 'wrap',
     alignItems: 'center',
     gap: 10,
-    backgroundColor: colors.night,
+    backgroundColor: colors.brandDeep,
   },
   bandTitle: {
     color: '#ffffff',
@@ -1892,7 +1912,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   bandMeta: {
-    color: '#dce7e1',
+    color: '#d8e0ef',
     fontSize: 12,
     lineHeight: 18,
     fontWeight: '700',
@@ -1914,11 +1934,11 @@ const styles = StyleSheet.create({
   },
   aiPackBadge: {
     overflow: 'hidden',
-    borderRadius: 13,
+    borderRadius: 8,
     paddingHorizontal: 9,
     paddingVertical: 5,
     color: '#ffffff',
-    backgroundColor: colors.tealDark,
+    backgroundColor: colors.brand,
     fontSize: 10,
     fontWeight: '700',
   },
@@ -1938,20 +1958,20 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   aiPoint: {
-    borderRadius: 14,
+    borderRadius: 8,
     padding: 9,
     flexDirection: 'row',
     gap: 8,
-    backgroundColor: colors.softTeal,
+    backgroundColor: colors.softBlue,
   },
   aiPointNumber: {
     width: 22,
     height: 22,
-    borderRadius: 12,
+    borderRadius: 8,
     overflow: 'hidden',
     textAlign: 'center',
     color: '#ffffff',
-    backgroundColor: colors.tealDark,
+    backgroundColor: colors.brand,
     fontSize: 12,
     lineHeight: 20,
     fontWeight: '700',
@@ -1964,8 +1984,8 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   quizCard: {
-    borderRadius: 14,
-    padding: 9,
+    borderRadius: 10,
+    padding: 11,
     gap: 5,
     backgroundColor: colors.softGold,
   },
@@ -1982,7 +2002,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   quizAnswer: {
-    color: colors.tealDark,
+    color: colors.brandDeep,
     fontSize: 12,
     lineHeight: 17,
     fontWeight: '700',
@@ -1995,7 +2015,7 @@ const styles = StyleSheet.create({
   flashcard: {
     minWidth: 138,
     flex: 1,
-    borderRadius: 14,
+    borderRadius: 10,
     padding: 10,
     gap: 5,
     backgroundColor: colors.softBlue,
@@ -2020,12 +2040,12 @@ const styles = StyleSheet.create({
   },
   input: {
     minHeight: 38,
-    borderRadius: 12,
+    borderRadius: 8,
     paddingHorizontal: 10,
     color: colors.ink,
-    backgroundColor: '#f8fbf8',
+    backgroundColor: '#f8fafc',
     borderWidth: 1,
-    borderColor: colors.line,
+    borderColor: '#dfe6f0',
     fontSize: 14,
     fontWeight: '600',
   },
@@ -2047,7 +2067,7 @@ const styles = StyleSheet.create({
   },
   audioStatus: {
     minHeight: 44,
-    borderRadius: 14,
+    borderRadius: 10,
     padding: 9,
     flexDirection: 'row',
     alignItems: 'center',
@@ -2057,10 +2077,10 @@ const styles = StyleSheet.create({
   audioStatusIcon: {
     width: 34,
     height: 34,
-    borderRadius: 12,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.blue,
+    backgroundColor: colors.brand,
   },
   audioStatusTitle: {
     color: colors.ink,
@@ -2083,16 +2103,16 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   livePanel: {
-    borderRadius: 14,
+    borderRadius: 8,
     padding: 10,
     gap: 8,
     alignItems: 'center',
-    backgroundColor: colors.night,
+    backgroundColor: colors.brandDeep,
   },
   livePulse: {
     width: 50,
     height: 48,
-    borderRadius: 17,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.coral,
@@ -2107,7 +2127,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   liveMeta: {
-    color: '#dce7e1',
+    color: '#d8e0ef',
     fontSize: 13,
     lineHeight: 19,
     fontWeight: '700',
@@ -2121,22 +2141,22 @@ const styles = StyleSheet.create({
     minWidth: 190,
     flex: 1,
     minHeight: 44,
-    borderRadius: 13,
+    borderRadius: 8,
     padding: 8,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    backgroundColor: colors.softTeal,
+    backgroundColor: colors.softBlue,
     borderWidth: 1,
-    borderColor: '#d4e8df',
+    borderColor: '#c7d7ff',
   },
   memberIcon: {
     width: 36,
     height: 36,
-    borderRadius: 13,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.tealDark,
+    backgroundColor: colors.brandDeep,
   },
   memberTitle: {
     color: colors.ink,
@@ -2151,7 +2171,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   resourceCard: {
-    borderRadius: 13,
+    borderRadius: 8,
     padding: 9,
     gap: 6,
     backgroundColor: colors.softGold,
@@ -2165,10 +2185,10 @@ const styles = StyleSheet.create({
   resourceIcon: {
     width: 34,
     height: 34,
-    borderRadius: 12,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.tealDark,
+    backgroundColor: colors.brandDeep,
   },
   resourceTitle: {
     color: colors.ink,
@@ -2191,14 +2211,14 @@ const styles = StyleSheet.create({
   miniIconButton: {
     width: 31,
     height: 31,
-    borderRadius: 12,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#ffffff',
   },
   miniActionButton: {
     minHeight: 31,
-    borderRadius: 12,
+    borderRadius: 8,
     paddingHorizontal: 9,
     flexDirection: 'row',
     alignItems: 'center',
@@ -2207,13 +2227,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
   },
   miniActionText: {
-    color: colors.tealDark,
+    color: colors.brandDeep,
     fontSize: 11,
     fontWeight: '700',
   },
   primaryButton: {
     minHeight: 36,
-    borderRadius: 12,
+    borderRadius: 8,
     paddingHorizontal: 10,
     flexDirection: 'row',
     alignItems: 'center',
@@ -2226,23 +2246,31 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
   },
+  primaryButtonIcon: {
+    width: 26,
+    height: 26,
+    borderRadius: 7,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.14)',
+  },
   buttonDisabled: {
     opacity: 0.55,
   },
   emptyPanel: {
     minHeight: 82,
-    borderRadius: 15,
+    borderRadius: 8,
     padding: 10,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: '#f8fbf8',
+    backgroundColor: '#f8fafc',
     borderWidth: 1,
     borderColor: colors.line,
   },
   centerPanel: {
     minHeight: 132,
-    borderRadius: 14,
+    borderRadius: 8,
     padding: 10,
     alignItems: 'center',
     justifyContent: 'center',
@@ -2269,14 +2297,14 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     padding: 12,
-    backgroundColor: 'rgba(7, 12, 10, 0.6)',
+    backgroundColor: 'rgba(11, 13, 18, 0.62)',
   },
   modalSheet: {
     width: '100%',
     maxWidth: 860,
     maxHeight: '88%',
     alignSelf: 'center',
-    borderRadius: 16,
+    borderRadius: 10,
     padding: 10,
     gap: 9,
     backgroundColor: colors.surface,
@@ -2292,7 +2320,7 @@ const styles = StyleSheet.create({
   modalIcon: {
     width: 36,
     height: 36,
-    borderRadius: 13,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.brandDeep,
@@ -2312,17 +2340,17 @@ const styles = StyleSheet.create({
   closeButton: {
     width: 38,
     height: 38,
-    borderRadius: 14,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.softTeal,
+    backgroundColor: colors.softBlue,
   },
   modalScroll: {
     gap: 10,
     paddingBottom: 6,
   },
   noticeText: {
-    color: colors.tealDark,
+    color: colors.brandDeep,
     fontSize: 13,
     lineHeight: 19,
     fontWeight: '600',

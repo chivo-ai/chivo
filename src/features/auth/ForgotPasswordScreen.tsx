@@ -1,7 +1,7 @@
 import { Link } from 'expo-router';
 import { useState } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { LockKeyhole, Sparkles } from 'lucide-react-native';
+import { ArrowRight, LogIn, LockKeyhole, Mail, Sparkles } from 'lucide-react-native';
 
 import { hasSupabaseConfig } from '../../lib/config';
 import { sendPasswordReset } from '../../services/auth';
@@ -37,20 +37,25 @@ export function ForgotPasswordScreen() {
               <Sparkles size={24} color="#ffffff" strokeWidth={2.5} />
             </View>
             <View style={styles.flexText}>
-              <Text style={styles.brandName}>Chivo AI</Text>
-              <Text style={styles.brandMeta}>Reset your account password.</Text>
+              <Text style={styles.brandName} numberOfLines={1}>Chivo AI</Text>
+              <Text style={styles.brandMeta} numberOfLines={1}>Reset your account password.</Text>
             </View>
           </View>
 
           <View style={styles.card}>
             <View style={styles.iconBox}>
-              <LockKeyhole size={26} color={colors.tealDark} />
+              <LockKeyhole size={26} color={colors.brandDeep} />
             </View>
-            <Text style={styles.title}>Forgot password</Text>
-            <Text style={styles.body}>Enter your email and Chivo AI will send a reset link.</Text>
+            <Text style={styles.title} numberOfLines={1}>Forgot password</Text>
+            <Text style={styles.body} numberOfLines={2}>Enter your email and Chivo AI will send a reset link.</Text>
 
             <View style={styles.field}>
-              <Text style={styles.fieldLabel}>Email</Text>
+              <View style={styles.fieldLabelRow}>
+                <View style={styles.fieldIcon}>
+                  <Mail size={15} color={colors.brandDeep} />
+                </View>
+                <Text style={styles.fieldLabel} numberOfLines={1}>Email</Text>
+              </View>
               <TextInput
                 value={email}
                 onChangeText={setEmail}
@@ -71,12 +76,22 @@ export function ForgotPasswordScreen() {
               onPress={submit}
               style={[styles.submitButton, (!hasSupabaseConfig || loading) && styles.submitButtonDisabled]}
             >
-              {loading ? <ActivityIndicator color="#ffffff" /> : <Text style={styles.submitButtonText}>Send reset email</Text>}
+              {loading ? (
+                <ActivityIndicator color="#ffffff" />
+              ) : (
+                <>
+                  <Text style={styles.submitButtonText} numberOfLines={1}>Send reset email</Text>
+                  <View style={styles.submitButtonIcon}>
+                    <ArrowRight size={16} color="#ffffff" />
+                  </View>
+                </>
+              )}
             </Pressable>
 
             <Link href="/(auth)/login" asChild>
               <Pressable style={styles.secondaryButton}>
-                <Text style={styles.secondaryButtonText}>Back to login</Text>
+                <LogIn size={15} color={colors.brandDeep} />
+                <Text style={styles.secondaryButtonText} numberOfLines={1}>Back to login</Text>
               </Pressable>
             </Link>
           </View>
@@ -89,7 +104,7 @@ export function ForgotPasswordScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: colors.canvas,
+    backgroundColor: colors.brandDeep,
   },
   scrollContent: {
     flexGrow: 1,
@@ -100,7 +115,7 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 720,
     alignSelf: 'center',
-    gap: 14,
+    gap: 18,
   },
   brandRow: {
     flexDirection: 'row',
@@ -110,46 +125,46 @@ const styles = StyleSheet.create({
   brandMark: {
     width: 48,
     height: 48,
-    borderRadius: 16,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.tealDark,
+    backgroundColor: colors.brand,
   },
   flexText: {
     flex: 1,
   },
   brandName: {
-    color: colors.ink,
-    fontSize: 21,
-    lineHeight: 26,
-    fontWeight: '700',
+    color: '#ffffff',
+    fontSize: 24,
+    lineHeight: 30,
+    fontWeight: '900',
   },
   brandMeta: {
-    color: colors.muted,
+    color: '#a8b3c7',
     fontSize: 13,
     lineHeight: 18,
   },
   card: {
-    borderRadius: 18,
-    padding: 16,
-    gap: 12,
+    borderRadius: 8,
+    padding: 18,
+    gap: 14,
     backgroundColor: colors.paper,
     borderWidth: 1,
-    borderColor: colors.line,
+    borderColor: '#dfe6f0',
   },
   iconBox: {
     width: 54,
     height: 54,
-    borderRadius: 15,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.softTeal,
+    backgroundColor: colors.softBlue,
   },
   title: {
     color: colors.ink,
-    fontSize: 21,
-    lineHeight: 26,
-    fontWeight: '700',
+    fontSize: 24,
+    lineHeight: 30,
+    fontWeight: '900',
   },
   body: {
     color: '#33413b',
@@ -159,27 +174,46 @@ const styles = StyleSheet.create({
   field: {
     gap: 7,
   },
+  fieldLabelRow: {
+    minHeight: 28,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+  },
+  fieldIcon: {
+    width: 24,
+    height: 24,
+    borderRadius: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.softBlue,
+    borderWidth: 1,
+    borderColor: '#c7d7ff',
+  },
   fieldLabel: {
+    flex: 1,
     color: colors.ink,
     fontSize: 13,
     fontWeight: '700',
   },
   input: {
     minHeight: 48,
-    borderRadius: 14,
+    borderRadius: 8,
     paddingHorizontal: 12,
     color: colors.ink,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#f8fafc',
     borderWidth: 1,
-    borderColor: colors.line,
+    borderColor: '#dfe6f0',
     fontSize: 15,
   },
   submitButton: {
     minHeight: 48,
-    borderRadius: 15,
+    borderRadius: 8,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.tealDark,
+    gap: 8,
+    backgroundColor: colors.brand,
   },
   submitButtonDisabled: {
     opacity: 0.55,
@@ -187,17 +221,27 @@ const styles = StyleSheet.create({
   submitButtonText: {
     color: '#ffffff',
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: '900',
+  },
+  submitButtonIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.14)',
   },
   secondaryButton: {
     minHeight: 42,
-    borderRadius: 14,
+    borderRadius: 8,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.softTeal,
+    gap: 7,
+    backgroundColor: colors.softBlue,
   },
   secondaryButtonText: {
-    color: colors.tealDark,
+    color: colors.brandDeep,
     fontSize: 13,
     fontWeight: '700',
   },
@@ -208,7 +252,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   successText: {
-    color: colors.tealDark,
+    color: colors.brandDeep,
     fontSize: 13,
     lineHeight: 19,
     fontWeight: '700',

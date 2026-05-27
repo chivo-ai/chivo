@@ -46,7 +46,6 @@ export function AppNavigation({
   children,
 }: AppNavigationProps) {
   const { width } = useWindowDimensions();
-  const [expanded, setExpanded] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [branding, setBranding] = useState<PlatformBranding>({
     name: 'Chivo AI',
@@ -58,6 +57,7 @@ export function AppNavigation({
   const primaryMobileItems = visibleItems.slice(0, 4);
   const hasOverflowItems = visibleItems.length > primaryMobileItems.length;
   const isWebShell = Platform.OS === 'web' && width >= WEB_BREAKPOINT;
+  const expanded = isWebShell;
   const activeItem = visibleItems.find((item) => item.id === activeId);
 
   useEffect(() => {
@@ -89,11 +89,7 @@ export function AppNavigation({
     return (
       <View style={styles.webShell}>
         <View style={styles.sidebarSlot}>
-          <Pressable
-            onHoverIn={() => setExpanded(true)}
-            onHoverOut={() => setExpanded(false)}
-            style={[styles.sidebarSurface, expanded && styles.sidebarSurfaceExpanded]}
-          >
+          <View style={[styles.sidebarSurface, expanded && styles.sidebarSurfaceExpanded]}>
             <View style={styles.sidebarTop}>
               <View style={styles.sidebarBrand}>
                 <View style={styles.brandBadge}>
@@ -154,7 +150,7 @@ export function AppNavigation({
                           <Text style={[styles.navLabel, isActive && styles.navLabelActive]} numberOfLines={1}>
                             {item.label}
                           </Text>
-                          {item.description ? <Text style={styles.navDescription}>{item.description}</Text> : null}
+                          {item.description ? <Text style={styles.navDescription} numberOfLines={1}>{item.description}</Text> : null}
                         </View>
                       ) : null}
                     </Pressable>
@@ -166,7 +162,7 @@ export function AppNavigation({
             <View style={styles.sidebarFooter}>
               {expanded ? (
                 <View style={styles.footerCard}>
-                  <Text style={styles.footerKicker}>Mode</Text>
+                  <Text style={styles.footerKicker}>Current mode</Text>
                   <Text style={styles.footerTitle} numberOfLines={1}>
                     {activeItem?.group ?? 'Workspace'}
                   </Text>
@@ -175,7 +171,7 @@ export function AppNavigation({
                 <View style={styles.footerDot} />
               )}
             </View>
-          </Pressable>
+          </View>
         </View>
 
         <View style={styles.contentPane}>{children}</View>
@@ -191,22 +187,28 @@ export function AppNavigation({
       </TopBarProvider>
 
       <View style={styles.bottomNav}>
-        {primaryMobileItems.map((item) => (
-          <Pressable
-            key={item.id}
-            onPress={() => select(item.id)}
-            style={[styles.bottomItem, activeId === item.id && styles.bottomItemActive]}
-          >
-            {item.icon}
-            <Text style={[styles.bottomLabel, activeId === item.id && styles.bottomLabelActive]} numberOfLines={1}>
-              {item.label}
-            </Text>
-          </Pressable>
-        ))}
+        {primaryMobileItems.map((item) => {
+          const isActive = activeId === item.id;
+
+          return (
+            <Pressable
+              key={item.id}
+              onPress={() => select(item.id)}
+              style={[styles.bottomItem, isActive && styles.bottomItemActive]}
+            >
+              <View style={[styles.bottomIcon, isActive && styles.bottomIconActive]}>{item.icon}</View>
+              <Text style={[styles.bottomLabel, isActive && styles.bottomLabelActive]} numberOfLines={1}>
+                {item.label}
+              </Text>
+            </Pressable>
+          );
+        })}
         {hasOverflowItems ? (
           <Pressable onPress={() => setMenuOpen(true)} style={styles.bottomItem}>
-            <Grid3X3 size={20} color="#dce7e1" />
-            <Text style={styles.bottomLabel}>More</Text>
+            <View style={styles.bottomIcon}>
+              <Grid3X3 size={20} color="#d8e0ef" />
+            </View>
+            <Text style={styles.bottomLabel} numberOfLines={1}>More</Text>
           </Pressable>
         ) : null}
       </View>
@@ -215,12 +217,12 @@ export function AppNavigation({
         <Pressable style={styles.modalBackdrop} onPress={() => setMenuOpen(false)}>
           <Pressable style={styles.menuSheet}>
             <View style={styles.menuHeader}>
-              <View>
-                <Text style={styles.menuTitle}>{title}</Text>
-                <Text style={styles.menuSubtitle}>{subtitle}</Text>
+              <View style={styles.menuHeaderCopy}>
+                <Text style={styles.menuTitle} numberOfLines={1}>{title}</Text>
+                <Text style={styles.menuSubtitle} numberOfLines={1}>{subtitle}</Text>
               </View>
               <Pressable onPress={() => setMenuOpen(false)} style={styles.menuClose}>
-                <X size={18} color={colors.tealDark} />
+                <X size={18} color={colors.brandDeep} />
               </Pressable>
             </View>
 
@@ -232,8 +234,8 @@ export function AppNavigation({
               >
                 <View style={styles.navIcon}>{item.icon}</View>
                 <View style={styles.navCopy}>
-                  <Text style={[styles.menuItemLabel, activeId === item.id && styles.navLabelActive]}>{item.label}</Text>
-                  {item.description ? <Text style={styles.navDescription}>{item.description}</Text> : null}
+                  <Text style={[styles.menuItemLabel, activeId === item.id && styles.navLabelActive]} numberOfLines={1}>{item.label}</Text>
+                  {item.description ? <Text style={styles.navDescription} numberOfLines={1}>{item.description}</Text> : null}
                 </View>
               </Pressable>
             ))}
@@ -244,7 +246,7 @@ export function AppNavigation({
   );
 }
 
-export function MenuIcon({ color = colors.tealDark }: { color?: string }) {
+export function MenuIcon({ color = colors.brandDeep }: { color?: string }) {
   return <Menu size={20} color={color} />;
 }
 
@@ -252,7 +254,7 @@ const styles = StyleSheet.create({
   webShell: {
     flex: 1,
     flexDirection: 'row',
-    backgroundColor: colors.surfaceSoft,
+    backgroundColor: colors.canvas,
   },
   sidebarSlot: {
     width: chivoTheme.sidebarWidth,
@@ -265,39 +267,39 @@ const styles = StyleSheet.create({
     top: 0,
     bottom: 0,
     width: chivoTheme.sidebarWidth,
-    paddingHorizontal: 8,
-    paddingTop: 10,
-    paddingBottom: 10,
-    gap: 10,
-    backgroundColor: colors.night,
+    paddingHorizontal: 14,
+    paddingTop: 14,
+    paddingBottom: 14,
+    gap: 14,
+    backgroundColor: colors.brandDeep,
     borderRightWidth: 1,
-    borderRightColor: 'rgba(25, 209, 163, 0.18)',
+    borderRightColor: 'rgba(99, 230, 255, 0.22)',
     overflow: 'hidden',
   },
   sidebarSurfaceExpanded: {
     width: chivoTheme.sidebarExpandedWidth,
-    shadowColor: '#000000',
-    shadowOpacity: 0.2,
-    shadowRadius: 24,
-    shadowOffset: { width: 10, height: 0 },
+    shadowColor: '#111318',
+    shadowOpacity: 0.16,
+    shadowRadius: 28,
+    shadowOffset: { width: 12, height: 0 },
   },
   sidebarTop: {
-    gap: 8,
+    gap: 12,
   },
   sidebarBrand: {
-    minHeight: 40,
+    minHeight: 44,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 9,
+    gap: 10,
   },
   brandBadge: {
-    width: 40,
-    height: 40,
-    borderRadius: 14,
+    width: 42,
+    height: 42,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
-    backgroundColor: colors.nightSoft,
+    backgroundColor: '#0f172a',
     borderWidth: 1,
     borderColor: colors.brandGlow,
   },
@@ -311,27 +313,29 @@ const styles = StyleSheet.create({
   },
   sidebarTitle: {
     color: '#ffffff',
-    fontSize: 15,
-    lineHeight: 17,
+    fontSize: 16,
+    lineHeight: 19,
     fontWeight: '800',
   },
   sidebarSubtitle: {
-    color: '#bdd3ca',
+    color: '#a8b3c7',
     fontSize: 11,
     lineHeight: 15,
     fontWeight: '700',
   },
   workspaceCard: {
-    minHeight: 54,
-    borderRadius: 14,
-    padding: 10,
-    gap: 4,
-    backgroundColor: colors.nightSoft,
+    minHeight: 68,
+    borderRadius: 8,
+    padding: 12,
+    gap: 5,
+    backgroundColor: '#0f172a',
     borderWidth: 1,
-    borderColor: 'rgba(18, 210, 162, 0.24)',
+    borderColor: 'rgba(99, 230, 255, 0.22)',
+    borderLeftWidth: 4,
+    borderLeftColor: colors.mint,
   },
   workspaceKicker: {
-    color: colors.gold,
+    color: colors.brandGlow,
     fontSize: 10,
     lineHeight: 14,
     fontWeight: '700',
@@ -339,32 +343,32 @@ const styles = StyleSheet.create({
   },
   workspaceTitle: {
     color: '#ffffff',
-    fontSize: 14,
-    lineHeight: 17,
+    fontSize: 15,
+    lineHeight: 19,
     fontWeight: '800',
   },
   workspaceMeta: {
-    color: '#b9c8c0',
+    color: '#a8b3c7',
     fontSize: 11,
     lineHeight: 15,
     fontWeight: '700',
   },
   sidebarItems: {
-    gap: 5,
-    paddingBottom: 8,
+    gap: 6,
+    paddingBottom: 10,
   },
   sidebarScroller: {
     flex: 1,
-    marginHorizontal: -4,
-    paddingHorizontal: 4,
+    marginHorizontal: -6,
+    paddingHorizontal: 6,
   },
   groupLabel: {
-    color: colors.gold,
+    color: colors.brandGlow,
     fontSize: 10,
     fontWeight: '700',
-    marginTop: 12,
-    marginBottom: 4,
-    paddingLeft: 9,
+    marginTop: 14,
+    marginBottom: 5,
+    paddingLeft: 10,
     textTransform: 'uppercase',
   },
   groupDivider: {
@@ -376,51 +380,54 @@ const styles = StyleSheet.create({
   },
   sidebarItem: {
     position: 'relative',
-    minHeight: 42,
-    borderRadius: 14,
-    paddingHorizontal: 7,
+    minHeight: 50,
+    borderRadius: 8,
+    paddingHorizontal: 8,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 9,
+    gap: 10,
     borderWidth: 1,
     borderColor: 'transparent',
   },
   sidebarItemActive: {
     backgroundColor: colors.surface,
-    borderColor: colors.brandGlow,
-    shadowColor: colors.brandGlow,
-    shadowOpacity: 0.16,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
+    borderColor: '#b8c9ff',
+    shadowColor: '#63e6ff',
+    shadowOpacity: 0.14,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 8 },
   },
   activeRail: {
     position: 'absolute',
-    left: -10,
+    left: -14,
     width: 4,
-    height: 24,
-    borderRadius: 4,
+    height: 28,
+    borderRadius: 2,
     backgroundColor: 'transparent',
   },
   activeRailOn: {
-    backgroundColor: colors.gold,
+    backgroundColor: colors.brandGlow,
   },
   navIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 12,
+    width: 36,
+    height: 36,
+    borderRadius: 7,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
   },
   navIconActive: {
-    backgroundColor: '#ffffff',
+    backgroundColor: colors.softBlue,
+    borderColor: '#c7d7ff',
   },
   navCopy: {
     flex: 1,
     minWidth: 0,
   },
   navLabel: {
-    color: '#f5fbf7',
+    color: '#f7f9ff',
     fontSize: 12,
     lineHeight: 16,
     fontWeight: '800',
@@ -429,26 +436,26 @@ const styles = StyleSheet.create({
     color: colors.ink,
   },
   navDescription: {
-    color: '#8fa29a',
+    color: '#8e9bb2',
     fontSize: 10,
     lineHeight: 13,
     fontWeight: '700',
   },
   sidebarFooter: {
-    minHeight: 36,
+    minHeight: 46,
     justifyContent: 'flex-end',
   },
   footerCard: {
-    minHeight: 44,
-    borderRadius: 14,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    minHeight: 50,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderColor: 'rgba(255, 255, 255, 0.12)',
   },
   footerKicker: {
-    color: '#8fa29a',
+    color: '#8e9bb2',
     fontSize: 10,
     lineHeight: 13,
     fontWeight: '700',
@@ -456,14 +463,14 @@ const styles = StyleSheet.create({
   },
   footerTitle: {
     color: '#ffffff',
-    fontSize: 13,
+    fontSize: 14,
     lineHeight: 18,
     fontWeight: '700',
   },
   footerDot: {
     width: 28,
     height: 28,
-    borderRadius: 14,
+    borderRadius: 8,
     alignSelf: 'center',
     backgroundColor: colors.gold,
     borderWidth: 4,
@@ -475,57 +482,74 @@ const styles = StyleSheet.create({
   },
   mobileShell: {
     flex: 1,
-    backgroundColor: colors.surfaceSoft,
+    backgroundColor: colors.canvas,
   },
   mobileContent: {
     flex: 1,
   },
   bottomNav: {
     position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    height: chivoTheme.mobileBottomNavHeight,
-    borderTopLeftRadius: 0,
-    borderTopRightRadius: 0,
-    paddingHorizontal: 4,
+    left: 10,
+    right: 10,
+    bottom: 10,
+    height: 66,
+    borderRadius: 8,
+    paddingHorizontal: 6,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: colors.night,
-    borderTopWidth: 1,
-    borderColor: 'rgba(25, 209, 163, 0.2)',
+    backgroundColor: colors.brandDeep,
+    borderWidth: 1,
+    borderColor: 'rgba(99, 230, 255, 0.24)',
+    shadowColor: '#111318',
+    shadowOpacity: 0.22,
+    shadowRadius: 22,
+    shadowOffset: { width: 0, height: 12 },
   },
   bottomItem: {
     flex: 1,
-    minHeight: 38,
-    borderRadius: 11,
+    minWidth: 0,
+    minHeight: 54,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 1,
+    gap: 2,
   },
   bottomItemActive: {
-    backgroundColor: colors.amber,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: '#c7d7ff',
+  },
+  bottomIcon: {
+    width: 30,
+    height: 30,
+    borderRadius: 7,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  bottomIconActive: {
+    backgroundColor: colors.softBlue,
   },
   bottomLabel: {
-    color: '#dce7e1',
+    color: '#dce7f7',
     fontSize: 9,
     lineHeight: 11,
     fontWeight: '800',
   },
   bottomLabelActive: {
-    color: colors.ink,
+    color: colors.brandDeep,
   },
   modalBackdrop: {
     flex: 1,
     justifyContent: 'flex-end',
-    backgroundColor: 'rgba(7, 12, 10, 0.5)',
+    backgroundColor: 'rgba(11, 13, 18, 0.58)',
   },
   menuSheet: {
-    margin: 10,
-    borderRadius: 16,
-    padding: 10,
-    gap: 8,
+    margin: 12,
+    borderRadius: 8,
+    padding: 12,
+    gap: 9,
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.line,
@@ -537,9 +561,13 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 6,
   },
+  menuHeaderCopy: {
+    flex: 1,
+    minWidth: 0,
+  },
   menuTitle: {
     color: colors.ink,
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: '800',
   },
   menuSubtitle: {
@@ -547,26 +575,27 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   menuClose: {
-    width: 34,
-    height: 34,
-    borderRadius: 12,
+    width: 36,
+    height: 36,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.softTeal,
+    backgroundColor: colors.softBlue,
   },
   menuItem: {
-    minHeight: 46,
-    borderRadius: 14,
-    paddingHorizontal: 10,
+    minHeight: 50,
+    borderRadius: 8,
+    paddingHorizontal: 12,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    backgroundColor: '#f7faf7',
+    backgroundColor: '#f8fafc',
+    borderWidth: 1,
+    borderColor: '#e5ebf5',
   },
   menuItemActive: {
-    backgroundColor: colors.softTeal,
-    borderWidth: 1,
-    borderColor: '#d4e8df',
+    backgroundColor: colors.softBlue,
+    borderColor: '#b8c9ff',
   },
   menuItemLabel: {
     color: colors.ink,

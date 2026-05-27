@@ -56,8 +56,8 @@ export function CreateSchoolScreen({
       <Card>
         {creationDisabledReason ? (
           <View style={styles.noticeCard}>
-            <Text style={styles.noticeTitle}>School creation is paused</Text>
-            <Text style={styles.noticeBody}>{creationDisabledReason}</Text>
+            <Text style={styles.noticeTitle} numberOfLines={1}>School creation is paused</Text>
+            <Text style={styles.noticeBody} numberOfLines={2}>{creationDisabledReason}</Text>
           </View>
         ) : null}
         <Field label="School name" value={values.schoolName} onChangeText={onChange.setSchoolName} placeholder="BestCity Academy" />
@@ -73,8 +73,8 @@ export function CreateSchoolScreen({
         <View style={styles.identityPreview}>
           <IdentityMark imageUrl={values.schoolLogoUrl} stickerKey={values.schoolStickerKey} label={values.schoolName || 'School'} size="large" />
           <View style={styles.flexText}>
-            <Text style={styles.recordTitle}>{values.schoolName || 'School identity'}</Text>
-            <Text style={styles.recordMeta}>Add a logo, banner, or visual marker for the school.</Text>
+            <Text style={styles.recordTitle} numberOfLines={1}>{values.schoolName || 'School identity'}</Text>
+            <Text style={styles.recordMeta} numberOfLines={2}>Add a logo, banner, or visual marker for the school.</Text>
           </View>
         </View>
         <UploadPair
@@ -110,14 +110,14 @@ const styles = StyleSheet.create({
   },
   identityPreview: {
     minHeight: 77,
-    borderRadius: 15,
+    borderRadius: 8,
     padding: 14,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
     backgroundColor: '#ffffff',
     borderWidth: 1,
-    borderColor: colors.line,
+    borderColor: '#dfe6f0',
   },
   flexText: {
     flex: 1,
@@ -127,7 +127,7 @@ const styles = StyleSheet.create({
     color: colors.ink,
     fontSize: 15,
     lineHeight: 19,
-    fontWeight: '700',
+    fontWeight: '900',
   },
   recordMeta: {
     color: colors.muted,
@@ -136,18 +136,18 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   noticeCard: {
-    borderRadius: 15,
+    borderRadius: 8,
     padding: 14,
     gap: 5,
     backgroundColor: colors.softGold,
     borderWidth: 1,
-    borderColor: '#efd27f',
+    borderColor: '#d5e892',
   },
   noticeTitle: {
     color: colors.ink,
     fontSize: 14,
     lineHeight: 18,
-    fontWeight: '700',
+    fontWeight: '900',
   },
   noticeBody: {
     color: '#4b4030',

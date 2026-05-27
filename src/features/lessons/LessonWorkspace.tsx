@@ -16,7 +16,7 @@ import {
 } from 'expo-audio';
 import { router } from 'expo-router';
 import * as Speech from 'expo-speech';
-import { ArrowLeft, BookOpen, Brain, CalendarDays, CheckCircle2, ClipboardList, Clock3, DoorOpen, Layers, Mic, MicOff, Pause, Play, Sparkles, Square, UserCheck, Volume2 } from 'lucide-react-native';
+import { ArrowLeft, ArrowRight, BookOpen, Brain, CalendarDays, CheckCircle2, ClipboardList, Clock3, DoorOpen, Layers, Mic, MicOff, Pause, Play, Sparkles, Square, UserCheck, Volume2 } from 'lucide-react-native';
 
 import { LanguagePicker, speechLocaleForLanguage } from '../../components/LanguagePicker';
 import {
@@ -833,7 +833,7 @@ export function LessonWorkspace({
 
       {!activeClass && classRouteFocus ? (
         <View style={styles.card}>
-          <ActivityIndicator color={colors.tealDark} />
+          <ActivityIndicator color={colors.brandDeep} />
           <Text style={styles.cardBody}>Opening class lessons.</Text>
         </View>
       ) : !activeClass ? (
@@ -870,7 +870,7 @@ export function LessonWorkspace({
           {!classRouteFocus ? (
             <View style={styles.roomHeader}>
               <Pressable onPress={leaveClass} style={styles.backButton}>
-                <ArrowLeft size={18} color={colors.tealDark} />
+                <ArrowLeft size={18} color={colors.brandDeep} />
                 <Text style={styles.backButtonText}>Classes</Text>
               </Pressable>
               <View style={styles.flexText}>
@@ -959,7 +959,7 @@ export function LessonWorkspace({
                 {speechNotice ? <Text style={styles.listenNotice}>{speechNotice}</Text> : null}
                 {isAudioCapture || capturedAudio ? (
                   <View style={styles.audioBox}>
-                    <Mic size={16} color={colors.tealDark} />
+                    <Mic size={16} color={colors.brandDeep} />
                     <View style={styles.flexText}>
                       <Text style={styles.audioBoxTitle}>{capturedAudio ? 'Audio saved' : 'Audio recording'}</Text>
                       <Text style={styles.audioBoxText}>{capturedAudio ? 'Ready for Chivo' : audioDurationLabel}</Text>
@@ -999,7 +999,7 @@ export function LessonWorkspace({
                   />
                 ) : (
                   <View style={styles.liveOpenPill}>
-                    <Mic size={14} color={colors.tealDark} />
+                    <Mic size={14} color={colors.brandDeep} />
                     <Text style={styles.liveOpenPillText}>Live session open</Text>
                   </View>
                 )}
@@ -1028,7 +1028,7 @@ export function LessonWorkspace({
                   }}
                   style={styles.backButton}
                 >
-                  <ArrowLeft size={18} color={colors.tealDark} />
+                  <ArrowLeft size={18} color={colors.brandDeep} />
                   <Text style={styles.backButtonText}>Lessons</Text>
                 </Pressable>
                 <View style={styles.flexText}>
@@ -1041,7 +1041,7 @@ export function LessonWorkspace({
 
               {loadingDetail ? (
                 <View style={styles.card}>
-                  <ActivityIndicator color={colors.tealDark} />
+                  <ActivityIndicator color={colors.brandDeep} />
                 </View>
               ) : detail ? (
                 <LessonDetailView
@@ -1114,7 +1114,7 @@ export function LessonWorkspace({
                   }}
                 />
                 {loading ? (
-                  <ActivityIndicator color={colors.tealDark} />
+                  <ActivityIndicator color={colors.brandDeep} />
                 ) : roomLessons.length ? (
                   <View style={styles.lessonLibraryGrid}>
                     {roomLessons.map((lesson) => (
@@ -1184,8 +1184,8 @@ function RoomSectionNav({
             onPress={() => onSelect(section.id)}
             style={[styles.roomSectionButton, active && styles.roomSectionButtonActive]}
           >
-            <Text style={[styles.roomSectionLabel, active && styles.roomSectionLabelActive]}>{section.label}</Text>
-            <Text style={[styles.roomSectionCount, active && styles.roomSectionCountActive]}>{section.count}</Text>
+            <Text style={[styles.roomSectionLabel, active && styles.roomSectionLabelActive]} numberOfLines={1}>{section.label}</Text>
+            <Text style={[styles.roomSectionCount, active && styles.roomSectionCountActive]} numberOfLines={1}>{section.count}</Text>
           </Pressable>
         );
       })}
@@ -1232,8 +1232,8 @@ function LessonFilterBar({
     <View style={styles.lessonFilters}>
       <View style={styles.filterGroup}>
         <View style={styles.filterLabelRow}>
-          <CalendarDays size={15} color={colors.tealDark} />
-          <Text style={styles.filterLabel}>Date</Text>
+          <CalendarDays size={15} color={colors.brandDeep} />
+          <Text style={styles.filterLabel} numberOfLines={1}>Date</Text>
         </View>
         <View style={styles.filterPillRow}>
           {dateOptions.map((option) => (
@@ -1242,7 +1242,7 @@ function LessonFilterBar({
               onPress={() => onDateFilterChange(option.id)}
               style={[styles.filterPill, dateFilter === option.id && styles.filterPillActive]}
             >
-              <Text style={[styles.filterPillText, dateFilter === option.id && styles.filterPillTextActive]}>{option.label}</Text>
+              <Text style={[styles.filterPillText, dateFilter === option.id && styles.filterPillTextActive]} numberOfLines={1}>{option.label}</Text>
             </Pressable>
           ))}
         </View>
@@ -1250,8 +1250,8 @@ function LessonFilterBar({
 
       <View style={styles.filterGroup}>
         <View style={styles.filterLabelRow}>
-          <Clock3 size={15} color={colors.tealDark} />
-          <Text style={styles.filterLabel}>Time</Text>
+          <Clock3 size={15} color={colors.brandDeep} />
+          <Text style={styles.filterLabel} numberOfLines={1}>Time</Text>
         </View>
         <View style={styles.filterPillRow}>
           {timeOptions.map((option) => (
@@ -1260,34 +1260,34 @@ function LessonFilterBar({
               onPress={() => onTimeFilterChange(option.id)}
               style={[styles.filterPill, timeFilter === option.id && styles.filterPillActive]}
             >
-              <Text style={[styles.filterPillText, timeFilter === option.id && styles.filterPillTextActive]}>{option.label}</Text>
+              <Text style={[styles.filterPillText, timeFilter === option.id && styles.filterPillTextActive]} numberOfLines={1}>{option.label}</Text>
             </Pressable>
           ))}
         </View>
       </View>
 
       <View style={styles.filterGroup}>
-        <Text style={styles.filterLabel}>Year</Text>
+        <Text style={styles.filterLabel} numberOfLines={1}>Year</Text>
         <View style={styles.filterPillRow}>
           <Pressable onPress={() => onYearChange('all')} style={[styles.filterPill, year === 'all' && styles.filterPillActive]}>
-            <Text style={[styles.filterPillText, year === 'all' && styles.filterPillTextActive]}>All years</Text>
+            <Text style={[styles.filterPillText, year === 'all' && styles.filterPillTextActive]} numberOfLines={1}>All years</Text>
           </Pressable>
           {years.map((item) => (
             <Pressable key={item} onPress={() => onYearChange(item)} style={[styles.filterPill, year === item && styles.filterPillActive]}>
-              <Text style={[styles.filterPillText, year === item && styles.filterPillTextActive]}>{item}</Text>
+              <Text style={[styles.filterPillText, year === item && styles.filterPillTextActive]} numberOfLines={1}>{item}</Text>
             </Pressable>
           ))}
         </View>
       </View>
 
       <View style={styles.filterGroup}>
-        <Text style={styles.filterLabel}>Order</Text>
+        <Text style={styles.filterLabel} numberOfLines={1}>Order</Text>
         <View style={styles.filterPillRow}>
           <Pressable onPress={() => onSortChange('newest')} style={[styles.filterPill, sort === 'newest' && styles.filterPillActive]}>
-            <Text style={[styles.filterPillText, sort === 'newest' && styles.filterPillTextActive]}>Newest</Text>
+            <Text style={[styles.filterPillText, sort === 'newest' && styles.filterPillTextActive]} numberOfLines={1}>Newest</Text>
           </Pressable>
           <Pressable onPress={() => onSortChange('oldest')} style={[styles.filterPill, sort === 'oldest' && styles.filterPillActive]}>
-            <Text style={[styles.filterPillText, sort === 'oldest' && styles.filterPillTextActive]}>Oldest</Text>
+            <Text style={[styles.filterPillText, sort === 'oldest' && styles.filterPillTextActive]} numberOfLines={1}>Oldest</Text>
           </Pressable>
         </View>
       </View>
@@ -1308,15 +1308,15 @@ function LessonLibraryCard({
     <Pressable onPress={onOpen} style={styles.lessonLibraryCard}>
       <View style={styles.lessonLibraryTop}>
         <View style={styles.lessonLibraryIcon}>
-          <BookOpen size={20} color={colors.tealDark} />
+          <BookOpen size={20} color={colors.brandDeep} />
         </View>
         <StatusBadge status={lesson.status} />
       </View>
-      <Text style={styles.lessonLibraryTitle}>{lesson.title}</Text>
-      <Text style={styles.lessonLibraryMeta}>{subject}</Text>
+      <Text style={styles.lessonLibraryTitle} numberOfLines={2}>{lesson.title}</Text>
+      <Text style={styles.lessonLibraryMeta} numberOfLines={1}>{subject}</Text>
       <View style={styles.lessonLibraryFooter}>
-        <Text style={styles.lessonLibraryDate}>{lessonDateLabel(lesson)}</Text>
-        <Text style={styles.lessonLibraryDate}>{lessonTimeLabel(lesson)}</Text>
+        <Text style={styles.lessonLibraryDate} numberOfLines={1}>{lessonDateLabel(lesson)}</Text>
+        <Text style={styles.lessonLibraryDate} numberOfLines={1}>{lessonTimeLabel(lesson)}</Text>
       </View>
     </Pressable>
   );
@@ -1339,22 +1339,22 @@ function ClassCard({
         <BookOpen size={22} color="#ffffff" />
       </View>
       <View style={styles.flexText}>
-        <Text style={styles.classTitle}>{schoolClass.name}</Text>
-        <Text style={styles.recordMeta}>{schoolClass.grade_level ?? 'Grade not set'}</Text>
+        <Text style={styles.classTitle} numberOfLines={1}>{schoolClass.name}</Text>
+        <Text style={styles.recordMeta} numberOfLines={1}>{schoolClass.grade_level ?? 'Grade not set'}</Text>
       </View>
       <View style={styles.classStats}>
         <View style={styles.classStatPill}>
-          <Text style={styles.classStatValue}>{subjectCount}</Text>
-          <Text style={styles.classStatText}>Subjects</Text>
+          <Text style={styles.classStatValue} numberOfLines={1}>{subjectCount}</Text>
+          <Text style={styles.classStatText} numberOfLines={1}>Subjects</Text>
         </View>
         <View style={styles.classStatPill}>
-          <Text style={styles.classStatValue}>{lessonCount}</Text>
-          <Text style={styles.classStatText}>Lessons</Text>
+          <Text style={styles.classStatValue} numberOfLines={1}>{lessonCount}</Text>
+          <Text style={styles.classStatText} numberOfLines={1}>Lessons</Text>
         </View>
       </View>
       <Pressable onPress={onEnter} style={styles.enterButton}>
         <DoorOpen size={17} color="#ffffff" />
-        <Text style={styles.enterButtonText}>Enter class</Text>
+        <Text style={styles.enterButtonText} numberOfLines={1}>Enter class</Text>
       </Pressable>
     </View>
   );
@@ -1376,12 +1376,12 @@ function SubjectCard({
   return (
     <Pressable onPress={onPress} style={[styles.subjectCard, selected && styles.subjectCardActive]}>
       <View style={styles.subjectHeader}>
-        <Text style={[styles.subjectTitle, selected && styles.subjectTitleActive]}>{subject.name}</Text>
-        <Text style={[styles.subjectCount, selected && styles.subjectCountActive]}>{lessonCount}</Text>
+        <Text style={[styles.subjectTitle, selected && styles.subjectTitleActive]} numberOfLines={1}>{subject.name}</Text>
+        <Text style={[styles.subjectCount, selected && styles.subjectCountActive]} numberOfLines={1}>{lessonCount}</Text>
       </View>
       <View style={styles.subjectTeacher}>
-        <UserCheck size={15} color={selected ? '#ffffff' : colors.tealDark} />
-        <Text style={[styles.subjectTeacherText, selected && styles.subjectTeacherTextActive]}>
+        <UserCheck size={15} color={selected ? '#ffffff' : colors.brandDeep} />
+        <Text style={[styles.subjectTeacherText, selected && styles.subjectTeacherTextActive]} numberOfLines={1}>
           {teacherName}
         </Text>
       </View>
@@ -1506,7 +1506,7 @@ function LessonDetailView({
             {speechNotice ? <Text style={styles.listenNotice}>{speechNotice}</Text> : null}
             {captureMode === 'audio' || capturedAudio ? (
               <View style={styles.audioBox}>
-                <Mic size={16} color={colors.tealDark} />
+                <Mic size={16} color={colors.brandDeep} />
                 <View style={styles.flexText}>
                   <Text style={styles.audioBoxTitle}>{capturedAudio ? 'Audio saved' : 'Audio recording'}</Text>
                   <Text style={styles.audioBoxText}>{capturedAudio ? 'Ready for Chivo' : audioDurationLabel}</Text>
@@ -1836,7 +1836,7 @@ function PersonalLessonPanel({
               </Pressable>
             )}
             <Pressable onPress={stopPersonalLesson} style={styles.speechButton}>
-              <Square size={15} color={colors.tealDark} />
+              <Square size={15} color={colors.brandDeep} />
               <Text style={styles.speechButtonText}>Stop</Text>
             </Pressable>
           </View>
@@ -2231,7 +2231,7 @@ function Field({
 }) {
   return (
     <View style={styles.field}>
-      <Text style={styles.fieldLabel}>{label}</Text>
+      <Text style={styles.fieldLabel} numberOfLines={1}>{label}</Text>
       <TextInput
         value={value}
         onChangeText={onChangeText}
@@ -2268,7 +2268,16 @@ function SubmitButton({
         (loading || disabled) && styles.disabledButton,
       ]}
     >
-      {loading ? <ActivityIndicator color="#ffffff" /> : <Text style={styles.submitButtonText}>{label}</Text>}
+      {loading ? (
+        <ActivityIndicator color="#ffffff" />
+      ) : (
+        <>
+          <Text style={styles.submitButtonText} numberOfLines={1}>{label}</Text>
+          <View style={styles.submitButtonIcon}>
+            <ArrowRight size={14} color="#ffffff" />
+          </View>
+        </>
+      )}
     </Pressable>
   );
 }
@@ -2547,7 +2556,7 @@ function formatDuration(milliseconds: number) {
 
 const styles = StyleSheet.create({
   stack: {
-    gap: 8,
+    gap: 12,
   },
   layout: {
     flexDirection: 'row',
@@ -2555,21 +2564,21 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   lessonLibrary: {
-    gap: 8,
+    gap: 10,
   },
   lessonRoute: {
-    gap: 8,
+    gap: 10,
   },
   lessonRouteHeader: {
     minHeight: 48,
-    borderRadius: 14,
-    padding: 10,
+    borderRadius: 8,
+    padding: 12,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
     backgroundColor: colors.paper,
     borderWidth: 1,
-    borderColor: colors.line,
+    borderColor: '#dfe6f0',
   },
   lessonRouteTitle: {
     color: colors.ink,
@@ -2601,21 +2610,21 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   filterPill: {
-    minHeight: 30,
-    borderRadius: 12,
+    minHeight: 34,
+    borderRadius: 8,
     paddingHorizontal: 8,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#ffffff',
     borderWidth: 1,
-    borderColor: colors.line,
+    borderColor: '#dfe6f0',
   },
   filterPillActive: {
-    backgroundColor: colors.tealDark,
-    borderColor: colors.tealDark,
+    backgroundColor: colors.brandDeep,
+    borderColor: colors.brandDeep,
   },
   filterPillText: {
-    color: colors.tealDark,
+    color: colors.brandDeep,
     fontSize: 11,
     fontWeight: '700',
   },
@@ -2628,18 +2637,19 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   lessonLibraryCard: {
-    minWidth: 200,
+    minWidth: 230,
     flex: 1,
-    borderRadius: 14,
-    padding: 10,
-    gap: 7,
+    borderRadius: 8,
+    padding: 13,
+    gap: 9,
     backgroundColor: '#ffffff',
     borderWidth: 1,
-    borderColor: colors.line,
-    shadowColor: '#16251f',
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 3 },
+    borderBottomWidth: 4,
+    borderColor: '#dfe6f0',
+    shadowColor: '#111318',
+    shadowOpacity: 0.07,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 10 },
   },
   lessonLibraryTop: {
     minHeight: 32,
@@ -2649,18 +2659,18 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   lessonLibraryIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 11,
+    width: 36,
+    height: 36,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.softTeal,
+    backgroundColor: colors.softBlue,
   },
   lessonLibraryTitle: {
     color: colors.ink,
-    fontSize: 14,
-    lineHeight: 18,
-    fontWeight: '700',
+    fontSize: 16,
+    lineHeight: 21,
+    fontWeight: '900',
   },
   lessonLibraryMeta: {
     color: colors.muted,
@@ -2676,11 +2686,11 @@ const styles = StyleSheet.create({
   },
   lessonLibraryDate: {
     minHeight: 24,
-    borderRadius: 12,
+    borderRadius: 8,
     paddingHorizontal: 7,
     paddingTop: 5,
-    color: colors.tealDark,
-    backgroundColor: colors.softTeal,
+    color: colors.brandDeep,
+    backgroundColor: colors.softBlue,
     fontSize: 10,
     lineHeight: 13,
     fontWeight: '700',
@@ -2691,32 +2701,33 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   classCard: {
-    minWidth: 210,
+    minWidth: 230,
     flex: 1,
-    borderRadius: 14,
-    padding: 10,
-    gap: 7,
+    borderRadius: 8,
+    padding: 13,
+    gap: 9,
     backgroundColor: '#ffffff',
     borderWidth: 1,
-    borderColor: '#e1e9e3',
-    shadowColor: '#16251f',
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 3 },
+    borderBottomWidth: 4,
+    borderColor: '#dfe6f0',
+    shadowColor: '#111318',
+    shadowOpacity: 0.07,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 10 },
   },
   classIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 12,
+    width: 40,
+    height: 40,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.tealDark,
+    backgroundColor: colors.brand,
   },
   classTitle: {
     color: colors.ink,
-    fontSize: 14,
-    lineHeight: 18,
-    fontWeight: '700',
+    fontSize: 17,
+    lineHeight: 22,
+    fontWeight: '900',
   },
   classStats: {
     flexDirection: 'row',
@@ -2727,13 +2738,13 @@ const styles = StyleSheet.create({
     minHeight: 34,
     flex: 1,
     minWidth: 92,
-    borderRadius: 12,
+    borderRadius: 8,
     paddingHorizontal: 8,
     justifyContent: 'center',
-    backgroundColor: colors.softTeal,
+    backgroundColor: colors.softBlue,
   },
   classStatValue: {
-    color: colors.tealDark,
+    color: colors.brand,
     fontSize: 14,
     lineHeight: 16,
     fontWeight: '700',
@@ -2745,14 +2756,14 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   enterButton: {
-    minHeight: 34,
-    borderRadius: 12,
+    minHeight: 38,
+    borderRadius: 8,
     paddingHorizontal: 10,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    backgroundColor: colors.tealDark,
+    backgroundColor: colors.brand,
   },
   enterButtonText: {
     color: '#ffffff',
@@ -2761,31 +2772,31 @@ const styles = StyleSheet.create({
   },
   roomHeader: {
     minHeight: 48,
-    borderRadius: 14,
-    padding: 10,
+    borderRadius: 8,
+    padding: 12,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
     backgroundColor: colors.paper,
     borderWidth: 1,
-    borderColor: colors.line,
-    shadowColor: '#16251f',
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 3 },
+    borderColor: '#dfe6f0',
+    shadowColor: '#111318',
+    shadowOpacity: 0.07,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 10 },
   },
   backButton: {
     minHeight: 34,
-    borderRadius: 12,
+    borderRadius: 8,
     paddingHorizontal: 10,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 7,
-    backgroundColor: colors.softTeal,
+    backgroundColor: colors.softBlue,
   },
   backButtonText: {
-    color: colors.tealDark,
+    color: colors.brandDeep,
     fontSize: 12,
     fontWeight: '700',
   },
@@ -2803,11 +2814,11 @@ const styles = StyleSheet.create({
   },
   roomStat: {
     minHeight: 32,
-    borderRadius: 13,
+    borderRadius: 8,
     paddingHorizontal: 10,
     paddingTop: 7,
-    color: colors.tealDark,
-    backgroundColor: colors.softTeal,
+    color: colors.brandDeep,
+    backgroundColor: colors.softBlue,
     fontSize: 12,
     lineHeight: 16,
     fontWeight: '700',
@@ -2821,18 +2832,18 @@ const styles = StyleSheet.create({
     minHeight: 42,
     minWidth: 104,
     flex: 1,
-    borderRadius: 13,
+    borderRadius: 8,
     paddingHorizontal: 10,
     paddingVertical: 7,
     justifyContent: 'center',
     gap: 3,
     backgroundColor: '#ffffff',
     borderWidth: 1,
-    borderColor: colors.line,
+    borderColor: '#dfe6f0',
   },
   roomSectionButtonActive: {
-    backgroundColor: colors.ink,
-    borderColor: colors.ink,
+    backgroundColor: colors.brandDeep,
+    borderColor: colors.brandDeep,
   },
   roomSectionLabel: {
     color: colors.ink,
@@ -2844,7 +2855,7 @@ const styles = StyleSheet.create({
     color: '#ffffff',
   },
   roomSectionCount: {
-    color: colors.tealDark,
+    color: colors.brandDeep,
     fontSize: 15,
     lineHeight: 18,
     fontWeight: '700',
@@ -2860,16 +2871,17 @@ const styles = StyleSheet.create({
   subjectCard: {
     minWidth: 150,
     flex: 1,
-    borderRadius: 14,
-    padding: 10,
+    borderRadius: 8,
+    padding: 12,
     gap: 7,
-    backgroundColor: colors.softTeal,
+    backgroundColor: colors.softBlue,
     borderWidth: 1,
-    borderColor: '#d4e8df',
+    borderBottomWidth: 4,
+    borderColor: '#c7d7ff',
   },
   subjectCardActive: {
-    backgroundColor: colors.tealDark,
-    borderColor: colors.tealDark,
+    backgroundColor: colors.brandDeep,
+    borderColor: colors.brandDeep,
   },
   subjectHeader: {
     flexDirection: 'row',
@@ -2879,7 +2891,7 @@ const styles = StyleSheet.create({
   },
   subjectTitle: {
     flex: 1,
-    color: colors.tealDark,
+    color: colors.brandDeep,
     fontSize: 13,
     lineHeight: 17,
     fontWeight: '700',
@@ -2890,16 +2902,16 @@ const styles = StyleSheet.create({
   subjectCount: {
     minWidth: 24,
     minHeight: 24,
-    borderRadius: 12,
+    borderRadius: 8,
     textAlign: 'center',
     textAlignVertical: 'center',
-    color: colors.tealDark,
+    color: colors.brandDeep,
     backgroundColor: '#ffffff',
     fontSize: 11,
     fontWeight: '700',
   },
   subjectCountActive: {
-    color: colors.tealDark,
+    color: colors.brandDeep,
   },
   subjectTeacher: {
     minHeight: 22,
@@ -2919,38 +2931,38 @@ const styles = StyleSheet.create({
   },
   listColumn: {
     flex: 1,
-    minWidth: 280,
+    minWidth: 240,
   },
   detailColumn: {
     flex: 2,
-    minWidth: 320,
+    minWidth: 260,
   },
   lessonLaunch: {
     overflow: 'hidden',
-    borderRadius: 15,
+    borderRadius: 8,
     backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: 'rgba(24, 36, 33, 0.12)',
-    shadowColor: '#05110d',
+    borderColor: '#dfe6f0',
+    shadowColor: '#111318',
     shadowOpacity: 0.08,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 8 },
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 12 },
   },
   launchIntro: {
     minHeight: 54,
-    padding: 10,
+    padding: 12,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 9,
-    backgroundColor: colors.night,
+    backgroundColor: colors.brandDeep,
   },
   launchIcon: {
-    width: 38,
-    height: 38,
-    borderRadius: 13,
+    width: 42,
+    height: 42,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.teal,
+    backgroundColor: colors.brand,
   },
   launchIconListening: {
     backgroundColor: colors.coral,
@@ -2962,7 +2974,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   launchMeta: {
-    color: '#dce7e1',
+    color: '#d8e0ef',
     fontSize: 11,
     lineHeight: 15,
     fontWeight: '700',
@@ -2979,7 +2991,7 @@ const styles = StyleSheet.create({
   },
   listenButton: {
     minHeight: 32,
-    borderRadius: 12,
+    borderRadius: 8,
     paddingHorizontal: 9,
     flexDirection: 'row',
     alignItems: 'center',
@@ -3005,38 +3017,38 @@ const styles = StyleSheet.create({
   },
   liveOpenPill: {
     minHeight: 34,
-    borderRadius: 13,
+    borderRadius: 8,
     paddingHorizontal: 10,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    backgroundColor: colors.softTeal,
+    backgroundColor: colors.softBlue,
     borderWidth: 1,
-    borderColor: '#d4e8df',
+    borderColor: '#c7d7ff',
   },
   liveOpenPillText: {
-    color: colors.tealDark,
+    color: colors.brandDeep,
     fontSize: 12,
     fontWeight: '700',
   },
   listenNotice: {
-    color: colors.tealDark,
+    color: colors.brandDeep,
     fontSize: 13,
     lineHeight: 19,
     fontWeight: '700',
   },
   audioBox: {
     minHeight: 46,
-    borderRadius: 14,
+    borderRadius: 8,
     paddingHorizontal: 10,
     paddingVertical: 8,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    backgroundColor: '#f7fbf9',
+    backgroundColor: '#f8fafc',
     borderWidth: 1,
-    borderColor: '#d4e8df',
+    borderColor: '#dfe6f0',
   },
   audioBoxTitle: {
     color: colors.ink,
@@ -3051,15 +3063,15 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   liveWordsBox: {
-    borderRadius: 14,
+    borderRadius: 8,
     padding: 10,
     gap: 4,
-    backgroundColor: colors.softTeal,
+    backgroundColor: colors.softBlue,
     borderWidth: 1,
-    borderColor: '#d4e8df',
+    borderColor: '#c7d7ff',
   },
   liveWordsLabel: {
-    color: colors.tealDark,
+    color: colors.brandDeep,
     fontSize: 11,
     lineHeight: 15,
     fontWeight: '700',
@@ -3072,7 +3084,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   card: {
-    borderRadius: 14,
+    borderRadius: 8,
     padding: 9,
     gap: 8,
     backgroundColor: colors.surface,
@@ -3089,11 +3101,11 @@ const styles = StyleSheet.create({
   },
   reviewMeta: {
     minHeight: 28,
-    borderRadius: 14,
+    borderRadius: 8,
     paddingHorizontal: 10,
     paddingTop: 6,
-    color: colors.tealDark,
-    backgroundColor: colors.softTeal,
+    color: colors.brandDeep,
+    backgroundColor: colors.softBlue,
     fontSize: 11,
     lineHeight: 15,
     fontWeight: '700',
@@ -3106,9 +3118,9 @@ const styles = StyleSheet.create({
   reviewMetric: {
     minWidth: 92,
     flex: 1,
-    borderRadius: 13,
+    borderRadius: 8,
     padding: 8,
-    backgroundColor: '#f7faf7',
+    backgroundColor: '#f8fafc',
     borderWidth: 1,
     borderColor: '#e1e9e3',
   },
@@ -3159,7 +3171,7 @@ const styles = StyleSheet.create({
   },
   input: {
     minHeight: 38,
-    borderRadius: 12,
+    borderRadius: 8,
     paddingHorizontal: 9,
     color: colors.ink,
     backgroundColor: colors.surface,
@@ -3173,10 +3185,12 @@ const styles = StyleSheet.create({
   },
   submitButton: {
     minHeight: 36,
-    borderRadius: 12,
+    borderRadius: 8,
     paddingHorizontal: 10,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 7,
     backgroundColor: colors.brandDeep,
   },
   submitButtonGold: {
@@ -3186,6 +3200,14 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 12,
     fontWeight: '700',
+  },
+  submitButtonIcon: {
+    width: 24,
+    height: 24,
+    borderRadius: 7,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.14)',
   },
   disabledButton: {
     opacity: 0.55,
@@ -3200,23 +3222,23 @@ const styles = StyleSheet.create({
   },
   lessonRow: {
     minHeight: 50,
-    borderRadius: 15,
+    borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 9,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    backgroundColor: '#f7faf7',
+    backgroundColor: '#f8fafc',
     borderWidth: 1,
     borderColor: '#e1e9e3',
   },
   lessonRowActive: {
     borderColor: colors.teal,
-    backgroundColor: colors.softTeal,
+    backgroundColor: colors.softBlue,
   },
   studyTabs: {
     minHeight: 52,
-    borderRadius: 15,
+    borderRadius: 8,
     padding: 5,
     flexDirection: 'row',
     gap: 5,
@@ -3226,16 +3248,16 @@ const styles = StyleSheet.create({
   },
   studyTab: {
     flex: 1,
-    borderRadius: 14,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 10,
   },
   studyTabActive: {
-    backgroundColor: colors.tealDark,
+    backgroundColor: colors.brandDeep,
   },
   studyTabText: {
-    color: colors.tealDark,
+    color: colors.brandDeep,
     fontSize: 13,
     fontWeight: '700',
   },
@@ -3260,7 +3282,7 @@ const styles = StyleSheet.create({
   },
   statusBadge: {
     minHeight: 28,
-    borderRadius: 14,
+    borderRadius: 8,
     paddingHorizontal: 10,
     alignItems: 'center',
     justifyContent: 'center',
@@ -3269,8 +3291,8 @@ const styles = StyleSheet.create({
     borderColor: '#d7e4ef',
   },
   statusBadgePublished: {
-    backgroundColor: colors.tealDark,
-    borderColor: colors.tealDark,
+    backgroundColor: colors.brandDeep,
+    borderColor: colors.brandDeep,
   },
   statusBadgeLive: {
     backgroundColor: colors.coral,
@@ -3285,7 +3307,7 @@ const styles = StyleSheet.create({
     borderColor: '#9d2e24',
   },
   statusBadgeText: {
-    color: colors.tealDark,
+    color: colors.brandDeep,
     fontSize: 11,
     lineHeight: 15,
     fontWeight: '700',
@@ -3310,10 +3332,10 @@ const styles = StyleSheet.create({
   },
   personalCard: {
     overflow: 'hidden',
-    borderRadius: 17,
+    borderRadius: 10,
     padding: 14,
     gap: 12,
-    backgroundColor: '#101916',
+    backgroundColor: colors.brandDeep,
     borderWidth: 1,
     borderColor: '#20352f',
   },
@@ -3325,10 +3347,10 @@ const styles = StyleSheet.create({
   personalIcon: {
     width: 48,
     height: 48,
-    borderRadius: 16,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.tealDark,
+    backgroundColor: colors.brandDeep,
   },
   personalTitle: {
     color: '#ffffff',
@@ -3337,7 +3359,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   personalMeta: {
-    color: '#dce7e1',
+    color: '#d8e0ef',
     fontSize: 12,
     lineHeight: 18,
   },
@@ -3348,7 +3370,7 @@ const styles = StyleSheet.create({
   },
   personalInput: {
     minHeight: 48,
-    borderRadius: 14,
+    borderRadius: 8,
     paddingHorizontal: 12,
     color: colors.ink,
     backgroundColor: '#ffffff',
@@ -3365,7 +3387,7 @@ const styles = StyleSheet.create({
     minWidth: 120,
     flex: 1,
     minHeight: 53,
-    borderRadius: 16,
+    borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 9,
     justifyContent: 'center',
@@ -3397,7 +3419,7 @@ const styles = StyleSheet.create({
     color: '#4b3a18',
   },
   personalOutput: {
-    borderRadius: 15,
+    borderRadius: 8,
     padding: 14,
     gap: 10,
     backgroundColor: '#ffffff',
@@ -3415,13 +3437,13 @@ const styles = StyleSheet.create({
   },
   speechButtonStrong: {
     minHeight: 42,
-    borderRadius: 14,
+    borderRadius: 8,
     paddingHorizontal: 13,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 7,
-    backgroundColor: colors.tealDark,
+    backgroundColor: colors.brandDeep,
   },
   speechButtonStrongText: {
     color: '#ffffff',
@@ -3430,18 +3452,18 @@ const styles = StyleSheet.create({
   },
   speechButton: {
     minHeight: 42,
-    borderRadius: 14,
+    borderRadius: 8,
     paddingHorizontal: 13,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 7,
-    backgroundColor: colors.softTeal,
+    backgroundColor: colors.softBlue,
     borderWidth: 1,
-    borderColor: '#d4e8df',
+    borderColor: '#c7d7ff',
   },
   speechButtonText: {
-    color: colors.tealDark,
+    color: colors.brandDeep,
     fontSize: 13,
     fontWeight: '700',
   },
@@ -3467,22 +3489,22 @@ const styles = StyleSheet.create({
   },
   studyStep: {
     minHeight: 42,
-    borderRadius: 15,
+    borderRadius: 8,
     paddingHorizontal: 10,
     paddingVertical: 8,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    backgroundColor: colors.softTeal,
+    backgroundColor: colors.softBlue,
   },
   studyStepNumber: {
     width: 26,
     height: 26,
-    borderRadius: 13,
+    borderRadius: 8,
     textAlign: 'center',
     textAlignVertical: 'center',
     color: '#ffffff',
-    backgroundColor: colors.tealDark,
+    backgroundColor: colors.brandDeep,
     fontSize: 12,
     fontWeight: '700',
   },
@@ -3501,7 +3523,7 @@ const styles = StyleSheet.create({
   vocabCard: {
     minWidth: 140,
     flex: 1,
-    borderRadius: 15,
+    borderRadius: 8,
     padding: 12,
     gap: 4,
     backgroundColor: colors.softGold,
@@ -3519,7 +3541,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   encouragement: {
-    color: colors.tealDark,
+    color: colors.brandDeep,
     fontSize: 13,
     lineHeight: 18,
     fontWeight: '700',
@@ -3534,20 +3556,20 @@ const styles = StyleSheet.create({
   },
   aiPointCard: {
     minHeight: 50,
-    borderRadius: 16,
+    borderRadius: 10,
     padding: 11,
     flexDirection: 'row',
     gap: 10,
-    backgroundColor: colors.softTeal,
+    backgroundColor: colors.softBlue,
   },
   aiPointNumber: {
     width: 28,
     height: 28,
-    borderRadius: 14,
+    borderRadius: 8,
     textAlign: 'center',
     textAlignVertical: 'center',
     color: '#ffffff',
-    backgroundColor: colors.tealDark,
+    backgroundColor: colors.brandDeep,
     fontSize: 12,
     fontWeight: '700',
   },
@@ -3561,11 +3583,11 @@ const styles = StyleSheet.create({
   showMoreButton: {
     alignSelf: 'flex-start',
     minHeight: 38,
-    borderRadius: 15,
+    borderRadius: 8,
     paddingHorizontal: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.ink,
+    backgroundColor: colors.brandDeep,
   },
   showMoreText: {
     color: '#ffffff',
@@ -3573,14 +3595,14 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   richBold: {
-    color: colors.tealDark,
+    color: colors.brandDeep,
     fontWeight: '700',
   },
   quizCard: {
-    borderRadius: 15,
+    borderRadius: 8,
     padding: 12,
     gap: 10,
-    backgroundColor: '#f7faf7',
+    backgroundColor: '#f8fafc',
     borderWidth: 1,
     borderColor: '#e1e9e3',
   },
@@ -3589,20 +3611,20 @@ const styles = StyleSheet.create({
   },
   optionButton: {
     minHeight: 44,
-    borderRadius: 14,
+    borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 9,
     justifyContent: 'center',
     backgroundColor: '#ffffff',
     borderWidth: 1,
-    borderColor: '#dce7e1',
+    borderColor: '#d8e0ef',
   },
   optionButtonSelected: {
     borderColor: colors.teal,
-    backgroundColor: colors.softTeal,
+    backgroundColor: colors.softBlue,
   },
   optionButtonCorrect: {
-    borderColor: colors.tealDark,
+    borderColor: colors.brandDeep,
     backgroundColor: '#dff2ea',
   },
   optionButtonWrong: {
@@ -3616,10 +3638,10 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   optionTextSelected: {
-    color: colors.tealDark,
+    color: colors.brandDeep,
   },
   resultBox: {
-    borderRadius: 15,
+    borderRadius: 8,
     padding: 14,
     backgroundColor: colors.softGold,
     borderWidth: 1,
@@ -3642,20 +3664,20 @@ const styles = StyleSheet.create({
   },
   insightHero: {
     minHeight: 79,
-    borderRadius: 17,
+    borderRadius: 10,
     padding: 14,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    backgroundColor: colors.ink,
+    backgroundColor: colors.brandDeep,
   },
   insightHeroIcon: {
     width: 54,
     height: 54,
-    borderRadius: 15,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.tealDark,
+    backgroundColor: colors.brandDeep,
   },
   insightHeroTitle: {
     color: '#ffffff',
@@ -3664,13 +3686,13 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   insightHeroBody: {
-    color: '#dce7e1',
+    color: '#d8e0ef',
     fontSize: 13,
     lineHeight: 19,
     fontWeight: '700',
   },
   insightBox: {
-    borderRadius: 15,
+    borderRadius: 8,
     padding: 12,
     gap: 10,
     backgroundColor: colors.softBlue,
@@ -3685,7 +3707,7 @@ const styles = StyleSheet.create({
   insightStat: {
     minWidth: 88,
     flex: 1,
-    borderRadius: 15,
+    borderRadius: 8,
     padding: 10,
     backgroundColor: '#ffffff',
   },
@@ -3706,7 +3728,7 @@ const styles = StyleSheet.create({
   },
   attemptRow: {
     minHeight: 36,
-    borderRadius: 13,
+    borderRadius: 8,
     paddingHorizontal: 10,
     flexDirection: 'row',
     alignItems: 'center',
@@ -3722,7 +3744,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   attemptScore: {
-    color: colors.tealDark,
+    color: colors.brandDeep,
     fontSize: 12,
     lineHeight: 17,
     fontWeight: '700',
@@ -3732,7 +3754,7 @@ const styles = StyleSheet.create({
   },
   insightLessonCard: {
     minHeight: 59,
-    borderRadius: 15,
+    borderRadius: 8,
     padding: 14,
     flexDirection: 'row',
     alignItems: 'center',
@@ -3755,7 +3777,7 @@ const styles = StyleSheet.create({
   },
   insightStatusPill: {
     minHeight: 34,
-    borderRadius: 14,
+    borderRadius: 8,
     paddingHorizontal: 10,
     alignItems: 'center',
     justifyContent: 'center',
@@ -3764,8 +3786,8 @@ const styles = StyleSheet.create({
     borderColor: '#f2d995',
   },
   insightStatusPillActive: {
-    backgroundColor: colors.softTeal,
-    borderColor: '#d4e8df',
+    backgroundColor: colors.softBlue,
+    borderColor: '#c7d7ff',
   },
   insightStatusText: {
     color: '#6f5520',
@@ -3774,10 +3796,10 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   insightStatusTextActive: {
-    color: colors.tealDark,
+    color: colors.brandDeep,
   },
   explanationText: {
-    color: colors.tealDark,
+    color: colors.brandDeep,
     fontSize: 12,
     lineHeight: 18,
     fontWeight: '700',
@@ -3790,7 +3812,7 @@ const styles = StyleSheet.create({
   flashCard: {
     minWidth: 180,
     flex: 1,
-    borderRadius: 16,
+    borderRadius: 10,
     padding: 14,
     gap: 8,
     backgroundColor: colors.softGold,
@@ -3803,11 +3825,11 @@ const styles = StyleSheet.create({
   },
   flashSessionCard: {
     minHeight: 115,
-    borderRadius: 17,
+    borderRadius: 10,
     padding: 14,
     justifyContent: 'center',
     gap: 10,
-    backgroundColor: colors.ink,
+    backgroundColor: colors.brandDeep,
   },
   flashFaceLabel: {
     color: colors.gold,
@@ -3831,22 +3853,22 @@ const styles = StyleSheet.create({
     minHeight: 42,
     flex: 1,
     minWidth: 96,
-    borderRadius: 14,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.softTeal,
+    backgroundColor: colors.softBlue,
   },
   flashNavButtonStrong: {
     minHeight: 42,
     flex: 1,
     minWidth: 96,
-    borderRadius: 14,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.tealDark,
+    backgroundColor: colors.brandDeep,
   },
   flashNavText: {
-    color: colors.tealDark,
+    color: colors.brandDeep,
     fontSize: 13,
     fontWeight: '700',
   },
@@ -3867,7 +3889,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   successText: {
-    color: colors.tealDark,
+    color: colors.brandDeep,
     fontSize: 13,
     lineHeight: 19,
     fontWeight: '700',

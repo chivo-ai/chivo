@@ -50,20 +50,11 @@ type ClassTab = 'chat' | 'ai' | 'notes' | 'voice' | 'live' | 'members';
 type SavingState = 'message' | 'resource' | 'ai' | 'voice' | 'transcribe' | 'live' | 'endLive' | null;
 type SpeechState = 'idle' | 'speaking' | 'paused';
 
-const tabs: Array<{ id: ClassTab; label: string; icon: ReactNode }> = [
-  { id: 'chat', label: 'Chat', icon: <MessageCircle size={16} color={colors.tealDark} /> },
-  { id: 'ai', label: 'AI', icon: <Sparkles size={16} color={colors.gold} /> },
-  { id: 'notes', label: 'Notes', icon: <BookOpen size={16} color={colors.blue} /> },
-  { id: 'voice', label: 'Voice', icon: <Mic size={16} color={colors.coral} /> },
-  { id: 'live', label: 'Live', icon: <Radio size={16} color={colors.teal} /> },
-  { id: 'members', label: 'People', icon: <Users size={16} color={colors.tealDark} /> },
-];
-
 const tones = {
-  gold: { background: '#fff4d4', accent: colors.gold },
-  blue: { background: '#e9f6ff', accent: '#4aa6d9' },
-  violet: { background: '#f3eaff', accent: '#8d68d8' },
-  green: { background: '#e8f8ee', accent: '#39a96b' },
+  gold: { background: '#f1ffd7', accent: '#a3e635' },
+  blue: { background: '#e9f1ff', accent: colors.brand },
+  violet: { background: '#f3efff', accent: colors.violet },
+  green: { background: '#e3fbf7', accent: colors.teal },
 };
 
 type ClassStudyRoomProps = {
@@ -398,16 +389,80 @@ export function ClassStudyRoom({
     setSpeechState('idle');
   }
 
+  const toolCards = [
+    {
+      id: 'chat' as ClassTab,
+      label: 'Chat room',
+      shortLabel: 'Chat',
+      description: 'Messages and quick actions',
+      value: room?.messages.length ?? 0,
+      metric: 'Messages',
+      icon: <MessageCircle size={20} color={activeTab === 'chat' ? '#ffffff' : colors.brandDeep} />,
+      tone: tones.blue,
+    },
+    {
+      id: 'ai' as ClassTab,
+      label: 'Shared AI',
+      shortLabel: 'AI',
+      description: 'Summary, quiz, cards, tasks',
+      value: aiResources.length,
+      metric: 'Packs',
+      icon: <Sparkles size={20} color={activeTab === 'ai' ? '#ffffff' : colors.violet} />,
+      tone: tones.violet,
+    },
+    {
+      id: 'notes' as ClassTab,
+      label: 'Notes room',
+      shortLabel: 'Notes',
+      description: 'Save and read class notes',
+      value: noteResources.length,
+      metric: 'Notes',
+      icon: <BookOpen size={20} color={activeTab === 'notes' ? '#ffffff' : colors.brandDeep} />,
+      tone: tones.gold,
+    },
+    {
+      id: 'voice' as ClassTab,
+      label: 'Voice studio',
+      shortLabel: 'Voice',
+      description: 'Record, share, transcribe',
+      value: voiceResources.length,
+      metric: 'Voice',
+      icon: <Mic size={20} color={activeTab === 'voice' ? '#ffffff' : colors.coral} />,
+      tone: tones.blue,
+    },
+    {
+      id: 'live' as ClassTab,
+      label: 'Live floor',
+      shortLabel: 'Live',
+      description: activeLiveSession ? 'Session running now' : 'Start a focused session',
+      value: activeLiveSession ? 'On' : liveResources.length,
+      metric: activeLiveSession ? 'Live' : 'Sessions',
+      icon: <Radio size={20} color={activeTab === 'live' ? '#ffffff' : colors.teal} />,
+      tone: tones.green,
+    },
+    {
+      id: 'members' as ClassTab,
+      label: 'People room',
+      shortLabel: 'People',
+      description: 'Everyone inside this class',
+      value: memberProfiles.length,
+      metric: 'People',
+      icon: <Users size={20} color={activeTab === 'members' ? '#ffffff' : colors.brandDeep} />,
+      tone: tones.green,
+    },
+  ];
+  const activeTool = toolCards.find((tool) => tool.id === activeTab) ?? toolCards[0];
+
   return (
     <View style={styles.shell}>
-      <View style={styles.hero}>
+      <View style={styles.commandHero}>
         <View style={styles.heroCopy}>
           <View style={styles.heroPill}>
             <Sparkles size={15} color={colors.ink} />
-            <Text style={styles.heroPillText}>Classroom studio</Text>
+            <Text style={styles.heroPillText} numberOfLines={1}>Tool workspace</Text>
           </View>
-          <Text style={styles.heroTitle}>Study together inside {className}</Text>
-          <Text style={styles.heroMeta}>/{classUsername} - {gradeLevel ?? 'Learning group'}</Text>
+          <Text style={styles.heroTitle} numberOfLines={2}>Study together inside {className}</Text>
+          <Text style={styles.heroMeta} numberOfLines={1}>/{classUsername} - {gradeLevel ?? 'Learning group'}</Text>
         </View>
         <View style={styles.heroStats}>
           <MiniStat icon={<Users size={19} color={colors.ink} />} label="People" value={memberProfiles.length} tone={tones.green} />
@@ -420,28 +475,64 @@ export function ClassStudyRoom({
       {notice ? <Text style={styles.noticeText}>{notice}</Text> : null}
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
-      <View style={styles.tabBar}>
-        {tabs.map((tab) => {
-          const active = activeTab === tab.id;
+      <View style={styles.toolDeck}>
+        {toolCards.map((tool) => {
+          const active = activeTab === tool.id;
           return (
-            <Pressable key={tab.id} onPress={() => setActiveTab(tab.id)} style={[styles.tabButton, active && styles.tabButtonActive]}>
-              {tab.icon}
-              <Text style={[styles.tabText, active && styles.tabTextActive]}>{tab.label}</Text>
+            <Pressable
+              key={tool.id}
+              onPress={() => setActiveTab(tool.id)}
+              style={[
+                styles.toolCard,
+                { backgroundColor: tool.tone.background, borderColor: tool.tone.accent },
+                active && styles.toolCardActive,
+              ]}
+            >
+              <View style={[styles.toolCardIcon, { backgroundColor: active ? colors.brand : tool.tone.accent }]}>
+                {tool.icon}
+              </View>
+              <View style={styles.flexText}>
+                <Text style={[styles.toolCardTitle, active && styles.toolCardTitleActive]} numberOfLines={1}>{tool.shortLabel}</Text>
+                <Text style={[styles.toolCardMeta, active && styles.toolCardMetaActive]} numberOfLines={1}>{tool.description}</Text>
+              </View>
+              <View style={[styles.toolMetric, active && styles.toolMetricActive]}>
+                <Text style={[styles.toolMetricValue, active && styles.toolMetricValueActive]} numberOfLines={1}>{tool.value}</Text>
+                <Text style={[styles.toolMetricLabel, active && styles.toolMetricLabelActive]} numberOfLines={1}>{tool.metric}</Text>
+              </View>
             </Pressable>
           );
         })}
       </View>
 
       {loading && !room ? (
-        <View style={styles.panel}>
-          <ActivityIndicator color={colors.tealDark} />
-          <Text style={styles.emptyMeta}>Opening classroom tools...</Text>
+        <View style={styles.stage}>
+          <ActivityIndicator color={colors.brandDeep} />
+          <Text style={styles.emptyMeta} numberOfLines={2}>Opening classroom tools...</Text>
         </View>
       ) : null}
 
+      {!loading && !room ? (
+        <View style={styles.stage}>
+          <EmptyPanel icon={<MessageCircle size={26} color={colors.brandDeep} />} title="Classroom tools are unavailable" body="Try refreshing the class, then open tools again." />
+        </View>
+      ) : null}
+
+      {room ? (
+        <View style={styles.stage}>
+          <View style={styles.stageHeader}>
+            <View style={styles.stageIcon}>{activeTool.icon}</View>
+            <View style={styles.flexText}>
+              <Text style={styles.stageTitle} numberOfLines={1}>{activeTool.label}</Text>
+              <Text style={styles.stageMeta} numberOfLines={2}>{activeTool.description}</Text>
+            </View>
+            <View style={styles.stageBadge}>
+              <Text style={styles.stageBadgeValue} numberOfLines={1}>{activeTool.value}</Text>
+              <Text style={styles.stageBadgeLabel} numberOfLines={1}>{activeTool.metric}</Text>
+            </View>
+          </View>
+
       {room && activeTab === 'chat' ? (
-        <View style={styles.panel}>
-          <PanelTitle icon={<MessageCircle size={20} color={colors.tealDark} />} title="Class chat" />
+        <View style={styles.stageBody}>
           <View style={styles.quickRow}>
             <ActionButton label="AI pack" icon={<Sparkles size={16} color="#ffffff" />} onPress={() => setAiModalOpen(true)} />
             <ActionButton label="Voice" icon={<Mic size={16} color={colors.ink} />} onPress={() => setActiveTab('voice')} light />
@@ -457,7 +548,7 @@ export function ClassStudyRoom({
                 </View>
               );
             }) : (
-              <EmptyPanel icon={<MessageCircle size={26} color={colors.tealDark} />} title="No class messages yet" body="Start with a question, answer, or study update." />
+              <EmptyPanel icon={<MessageCircle size={26} color={colors.brandDeep} />} title="No class messages yet" body="Start with a question, answer, or study update." />
             )}
           </View>
           <View style={styles.composer}>
@@ -477,22 +568,21 @@ export function ClassStudyRoom({
       ) : null}
 
       {room && activeTab === 'ai' ? (
-        <View style={styles.panel}>
-          <PanelTitle icon={<Bot size={20} color={colors.gold} />} title="Shared class AI" />
+        <View style={styles.stageBody}>
           {latestAiPack ? (
             <>
               <AiPackView pack={latestAiPack} compact />
               <SpeechControls speechState={speechState} onSpeak={() => speakText(aiPackText(latestAiPack))} onPause={pauseSpeech} onResume={resumeSpeech} onStop={stopSpeech} />
             </>
           ) : (
-            <EmptyPanel icon={<Sparkles size={26} color={colors.tealDark} />} title="No class AI pack yet" body="Generate one from class notes, chat, and voice transcripts." />
+            <EmptyPanel icon={<Sparkles size={26} color={colors.brandDeep} />} title="No class AI pack yet" body="Generate one from class notes, chat, and voice transcripts." />
           )}
           <PrimaryAction label={latestAiPack ? 'Open AI modal' : 'Generate class AI'} icon={<Sparkles size={17} color="#ffffff" />} loading={saving === 'ai'} onPress={() => setAiModalOpen(true)} />
         </View>
       ) : null}
 
       {room && activeTab === 'notes' ? (
-        <View style={styles.twoColumn}>
+        <View style={styles.roomColumns}>
           <View style={styles.panel}>
             <PanelTitle icon={<FileText size={20} color={colors.blue} />} title="Add class note" />
             <TextInput value={resourceTitle} onChangeText={setResourceTitle} placeholder="Title" placeholderTextColor="#7b8983" style={styles.input} />
@@ -504,14 +594,14 @@ export function ClassStudyRoom({
             {noteResources.length ? noteResources.map((resource) => (
               <ResourceCard key={resource.id} resource={resource} onSpeak={() => speakText(resourceText(resource))} />
             )) : (
-              <EmptyPanel icon={<FileText size={26} color={colors.tealDark} />} title="No notes yet" body="Saved notes appear here and can power class AI." />
+              <EmptyPanel icon={<FileText size={26} color={colors.brandDeep} />} title="No notes yet" body="Saved notes appear here and can power class AI." />
             )}
           </View>
         </View>
       ) : null}
 
       {room && activeTab === 'voice' ? (
-        <View style={styles.twoColumn}>
+        <View style={styles.roomColumns}>
           <View style={styles.panel}>
             <PanelTitle icon={<Mic size={20} color={colors.coral} />} title="Class voice note" />
             <TextInput value={voiceTitle} onChangeText={setVoiceTitle} placeholder="Voice title" placeholderTextColor="#7b8983" style={styles.input} />
@@ -519,8 +609,8 @@ export function ClassStudyRoom({
             <View style={styles.voiceStatus}>
               <View style={styles.voiceIcon}>{capturedAudio ? <CheckCircle2 size={19} color="#ffffff" /> : <Mic size={19} color="#ffffff" />}</View>
               <View style={styles.flexText}>
-                <Text style={styles.voiceTitle}>{capturedAudio ? 'Audio ready' : recording ? 'Recording' : 'Ready to record'}</Text>
-                <Text style={styles.voiceMeta}>{capturedAudio?.durationSeconds ? formatDuration(capturedAudio.durationSeconds * 1000) : formatDuration(audioState.durationMillis)}</Text>
+                <Text style={styles.voiceTitle} numberOfLines={1}>{capturedAudio ? 'Audio ready' : recording ? 'Recording' : 'Ready to record'}</Text>
+                <Text style={styles.voiceMeta} numberOfLines={1}>{capturedAudio?.durationSeconds ? formatDuration(capturedAudio.durationSeconds * 1000) : formatDuration(audioState.durationMillis)}</Text>
               </View>
             </View>
             <View style={styles.quickRow}>
@@ -545,27 +635,27 @@ export function ClassStudyRoom({
                     onPress={() => transcribeVoice(resource.id)}
                     style={[styles.smallButton, saving === 'transcribe' && transcribingResourceId === resource.id && styles.buttonDisabled]}
                   >
-                    {saving === 'transcribe' && transcribingResourceId === resource.id ? <ActivityIndicator color={colors.tealDark} /> : <Sparkles size={14} color={colors.tealDark} />}
-                    <Text style={styles.smallButtonText}>{voiceText(resource) ? 'Refresh' : 'Transcribe'}</Text>
+                    {saving === 'transcribe' && transcribingResourceId === resource.id ? <ActivityIndicator color={colors.brandDeep} /> : <Sparkles size={14} color={colors.brandDeep} />}
+                    <Text style={styles.smallButtonText} numberOfLines={1}>{voiceText(resource) ? 'Refresh' : 'Transcribe'}</Text>
                   </Pressable>
                 )}
               />
             )) : (
-              <EmptyPanel icon={<Headphones size={26} color={colors.tealDark} />} title="No voice notes yet" body="Record a quick explanation or class reminder." />
+              <EmptyPanel icon={<Headphones size={26} color={colors.brandDeep} />} title="No voice notes yet" body="Record a quick explanation or class reminder." />
             )}
           </View>
         </View>
       ) : null}
 
       {room && activeTab === 'live' ? (
-        <View style={styles.twoColumn}>
+        <View style={styles.roomColumns}>
           <View style={styles.panel}>
             <PanelTitle icon={<Radio size={20} color={colors.teal} />} title="Live class floor" />
             {activeLiveSession ? (
               <View style={styles.liveBox}>
                 <View style={styles.liveIcon}><Radio size={25} color="#ffffff" /></View>
-                <Text style={styles.liveTitle}>{activeLiveSession.title}</Text>
-                <Text style={styles.liveMeta}>{canEndLive ? 'You have the speaker floor' : 'One speaker is live'}</Text>
+                <Text style={styles.liveTitle} numberOfLines={2}>{activeLiveSession.title}</Text>
+                <Text style={styles.liveMeta} numberOfLines={2}>{canEndLive ? 'You have the speaker floor' : 'One speaker is live'}</Text>
                 {canEndLive ? <PrimaryAction label="End live" icon={<Square size={17} color="#ffffff" />} loading={saving === 'endLive'} onPress={endLive} /> : null}
               </View>
             ) : (
@@ -578,26 +668,27 @@ export function ClassStudyRoom({
           <View style={styles.panel}>
             <PanelTitle icon={<FileText size={20} color={colors.gold} />} title="Live history" />
             {liveResources.length ? liveResources.map((resource) => <ResourceCard key={resource.id} resource={resource} />) : (
-              <EmptyPanel icon={<Radio size={26} color={colors.tealDark} />} title="No live class yet" body="Start a focused live study floor when the class is ready." />
+              <EmptyPanel icon={<Radio size={26} color={colors.brandDeep} />} title="No live class yet" body="Start a focused live study floor when the class is ready." />
             )}
           </View>
         </View>
       ) : null}
 
       {room && activeTab === 'members' ? (
-        <View style={styles.panel}>
-          <PanelTitle icon={<Users size={20} color={colors.tealDark} />} title="Class members" />
+        <View style={styles.stageBody}>
           <View style={styles.memberGrid}>
             {memberProfiles.map((member) => (
               <View key={member.id} style={styles.memberCard}>
                 <View style={styles.memberIcon}><UserCircle size={22} color="#ffffff" /></View>
                 <View style={styles.flexText}>
-                  <Text style={styles.memberName}>{member.profile?.profiles?.full_name ?? 'Class member'}</Text>
-                  <Text style={styles.memberMeta}>{formatRole(member.role)} - {formatRole(member.status)}</Text>
+                  <Text style={styles.memberName} numberOfLines={1}>{member.profile?.profiles?.full_name ?? 'Class member'}</Text>
+                  <Text style={styles.memberMeta} numberOfLines={1}>{formatRole(member.role)} - {formatRole(member.status)}</Text>
                 </View>
               </View>
             ))}
           </View>
+        </View>
+      ) : null}
         </View>
       ) : null}
 
@@ -638,10 +729,10 @@ function AiModal({
           <View style={styles.modalHeader}>
             <View style={styles.modalIcon}><Bot size={22} color="#ffffff" /></View>
             <View style={styles.flexText}>
-              <Text style={styles.modalTitle}>Shared classroom AI</Text>
-              <Text style={styles.modalMeta}>Generates summary, quiz, flashcards, and tasks for the class.</Text>
+              <Text style={styles.modalTitle} numberOfLines={1}>Shared classroom AI</Text>
+              <Text style={styles.modalMeta} numberOfLines={2}>Generates summary, quiz, flashcards, and tasks for the class.</Text>
             </View>
-            <Pressable onPress={onClose} style={styles.closeButton}><X size={18} color={colors.tealDark} /></Pressable>
+            <Pressable onPress={onClose} style={styles.closeButton}><X size={18} color={colors.brandDeep} /></Pressable>
           </View>
           {error ? <Text style={styles.errorText}>{error}</Text> : null}
           <PrimaryAction label={latestAiPack ? 'Generate fresh pack' : 'Generate class pack'} icon={<Sparkles size={17} color="#ffffff" />} loading={saving === 'ai'} onPress={onGenerate} />
@@ -652,7 +743,7 @@ function AiModal({
                 <ActionButton label="Read aloud" icon={<Volume2 size={16} color="#ffffff" />} onPress={() => onSpeak(aiPackText(latestAiPack))} />
               </>
             ) : (
-              <EmptyPanel icon={<Sparkles size={26} color={colors.tealDark} />} title="Ready when class content is ready" body="Add notes, chat, or voice transcripts first." />
+              <EmptyPanel icon={<Sparkles size={26} color={colors.brandDeep} />} title="Ready when class content is ready" body="Add notes, chat, or voice transcripts first." />
             )}
           </ScrollView>
         </Pressable>
@@ -670,19 +761,19 @@ function AiPackView({ pack, compact }: { pack: ClassAiPack; compact?: boolean })
   return (
     <View style={styles.aiPack}>
       <View style={styles.aiHeader}>
-        <Text style={styles.aiTitle}>{pack.title}</Text>
-        <Text style={styles.aiBadge}>Class</Text>
+        <Text style={styles.aiTitle} numberOfLines={2}>{pack.title}</Text>
+        <Text style={styles.aiBadge} numberOfLines={1}>Class</Text>
       </View>
       {pack.summary ? <Text style={styles.aiSummary}>{pack.summary}</Text> : null}
       {keyPoints.length ? <ListBlock title="Key points" items={keyPoints} /> : null}
       {quiz.length ? (
         <View style={styles.aiBlock}>
-          <Text style={styles.aiBlockTitle}>Class quiz</Text>
+          <Text style={styles.aiBlockTitle} numberOfLines={1}>Class quiz</Text>
           {quiz.map((question, index) => (
             <View key={`${question.prompt}-${index}`} style={styles.quizCard}>
-              <Text style={styles.quizPrompt}>{index + 1}. {question.prompt}</Text>
-              {question.options.length ? <Text style={styles.quizMeta}>{question.options.join(' / ')}</Text> : null}
-              {question.answer ? <Text style={styles.quizAnswer}>Answer: {question.answer}</Text> : null}
+              <Text style={styles.quizPrompt} numberOfLines={4}>{index + 1}. {question.prompt}</Text>
+              {question.options.length ? <Text style={styles.quizMeta} numberOfLines={3}>{question.options.join(' / ')}</Text> : null}
+              {question.answer ? <Text style={styles.quizAnswer} numberOfLines={3}>Answer: {question.answer}</Text> : null}
             </View>
           ))}
         </View>
@@ -691,8 +782,8 @@ function AiPackView({ pack, compact }: { pack: ClassAiPack; compact?: boolean })
         <View style={styles.flashGrid}>
           {flashcards.map((card, index) => (
             <View key={`${card.front}-${index}`} style={styles.flashCard}>
-              <Text style={styles.flashFront}>{card.front}</Text>
-              <Text style={styles.flashBack}>{card.back}</Text>
+              <Text style={styles.flashFront} numberOfLines={4}>{card.front}</Text>
+              <Text style={styles.flashBack} numberOfLines={4}>{card.back}</Text>
             </View>
           ))}
         </View>
@@ -705,10 +796,10 @@ function AiPackView({ pack, compact }: { pack: ClassAiPack; compact?: boolean })
 function ListBlock({ title, items }: { title: string; items: string[] }) {
   return (
     <View style={styles.aiBlock}>
-      <Text style={styles.aiBlockTitle}>{title}</Text>
+      <Text style={styles.aiBlockTitle} numberOfLines={1}>{title}</Text>
       {items.map((item, index) => (
         <View key={`${item}-${index}`} style={styles.aiPoint}>
-          <Text style={styles.aiPointNumber}>{index + 1}</Text>
+          <Text style={styles.aiPointNumber} numberOfLines={1}>{index + 1}</Text>
           <Text style={styles.aiPointText}>{item}</Text>
         </View>
       ))}
@@ -722,15 +813,15 @@ function ResourceCard({ resource, onSpeak, action }: { resource: ClassStudyResou
       <View style={styles.resourceHeader}>
         <View style={styles.resourceIcon}>{resourceIcon(resource)}</View>
         <View style={styles.flexText}>
-          <Text style={styles.resourceTitle}>{resource.title}</Text>
-          <Text style={styles.resourceMeta}>{formatRole(resource.resourceType)} - {formatDate(resource.createdAt)}</Text>
+          <Text style={styles.resourceTitle} numberOfLines={1}>{resource.title}</Text>
+          <Text style={styles.resourceMeta} numberOfLines={1}>{formatRole(resource.resourceType)} - {formatDate(resource.createdAt)}</Text>
         </View>
         {action}
         {onSpeak ? (
-          <Pressable onPress={onSpeak} style={styles.iconButton}><Volume2 size={15} color={colors.tealDark} /></Pressable>
+          <Pressable onPress={onSpeak} style={styles.iconButton}><Volume2 size={15} color={colors.brandDeep} /></Pressable>
         ) : null}
       </View>
-      <Text style={styles.resourceBody}>{resourcePreview(resource)}</Text>
+      <Text style={styles.resourceBody} numberOfLines={5}>{resourcePreview(resource)}</Text>
     </View>
   );
 }
@@ -752,7 +843,7 @@ function PanelTitle({ icon, title }: { icon: ReactNode; title: string }) {
   return (
     <View style={styles.panelTitleRow}>
       <View style={styles.panelIcon}>{icon}</View>
-      <Text style={styles.panelTitle}>{title}</Text>
+      <Text style={styles.panelTitle} numberOfLines={1}>{title}</Text>
     </View>
   );
 }
@@ -761,8 +852,8 @@ function MiniStat({ icon, label, value, tone }: { icon: ReactNode; label: string
   return (
     <View style={[styles.stat, { backgroundColor: tone.background }]}>
       <View style={[styles.statIcon, { backgroundColor: tone.accent }]}>{icon}</View>
-      <Text style={styles.statValue}>{value}</Text>
-      <Text style={styles.statLabel}>{label}</Text>
+      <Text style={styles.statValue} numberOfLines={1}>{value}</Text>
+      <Text style={styles.statLabel} numberOfLines={1}>{label}</Text>
     </View>
   );
 }
@@ -771,7 +862,7 @@ function ActionButton({ label, icon, onPress, light }: { label: string; icon: Re
   return (
     <Pressable onPress={onPress} style={[styles.actionButton, light && styles.actionButtonLight]}>
       {icon}
-      <Text style={[styles.actionText, light && styles.actionTextLight]}>{label}</Text>
+      <Text style={[styles.actionText, light && styles.actionTextLight]} numberOfLines={1}>{label}</Text>
     </Pressable>
   );
 }
@@ -780,7 +871,7 @@ function PrimaryAction({ label, icon, loading, disabled, onPress }: { label: str
   return (
     <Pressable disabled={loading || disabled} onPress={onPress} style={[styles.primaryButton, (loading || disabled) && styles.buttonDisabled]}>
       {loading ? <ActivityIndicator color="#ffffff" /> : icon}
-      <Text style={styles.primaryText}>{label}</Text>
+      <Text style={styles.primaryText} numberOfLines={1}>{label}</Text>
     </Pressable>
   );
 }
@@ -789,8 +880,8 @@ function EmptyPanel({ icon, title, body }: { icon: ReactNode; title: string; bod
   return (
     <View style={styles.emptyPanel}>
       {icon}
-      <Text style={styles.emptyTitle}>{title}</Text>
-      <Text style={styles.emptyMeta}>{body}</Text>
+      <Text style={styles.emptyTitle} numberOfLines={2}>{title}</Text>
+      <Text style={styles.emptyMeta} numberOfLines={3}>{body}</Text>
     </View>
   );
 }
@@ -856,191 +947,335 @@ function formatDuration(milliseconds: number | null | undefined) {
 }
 
 const styles = StyleSheet.create({
-  shell: { gap: 12 },
-  hero: {
-    borderRadius: 22,
-    padding: 14,
+  shell: {
     gap: 12,
-    backgroundColor: '#101916',
-    borderWidth: 1,
-    borderColor: '#20352f',
   },
-  heroCopy: { gap: 8 },
+  commandHero: {
+    borderRadius: 8,
+    padding: 16,
+    gap: 12,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    backgroundColor: colors.brandDeep,
+    borderWidth: 1,
+    borderColor: 'rgba(99, 230, 255, 0.22)',
+  },
+  heroCopy: {
+    flex: 1.35,
+    minWidth: 240,
+    gap: 8,
+  },
   heroPill: {
     alignSelf: 'flex-start',
     minHeight: 32,
-    borderRadius: 16,
+    borderRadius: 8,
     paddingHorizontal: 10,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 7,
-    backgroundColor: colors.gold,
+    backgroundColor: colors.mint,
   },
   heroPillText: { color: colors.ink, fontSize: 12, fontWeight: '700' },
-  heroTitle: { color: '#ffffff', fontSize: 24, lineHeight: 29, fontWeight: '700' },
-  heroMeta: { color: '#f6d979', fontSize: 13, lineHeight: 18, fontWeight: '700' },
-  heroStats: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  heroTitle: { color: '#ffffff', fontSize: 28, lineHeight: 34, fontWeight: '900' },
+  heroMeta: { color: colors.brandGlow, fontSize: 13, lineHeight: 18, fontWeight: '700' },
+  heroStats: {
+    flex: 1,
+    minWidth: 230,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
   stat: {
     minWidth: 112,
     flex: 1,
-    borderRadius: 17,
+    borderRadius: 10,
     padding: 13,
     gap: 6,
-    borderWidth: 2,
-    borderColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: 'rgba(17, 19, 24, 0.1)',
   },
-  statIcon: { width: 38, height: 38, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  statValue: { color: colors.ink, fontSize: 20, lineHeight: 25, fontWeight: '700' },
+  statIcon: { width: 38, height: 38, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
+  statValue: { color: colors.ink, fontSize: 20, lineHeight: 25, fontWeight: '900' },
   statLabel: { color: colors.muted, fontSize: 12, fontWeight: '700' },
-  noticeText: { color: colors.tealDark, fontSize: 13, lineHeight: 19, fontWeight: '700' },
+  noticeText: { color: colors.brand, fontSize: 13, lineHeight: 19, fontWeight: '700' },
   errorText: { color: '#a13c33', fontSize: 13, lineHeight: 19, fontWeight: '700' },
-  tabBar: {
-    minHeight: 50,
-    borderRadius: 17,
-    padding: 6,
+  toolDeck: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 6,
-    backgroundColor: '#ffffff',
-    borderWidth: 1,
-    borderColor: colors.line,
+    gap: 10,
   },
-  tabButton: {
-    minWidth: 96,
+  toolCard: {
+    minWidth: 160,
     flex: 1,
-    minHeight: 44,
-    borderRadius: 17,
-    paddingHorizontal: 10,
+    minHeight: 74,
+    borderRadius: 8,
+    padding: 11,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 7,
+    gap: 9,
+    borderWidth: 1,
+    borderBottomWidth: 4,
   },
-  tabButtonActive: { backgroundColor: colors.tealDark },
-  tabText: { color: colors.tealDark, fontSize: 12, fontWeight: '700' },
-  tabTextActive: { color: '#ffffff' },
-  twoColumn: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-start', gap: 10 },
-  panel: {
-    flex: 1,
-    minWidth: 290,
-    borderRadius: 20,
+  toolCardActive: {
+    backgroundColor: colors.brandDeep,
+    borderColor: colors.brandGlow,
+  },
+  toolCardIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  toolCardTitle: {
+    color: colors.ink,
+    fontSize: 15,
+    lineHeight: 19,
+    fontWeight: '900',
+  },
+  toolCardTitleActive: {
+    color: '#ffffff',
+  },
+  toolCardMeta: {
+    color: colors.muted,
+    fontSize: 11,
+    lineHeight: 15,
+    fontWeight: '700',
+  },
+  toolCardMetaActive: {
+    color: '#d8e0ef',
+  },
+  toolMetric: {
+    minWidth: 50,
+    minHeight: 34,
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#f8fafc',
+    borderWidth: 1,
+    borderColor: '#e5ebf5',
+  },
+  toolMetricActive: {
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderColor: 'rgba(255,255,255,0.18)',
+  },
+  toolMetricValue: {
+    color: colors.ink,
+    fontSize: 15,
+    lineHeight: 18,
+    fontWeight: '900',
+  },
+  toolMetricValueActive: {
+    color: '#ffffff',
+  },
+  toolMetricLabel: {
+    color: colors.muted,
+    fontSize: 9,
+    lineHeight: 12,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+  },
+  toolMetricLabelActive: {
+    color: '#d8e0ef',
+  },
+  stage: {
+    borderRadius: 8,
     padding: 12,
     gap: 12,
     backgroundColor: '#ffffff',
     borderWidth: 1,
-    borderColor: colors.line,
+    borderColor: '#dfe6f0',
+    shadowColor: '#111318',
+    shadowOpacity: 0.08,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 12 },
+  },
+  stageHeader: {
+    minHeight: 58,
+    borderRadius: 8,
+    padding: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: '#f8fafc',
+    borderWidth: 1,
+    borderColor: '#e5ebf5',
+  },
+  stageIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.brand,
+  },
+  stageTitle: {
+    color: colors.ink,
+    fontSize: 19,
+    lineHeight: 24,
+    fontWeight: '900',
+  },
+  stageMeta: {
+    color: colors.muted,
+    fontSize: 12,
+    lineHeight: 17,
+    fontWeight: '700',
+  },
+  stageBadge: {
+    minWidth: 72,
+    minHeight: 42,
+    borderRadius: 8,
+    paddingHorizontal: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.brandDeep,
+  },
+  stageBadgeValue: {
+    color: '#ffffff',
+    fontSize: 15,
+    lineHeight: 18,
+    fontWeight: '900',
+  },
+  stageBadgeLabel: {
+    color: '#a8b3c7',
+    fontSize: 9,
+    lineHeight: 12,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+  },
+  stageBody: {
+    gap: 12,
+  },
+  roomColumns: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'flex-start',
+    gap: 12,
+  },
+  panel: {
+    flex: 1,
+    minWidth: 240,
+    borderRadius: 10,
+    padding: 12,
+    gap: 12,
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#dfe6f0',
   },
   panelTitleRow: { minHeight: 38, flexDirection: 'row', alignItems: 'center', gap: 10 },
-  panelIcon: { width: 38, height: 38, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.softTeal },
-  panelTitle: { flex: 1, color: colors.ink, fontSize: 18, lineHeight: 23, fontWeight: '700' },
+  panelIcon: { width: 38, height: 38, borderRadius: 8, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.softBlue },
+  panelTitle: { flex: 1, color: colors.ink, fontSize: 18, lineHeight: 23, fontWeight: '900' },
   quickRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   actionButton: {
     minHeight: 40,
-    borderRadius: 15,
+    borderRadius: 8,
     paddingHorizontal: 12,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 7,
-    backgroundColor: colors.tealDark,
+    backgroundColor: colors.brand,
   },
-  actionButtonLight: { backgroundColor: colors.softTeal, borderWidth: 1, borderColor: '#d4e8df' },
-  actionText: { color: '#ffffff', fontSize: 12, fontWeight: '700' },
+  actionButtonLight: { backgroundColor: colors.softBlue, borderWidth: 1, borderColor: '#c7d7ff' },
+  actionText: { color: '#ffffff', fontSize: 12, lineHeight: 15, fontWeight: '700' },
   actionTextLight: { color: colors.ink },
   messageList: { minHeight: 150, gap: 10 },
-  messageBubble: { maxWidth: '88%', alignSelf: 'flex-start', borderRadius: 16, paddingHorizontal: 13, paddingVertical: 9, gap: 5, backgroundColor: colors.softTeal },
-  messageBubbleMine: { alignSelf: 'flex-end', backgroundColor: colors.tealDark },
+  messageBubble: { maxWidth: '88%', alignSelf: 'flex-start', borderRadius: 10, paddingHorizontal: 13, paddingVertical: 9, gap: 5, backgroundColor: colors.softBlue },
+  messageBubbleMine: { alignSelf: 'flex-end', backgroundColor: colors.brand },
   messageBody: { color: colors.ink, fontSize: 14, lineHeight: 18, fontWeight: '700' },
   messageBodyMine: { color: '#ffffff' },
   messageTime: { color: colors.muted, fontSize: 10, fontWeight: '700' },
-  messageTimeMine: { color: '#dce7e1' },
+  messageTimeMine: { color: '#d8e0ef' },
   composer: {
     minHeight: 54,
-    borderRadius: 16,
+    borderRadius: 10,
     padding: 8,
     flexDirection: 'row',
     alignItems: 'flex-end',
     gap: 8,
-    backgroundColor: '#f8fbf8',
+    backgroundColor: '#f8fafc',
     borderWidth: 1,
-    borderColor: colors.line,
+    borderColor: '#dfe6f0',
   },
   composerInput: { flex: 1, minHeight: 38, maxHeight: 110, color: colors.ink, fontSize: 14, lineHeight: 18, fontWeight: '700' },
-  sendButton: { width: 42, height: 42, borderRadius: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.tealDark },
+  sendButton: { width: 42, height: 42, borderRadius: 8, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.brand },
   input: {
     minHeight: 48,
-    borderRadius: 16,
+    borderRadius: 8,
     paddingHorizontal: 12,
     color: colors.ink,
-    backgroundColor: '#f8fbf8',
+    backgroundColor: '#f8fafc',
     borderWidth: 1,
-    borderColor: colors.line,
+    borderColor: '#dfe6f0',
     fontSize: 15,
     fontWeight: '700',
   },
   textarea: { minHeight: 95, paddingTop: 12, textAlignVertical: 'top' },
   primaryButton: {
     minHeight: 46,
-    borderRadius: 16,
+    borderRadius: 8,
     paddingHorizontal: 12,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: colors.tealDark,
+    backgroundColor: colors.brand,
   },
-  primaryText: { color: '#ffffff', fontSize: 14, fontWeight: '700' },
+  primaryText: { color: '#ffffff', fontSize: 14, lineHeight: 18, fontWeight: '700' },
   buttonDisabled: { opacity: 0.55 },
   aiPack: { gap: 10 },
   aiHeader: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  aiTitle: { flex: 1, color: colors.ink, fontSize: 18, lineHeight: 24, fontWeight: '700' },
-  aiBadge: { overflow: 'hidden', borderRadius: 13, paddingHorizontal: 9, paddingVertical: 5, color: '#ffffff', backgroundColor: colors.tealDark, fontSize: 10, fontWeight: '700' },
+  aiTitle: { flex: 1, color: colors.ink, fontSize: 18, lineHeight: 24, fontWeight: '900' },
+  aiBadge: { overflow: 'hidden', borderRadius: 8, paddingHorizontal: 9, paddingVertical: 5, color: '#ffffff', backgroundColor: colors.brand, fontSize: 10, fontWeight: '700' },
   aiSummary: { color: '#33413b', fontSize: 15, lineHeight: 21, fontWeight: '700' },
   aiBlock: { gap: 8 },
   aiBlockTitle: { color: colors.ink, fontSize: 15, lineHeight: 18, fontWeight: '700' },
-  aiPoint: { borderRadius: 17, padding: 11, flexDirection: 'row', gap: 9, backgroundColor: colors.softTeal },
-  aiPointNumber: { width: 24, height: 24, borderRadius: 12, overflow: 'hidden', textAlign: 'center', color: '#ffffff', backgroundColor: colors.tealDark, fontSize: 12, lineHeight: 22, fontWeight: '700' },
+  aiPoint: { borderRadius: 10, padding: 11, flexDirection: 'row', gap: 9, backgroundColor: colors.softBlue },
+  aiPointNumber: { width: 24, height: 24, borderRadius: 6, overflow: 'hidden', textAlign: 'center', color: '#ffffff', backgroundColor: colors.brand, fontSize: 12, lineHeight: 22, fontWeight: '700' },
   aiPointText: { flex: 1, color: colors.ink, fontSize: 13, lineHeight: 19, fontWeight: '700' },
-  quizCard: { borderRadius: 17, padding: 11, gap: 5, backgroundColor: colors.softGold },
+  quizCard: { borderRadius: 10, padding: 11, gap: 5, backgroundColor: colors.softGold },
   quizPrompt: { color: colors.ink, fontSize: 13, lineHeight: 19, fontWeight: '700' },
   quizMeta: { color: colors.muted, fontSize: 12, lineHeight: 17, fontWeight: '700' },
-  quizAnswer: { color: colors.tealDark, fontSize: 12, lineHeight: 17, fontWeight: '700' },
+  quizAnswer: { color: colors.brand, fontSize: 12, lineHeight: 17, fontWeight: '700' },
   flashGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  flashCard: { minWidth: 160, flex: 1, borderRadius: 17, padding: 12, gap: 6, backgroundColor: colors.softBlue },
+  flashCard: { minWidth: 160, flex: 1, borderRadius: 10, padding: 12, gap: 6, backgroundColor: colors.softBlue },
   flashFront: { color: colors.ink, fontSize: 13, lineHeight: 18, fontWeight: '700' },
   flashBack: { color: colors.muted, fontSize: 12, lineHeight: 18, fontWeight: '700' },
-  voiceStatus: { minHeight: 50, borderRadius: 16, padding: 12, flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: colors.softBlue },
-  voiceIcon: { width: 38, height: 38, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.blue },
+  voiceStatus: { minHeight: 50, borderRadius: 10, padding: 12, flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: colors.softBlue },
+  voiceIcon: { width: 38, height: 38, borderRadius: 8, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.brand },
   flexText: { flex: 1, minWidth: 0 },
   voiceTitle: { color: colors.ink, fontSize: 14, lineHeight: 19, fontWeight: '700' },
   voiceMeta: { color: colors.muted, fontSize: 12, lineHeight: 17, fontWeight: '700' },
-  liveBox: { borderRadius: 20, padding: 14, gap: 10, alignItems: 'center', backgroundColor: '#101916' },
-  liveIcon: { width: 60, height: 57, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.coral, borderWidth: 4, borderColor: '#ffffff' },
+  liveBox: { borderRadius: 10, padding: 14, gap: 10, alignItems: 'center', backgroundColor: colors.brandDeep },
+  liveIcon: { width: 60, height: 57, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.coral, borderWidth: 4, borderColor: '#ffffff' },
   liveTitle: { color: '#ffffff', fontSize: 20, lineHeight: 25, fontWeight: '700', textAlign: 'center' },
-  liveMeta: { color: '#dce7e1', fontSize: 13, lineHeight: 19, fontWeight: '700' },
+  liveMeta: { color: '#d8e0ef', fontSize: 13, lineHeight: 19, fontWeight: '700' },
   memberGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  memberCard: { minWidth: 220, flex: 1, minHeight: 56, borderRadius: 17, padding: 12, flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: colors.softTeal, borderWidth: 1, borderColor: '#d4e8df' },
-  memberIcon: { width: 42, height: 42, borderRadius: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.tealDark },
+  memberCard: { minWidth: 220, flex: 1, minHeight: 56, borderRadius: 10, padding: 12, flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: colors.softBlue, borderWidth: 1, borderColor: '#c7d7ff' },
+  memberIcon: { width: 42, height: 42, borderRadius: 8, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.brand },
   memberName: { color: colors.ink, fontSize: 15, lineHeight: 18, fontWeight: '700' },
   memberMeta: { color: colors.muted, fontSize: 12, lineHeight: 17, fontWeight: '700' },
-  resourceCard: { borderRadius: 16, padding: 13, gap: 9, backgroundColor: colors.softGold },
+  resourceCard: { borderRadius: 10, padding: 13, gap: 9, backgroundColor: colors.softGold },
   resourceHeader: { minHeight: 38, flexDirection: 'row', alignItems: 'center', gap: 10 },
-  resourceIcon: { width: 38, height: 38, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.tealDark },
+  resourceIcon: { width: 38, height: 38, borderRadius: 8, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.brand },
   resourceTitle: { color: colors.ink, fontSize: 15, lineHeight: 18, fontWeight: '700' },
   resourceMeta: { color: colors.muted, fontSize: 11, lineHeight: 16, fontWeight: '700' },
   resourceBody: { color: '#4a4638', fontSize: 13, lineHeight: 19, fontWeight: '700' },
-  iconButton: { width: 34, height: 34, borderRadius: 13, alignItems: 'center', justifyContent: 'center', backgroundColor: '#ffffff' },
-  smallButton: { minHeight: 34, borderRadius: 13, paddingHorizontal: 9, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, backgroundColor: '#ffffff' },
-  smallButtonText: { color: colors.tealDark, fontSize: 11, fontWeight: '700' },
-  emptyPanel: { minHeight: 95, borderRadius: 18, padding: 12, alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: '#f8fbf8', borderWidth: 1, borderColor: colors.line },
+  iconButton: { width: 34, height: 34, borderRadius: 8, alignItems: 'center', justifyContent: 'center', backgroundColor: '#ffffff' },
+  smallButton: { minHeight: 34, borderRadius: 8, paddingHorizontal: 9, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, backgroundColor: '#ffffff' },
+  smallButtonText: { color: colors.brand, fontSize: 11, fontWeight: '700' },
+  emptyPanel: { minHeight: 95, borderRadius: 10, padding: 12, alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: '#f8fafc', borderWidth: 1, borderColor: '#dfe6f0' },
   emptyTitle: { color: colors.ink, fontSize: 18, lineHeight: 23, fontWeight: '700', textAlign: 'center' },
   emptyMeta: { color: colors.muted, fontSize: 13, lineHeight: 19, fontWeight: '700', textAlign: 'center' },
-  modalBackdrop: { flex: 1, justifyContent: 'center', padding: 12, backgroundColor: 'rgba(7, 12, 10, 0.6)' },
-  modalSheet: { width: '100%', maxWidth: 860, maxHeight: '88%', alignSelf: 'center', borderRadius: 20, padding: 12, gap: 12, backgroundColor: colors.paper, borderWidth: 1, borderColor: colors.line },
+  modalBackdrop: { flex: 1, justifyContent: 'center', padding: 12, backgroundColor: 'rgba(11, 13, 18, 0.62)' },
+  modalSheet: { width: '100%', maxWidth: 860, maxHeight: '88%', alignSelf: 'center', borderRadius: 8, padding: 12, gap: 12, backgroundColor: colors.paper, borderWidth: 1, borderColor: '#dfe6f0' },
   modalHeader: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 10 },
-  modalIcon: { width: 44, height: 44, borderRadius: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.tealDark },
+  modalIcon: { width: 44, height: 44, borderRadius: 8, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.brand },
   modalTitle: { color: colors.ink, fontSize: 20, lineHeight: 25, fontWeight: '700' },
   modalMeta: { color: colors.muted, fontSize: 12, lineHeight: 18, fontWeight: '700' },
-  closeButton: { width: 38, height: 38, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.softTeal },
+  closeButton: { width: 38, height: 38, borderRadius: 8, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.softBlue },
   modalScroll: { gap: 12, paddingBottom: 6 },
 });

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { ImagePlus } from 'lucide-react-native';
 
 import { uploadImageFromDevice } from '../services/media';
@@ -30,11 +30,13 @@ export function ImageUploadButton({ label, pathPrefix, onUploaded, onError }: Im
   return (
     <Pressable disabled={uploading} onPress={handleUpload} style={[styles.button, uploading && styles.disabled]}>
       {uploading ? (
-        <ActivityIndicator color={colors.tealDark} />
+        <ActivityIndicator color={colors.brandDeep} />
       ) : (
         <>
-          <ImagePlus size={16} color={colors.tealDark} />
-          <Text style={styles.text}>{label}</Text>
+          <View style={styles.iconBox}>
+            <ImagePlus size={16} color={colors.brandDeep} />
+          </View>
+          <Text style={styles.text} numberOfLines={1}>{label}</Text>
         </>
       )}
     </Pressable>
@@ -43,23 +45,34 @@ export function ImageUploadButton({ label, pathPrefix, onUploaded, onError }: Im
 
 const styles = StyleSheet.create({
   button: {
-    minHeight: 42,
-    borderRadius: 14,
-    paddingHorizontal: 12,
+    minHeight: 46,
+    borderRadius: 8,
+    paddingHorizontal: 10,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 7,
-    backgroundColor: colors.softTeal,
+    backgroundColor: colors.softBlue,
     borderWidth: 1,
-    borderColor: '#d4e8df',
+    borderColor: '#c7d7ff',
+  },
+  iconBox: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#dce5f2',
   },
   disabled: {
     opacity: 0.55,
   },
   text: {
-    color: colors.tealDark,
+    flexShrink: 1,
+    color: colors.brandDeep,
     fontSize: 13,
-    fontWeight: '700',
+    fontWeight: '800',
   },
 });

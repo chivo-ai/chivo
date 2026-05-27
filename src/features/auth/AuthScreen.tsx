@@ -1,5 +1,5 @@
 import { Link } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { ReactNode, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -12,7 +12,21 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { GraduationCap, LockKeyhole, ShieldCheck, Sparkles } from 'lucide-react-native';
+import {
+  ArrowRight,
+  Gauge,
+  GraduationCap,
+  Headphones,
+  KeyRound,
+  Languages,
+  LockKeyhole,
+  LogIn,
+  Mail,
+  ShieldCheck,
+  Sparkles,
+  UserPlus,
+  UserRound,
+} from 'lucide-react-native';
 
 import { hasSupabaseConfig } from '../../lib/config';
 import { signInWithEmail, signUpWithEmail } from '../../services/auth';
@@ -94,8 +108,8 @@ export function AuthScreen({ initialMode = 'sign_in' }: { initialMode?: AuthMode
               <Sparkles size={24} color="#ffffff" strokeWidth={2.5} />
             </View>
             <View style={styles.flexText}>
-              <Text style={styles.brandName}>Chivo AI</Text>
-              <Text style={styles.brandMeta}>School accounts, private lessons, personal learning.</Text>
+              <Text style={styles.brandName} numberOfLines={1}>Chivo AI</Text>
+              <Text style={styles.brandMeta} numberOfLines={2}>School accounts, private lessons, personal learning.</Text>
             </View>
           </View>
 
@@ -118,8 +132,18 @@ export function AuthScreen({ initialMode = 'sign_in' }: { initialMode?: AuthMode
 
             <View style={styles.card}>
               <View style={styles.modeRow}>
-                <ModeButton active={mode === 'sign_in'} label="Sign in" onPress={() => setMode('sign_in')} />
-                <ModeButton active={mode === 'sign_up'} label="Create account" onPress={() => setMode('sign_up')} />
+                <ModeButton
+                  active={mode === 'sign_in'}
+                  label="Sign in"
+                  icon={<LogIn size={16} color={mode === 'sign_in' ? '#ffffff' : colors.brandDeep} />}
+                  onPress={() => setMode('sign_in')}
+                />
+                <ModeButton
+                  active={mode === 'sign_up'}
+                  label="Create account"
+                  icon={<UserPlus size={16} color={mode === 'sign_up' ? '#ffffff' : colors.brandDeep} />}
+                  onPress={() => setMode('sign_up')}
+                />
               </View>
 
               {!hasSupabaseConfig && (
@@ -134,6 +158,7 @@ export function AuthScreen({ initialMode = 'sign_in' }: { initialMode?: AuthMode
               {isSignUp && (
                 <Field
                   label="Full name"
+                  icon={<UserRound size={15} color={colors.brandDeep} />}
                   value={fullName}
                   onChangeText={setFullName}
                   placeholder="Your name"
@@ -143,6 +168,7 @@ export function AuthScreen({ initialMode = 'sign_in' }: { initialMode?: AuthMode
 
               <Field
                 label="Email"
+                icon={<Mail size={15} color={colors.brandDeep} />}
                 value={email}
                 onChangeText={setEmail}
                 placeholder="name@school.com"
@@ -153,6 +179,7 @@ export function AuthScreen({ initialMode = 'sign_in' }: { initialMode?: AuthMode
 
               <Field
                 label="Password"
+                icon={<KeyRound size={15} color={colors.brandDeep} />}
                 value={password}
                 onChangeText={setPassword}
                 placeholder="At least 6 characters"
@@ -164,12 +191,14 @@ export function AuthScreen({ initialMode = 'sign_in' }: { initialMode?: AuthMode
                 <>
                   <Field
                     label="Preferred language"
+                    icon={<Languages size={15} color={colors.brandDeep} />}
                     value={preferredLanguage}
                     onChangeText={setPreferredLanguage}
                     placeholder="English"
                   />
                   <Field
                     label="Learning level"
+                    icon={<Gauge size={15} color={colors.brandDeep} />}
                     value={learningLevel}
                     onChangeText={setLearningLevel}
                     placeholder="balanced"
@@ -177,9 +206,12 @@ export function AuthScreen({ initialMode = 'sign_in' }: { initialMode?: AuthMode
                   />
 
                   <View style={styles.switchRow}>
+                    <View style={styles.switchIcon}>
+                      <Headphones size={16} color={colors.brandDeep} />
+                    </View>
                     <View style={styles.flexText}>
-                      <Text style={styles.fieldLabel}>Audio lessons</Text>
-                      <Text style={styles.helperText}>Allow Chivo AI to prepare listenable study material.</Text>
+                      <Text style={styles.fieldLabel} numberOfLines={1}>Audio lessons</Text>
+                      <Text style={styles.helperText} numberOfLines={2}>Allow Chivo AI to prepare listenable study material.</Text>
                     </View>
                     <Switch value={audioEnabled} onValueChange={setAudioEnabled} />
                   </View>
@@ -197,7 +229,12 @@ export function AuthScreen({ initialMode = 'sign_in' }: { initialMode?: AuthMode
                 {loading ? (
                   <ActivityIndicator color="#ffffff" />
                 ) : (
-                  <Text style={styles.submitButtonText}>{isSignUp ? 'Create account' : 'Sign in'}</Text>
+                  <>
+                    <Text style={styles.submitButtonText} numberOfLines={1}>{isSignUp ? 'Create account' : 'Sign in'}</Text>
+                    <View style={styles.submitButtonIcon}>
+                      <ArrowRight size={16} color="#ffffff" />
+                    </View>
+                  </>
                 )}
               </Pressable>
               <View style={styles.linkRow}>
@@ -225,16 +262,18 @@ export function AuthScreen({ initialMode = 'sign_in' }: { initialMode?: AuthMode
   );
 }
 
-function ModeButton({ active, label, onPress }: { active: boolean; label: string; onPress: () => void }) {
+function ModeButton({ active, label, icon, onPress }: { active: boolean; label: string; icon: ReactNode; onPress: () => void }) {
   return (
     <Pressable onPress={onPress} style={[styles.modeButton, active && styles.modeButtonActive]}>
-      <Text style={[styles.modeButtonText, active && styles.modeButtonTextActive]}>{label}</Text>
+      <View style={[styles.modeIcon, active && styles.modeIconActive]}>{icon}</View>
+      <Text style={[styles.modeButtonText, active && styles.modeButtonTextActive]} numberOfLines={1}>{label}</Text>
     </Pressable>
   );
 }
 
 type FieldProps = {
   label: string;
+  icon?: ReactNode;
   value: string;
   onChangeText: (value: string) => void;
   placeholder: string;
@@ -246,6 +285,7 @@ type FieldProps = {
 
 function Field({
   label,
+  icon,
   value,
   onChangeText,
   placeholder,
@@ -256,7 +296,10 @@ function Field({
 }: FieldProps) {
   return (
     <View style={styles.field}>
-      <Text style={styles.fieldLabel}>{label}</Text>
+      <View style={styles.fieldLabelRow}>
+        {icon ? <View style={styles.fieldIcon}>{icon}</View> : null}
+        <Text style={styles.fieldLabel} numberOfLines={1}>{label}</Text>
+      </View>
       <TextInput
         value={value}
         onChangeText={onChangeText}
@@ -276,7 +319,7 @@ function PromiseRow({ text }: { text: string }) {
   return (
     <View style={styles.promiseRow}>
       <ShieldCheck size={18} color={colors.teal} />
-      <Text style={styles.promiseRowText}>{text}</Text>
+      <Text style={styles.promiseRowText} numberOfLines={1}>{text}</Text>
     </View>
   );
 }
@@ -284,7 +327,7 @@ function PromiseRow({ text }: { text: string }) {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: colors.canvas,
+    backgroundColor: colors.brandDeep,
   },
   linkRow: {
     flexDirection: 'row',
@@ -293,134 +336,174 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   linkText: {
-    color: colors.tealDark,
+    color: colors.brand,
     fontSize: 13,
-    fontWeight: '700',
+    fontWeight: '800',
   },
   scrollContent: {
     flexGrow: 1,
-    paddingHorizontal: 14,
-    paddingTop: Platform.select({ web: 28, default: 58 }),
-    paddingBottom: 30,
+    paddingHorizontal: 18,
+    paddingTop: Platform.select({ web: 38, default: 58 }),
+    paddingBottom: 34,
   },
   shell: {
     width: '100%',
-    maxWidth: 1080,
+    maxWidth: 1160,
     alignSelf: 'center',
-    gap: 20,
+    gap: 24,
   },
   brandRow: {
-    minHeight: 55,
+    minHeight: 60,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 12,
   },
   brandMark: {
-    width: 52,
-    height: 52,
-    borderRadius: 16,
+    width: 54,
+    height: 54,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.tealDark,
+    backgroundColor: colors.brand,
+    borderWidth: 1,
+    borderColor: 'rgba(99, 230, 255, 0.38)',
   },
   flexText: {
     flex: 1,
     minWidth: 0,
   },
   brandName: {
-    color: colors.ink,
-    fontSize: 22,
-    fontWeight: '700',
+    color: '#ffffff',
+    fontSize: 25,
+    lineHeight: 30,
+    fontWeight: '900',
   },
   brandMeta: {
-    color: colors.muted,
+    color: '#a8b3c7',
     fontSize: 14,
-    lineHeight: 18,
+    lineHeight: 20,
     marginTop: 2,
-  },
-  layout: {
-    gap: 14,
-  },
-  promisePanel: {
-    borderRadius: 18,
-    padding: 17,
-    gap: 12,
-    backgroundColor: colors.cream,
-    borderWidth: 1,
-    borderColor: '#e2dccd',
-  },
-  promiseIcon: {
-    width: 54,
-    height: 54,
-    borderRadius: 15,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.gold,
-  },
-  promiseTitle: {
-    color: colors.ink,
-    fontSize: 24,
-    lineHeight: 28,
     fontWeight: '700',
   },
+  layout: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'stretch',
+    gap: 16,
+  },
+  promisePanel: {
+    flex: 1,
+    minWidth: 280,
+    borderRadius: 8,
+    padding: 20,
+    gap: 16,
+    backgroundColor: '#0f172a',
+    borderWidth: 1,
+    borderColor: 'rgba(99, 230, 255, 0.22)',
+  },
+  promiseIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.mint,
+  },
+  promiseTitle: {
+    color: '#ffffff',
+    fontSize: 30,
+    lineHeight: 36,
+    fontWeight: '900',
+  },
   promiseBody: {
-    color: '#33413b',
+    color: '#d8e0ef',
     fontSize: 16,
-    lineHeight: 22,
+    lineHeight: 24,
+    fontWeight: '700',
   },
   promiseList: {
-    gap: 10,
+    gap: 9,
   },
   promiseRow: {
+    minHeight: 44,
+    borderRadius: 8,
+    paddingHorizontal: 11,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
   promiseRowText: {
     flex: 1,
-    color: '#33413b',
+    color: '#ffffff',
     fontSize: 14,
-    lineHeight: 18,
-    fontWeight: '700',
+    lineHeight: 19,
+    fontWeight: '800',
   },
   card: {
-    borderRadius: 17,
-    padding: 14,
-    gap: 12,
+    flex: 1,
+    minWidth: 280,
+    borderRadius: 8,
+    padding: 16,
+    gap: 13,
     backgroundColor: colors.paper,
     borderWidth: 1,
-    borderColor: colors.line,
+    borderColor: '#dfe6f0',
+    shadowColor: '#000000',
+    shadowOpacity: 0.22,
+    shadowRadius: 30,
+    shadowOffset: { width: 0, height: 18 },
   },
   modeRow: {
-    minHeight: 48,
+    minHeight: 50,
     flexDirection: 'row',
     gap: 8,
-    padding: 5,
-    borderRadius: 17,
-    backgroundColor: '#eef2ee',
+    padding: 6,
+    borderRadius: 8,
+    backgroundColor: '#eef3fb',
+    borderWidth: 1,
+    borderColor: '#d9e1ee',
   },
   modeButton: {
     flex: 1,
     minHeight: 38,
-    borderRadius: 12,
+    borderRadius: 8,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 7,
     paddingHorizontal: 10,
   },
   modeButtonActive: {
-    backgroundColor: colors.tealDark,
+    backgroundColor: colors.brandDeep,
   },
   modeButtonText: {
     color: colors.muted,
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: '800',
   },
   modeButtonTextActive: {
     color: '#ffffff',
   },
+  modeIcon: {
+    width: 26,
+    height: 26,
+    borderRadius: 7,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#dce5f2',
+  },
+  modeIconActive: {
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderColor: 'rgba(255,255,255,0.22)',
+  },
   configNotice: {
     minHeight: 44,
-    borderRadius: 14,
+    borderRadius: 8,
     padding: 12,
     flexDirection: 'row',
     alignItems: 'center',
@@ -437,20 +520,38 @@ const styles = StyleSheet.create({
   field: {
     gap: 7,
   },
+  fieldLabelRow: {
+    minHeight: 28,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+  },
+  fieldIcon: {
+    width: 24,
+    height: 24,
+    borderRadius: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.softBlue,
+    borderWidth: 1,
+    borderColor: '#c7d7ff',
+  },
   fieldLabel: {
+    flex: 1,
     color: colors.ink,
     fontSize: 13,
-    fontWeight: '700',
+    fontWeight: '800',
   },
   input: {
-    minHeight: 48,
-    borderRadius: 14,
-    paddingHorizontal: 12,
+    minHeight: 50,
+    borderRadius: 8,
+    paddingHorizontal: 13,
     color: colors.ink,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#f8fafc',
     borderWidth: 1,
-    borderColor: colors.line,
+    borderColor: '#dfe6f0',
     fontSize: 15,
+    fontWeight: '700',
   },
   helperText: {
     color: colors.muted,
@@ -459,10 +560,25 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   switchRow: {
-    minHeight: 50,
+    minHeight: 56,
+    borderRadius: 8,
+    padding: 10,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
+    backgroundColor: '#f8fafc',
+    borderWidth: 1,
+    borderColor: '#dfe6f0',
+  },
+  switchIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.softBlue,
+    borderWidth: 1,
+    borderColor: '#c7d7ff',
   },
   errorText: {
     color: '#9d2e24',
@@ -471,17 +587,19 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   successText: {
-    color: colors.tealDark,
+    color: colors.brandDeep,
     fontSize: 13,
     lineHeight: 19,
     fontWeight: '700',
   },
   submitButton: {
-    minHeight: 50,
-    borderRadius: 15,
+    minHeight: 52,
+    borderRadius: 8,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.tealDark,
+    gap: 8,
+    backgroundColor: colors.brand,
   },
   submitButtonDisabled: {
     opacity: 0.5,
@@ -489,6 +607,14 @@ const styles = StyleSheet.create({
   submitButtonText: {
     color: '#ffffff',
     fontSize: 15,
-    fontWeight: '700',
+    fontWeight: '900',
+  },
+  submitButtonIcon: {
+    width: 30,
+    height: 30,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.14)',
   },
 });

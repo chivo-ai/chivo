@@ -26,22 +26,22 @@ export function TeacherScreen({ membership, setup }: TeacherScreenProps) {
           <GraduationCap size={20} color="#ffffff" />
         </View>
         <View style={styles.flexText}>
-          <Text style={styles.launchTitle}>Teacher launchpad</Text>
-          <Text style={styles.launchMeta}>Open a class studio to record lessons, manage students, publish, and use class tools.</Text>
+          <Text style={styles.launchTitle} numberOfLines={1}>Teacher launchpad</Text>
+          <Text style={styles.launchMeta} numberOfLines={2}>Open a class studio to record lessons, manage students, publish, and use class tools.</Text>
         </View>
         <ChivoAction
           compact
           variant="ghost"
           label="All classes"
-          icon={<DoorOpen size={15} color={colors.tealDark} />}
+          icon={<DoorOpen size={15} color={colors.brandDeep} />}
           onPress={() => router.push('/school/class' as never)}
         />
       </ChivoCard>
 
       <View style={styles.statGrid}>
-        <TeacherStat icon={<BookOpen size={17} color={colors.tealDark} />} label="Classes" value={manageableClasses.length} />
-        <TeacherStat icon={<Layers size={17} color={colors.tealDark} />} label="Subjects" value={totalSubjects} />
-        <TeacherStat icon={<Users size={17} color={colors.tealDark} />} label="Seats" value={totalStudents} />
+        <TeacherStat icon={<BookOpen size={17} color={colors.brandDeep} />} label="Classes" value={manageableClasses.length} />
+        <TeacherStat icon={<Layers size={17} color={colors.brandDeep} />} label="Subjects" value={totalSubjects} />
+        <TeacherStat icon={<Users size={17} color={colors.brandDeep} />} label="Seats" value={totalStudents} />
       </View>
 
       <View style={styles.classGrid}>
@@ -55,8 +55,8 @@ export function TeacherScreen({ membership, setup }: TeacherScreenProps) {
           />
         )) : (
           <ChivoCard compact style={styles.emptyPanel}>
-            <Text style={styles.emptyTitle}>No teaching classes yet</Text>
-            <Text style={styles.emptyMeta}>An admin can assign you to a class, or you can create one from school setup.</Text>
+            <Text style={styles.emptyTitle} numberOfLines={1}>No teaching classes yet</Text>
+            <Text style={styles.emptyMeta} numberOfLines={2}>An admin can assign you to a class, or you can create one from school setup.</Text>
           </ChivoCard>
         )}
       </View>
@@ -88,23 +88,23 @@ function TeacherClassCard({
           <Text style={styles.classMarkText}>{initials(schoolClass.name)}</Text>
         </View>
         <View style={styles.flexText}>
-          <Text style={styles.classTitle}>{schoolClass.name}</Text>
-          <Text style={styles.classMeta}>{schoolClass.grade_level ?? schoolClass.username}</Text>
+          <Text style={styles.classTitle} numberOfLines={1}>{schoolClass.name}</Text>
+          <Text style={styles.classMeta} numberOfLines={1}>{schoolClass.grade_level ?? schoolClass.username}</Text>
         </View>
         <View style={styles.classBadge}>
           <Sparkles size={13} color={colors.ink} />
-          <Text style={styles.classBadgeText}>Studio</Text>
+          <Text style={styles.classBadgeText} numberOfLines={1}>Studio</Text>
         </View>
       </View>
 
       <View style={styles.miniStats}>
-        <Text style={styles.miniStat}>{subjectCount} subjects</Text>
-        <Text style={styles.miniStat}>{memberCount} students</Text>
+        <Text style={styles.miniStat} numberOfLines={1}>{subjectCount} subjects</Text>
+        <Text style={styles.miniStat} numberOfLines={1}>{memberCount} students</Text>
       </View>
 
       <Pressable onPress={() => router.push(`/school/class/${schoolClass.username}` as never)} style={styles.openButton}>
         <Settings2 size={15} color="#ffffff" />
-        <Text style={styles.openButtonText}>Open class studio</Text>
+          <Text style={styles.openButtonText} numberOfLines={1}>Open class studio</Text>
       </Pressable>
     </View>
   );
@@ -138,34 +138,34 @@ function initials(value: string) {
 }
 
 const cardTones = [
-  { background: '#fff4d4', accent: colors.gold },
-  { background: '#e9f6ff', accent: '#4aa6d9' },
-  { background: '#f3eaff', accent: '#8d68d8' },
-  { background: '#e8f8ee', accent: '#39a96b' },
+  { background: '#e9f1ff', accent: colors.brand },
+  { background: '#e3fbf7', accent: colors.teal },
+  { background: '#f3efff', accent: colors.violet },
+  { background: '#f1ffd7', accent: '#a3e635' },
 ];
 
 const styles = StyleSheet.create({
   stack: {
-    gap: 8,
+    gap: 12,
   },
   launchPanel: {
-    borderRadius: 15,
-    padding: 10,
+    borderRadius: 8,
+    padding: 16,
     flexDirection: 'row',
     flexWrap: 'wrap',
     alignItems: 'center',
-    gap: 9,
+    gap: 12,
     backgroundColor: '#ffffff',
     borderWidth: 1,
-    borderColor: colors.line,
+    borderColor: '#dfe6f0',
   },
   launchIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 14,
+    width: 44,
+    height: 44,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.tealDark,
+    backgroundColor: colors.brand,
   },
   flexText: {
     flex: 1,
@@ -173,42 +173,42 @@ const styles = StyleSheet.create({
   },
   launchTitle: {
     color: colors.ink,
-    fontSize: 15,
-    lineHeight: 19,
-    fontWeight: '700',
+    fontSize: 20,
+    lineHeight: 25,
+    fontWeight: '900',
   },
   launchMeta: {
     color: colors.muted,
-    fontSize: 11,
-    lineHeight: 15,
+    fontSize: 13,
+    lineHeight: 19,
     fontWeight: '700',
   },
   launchAction: {
     minHeight: 34,
-    borderRadius: 13,
+    borderRadius: 8,
     paddingHorizontal: 10,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    backgroundColor: colors.softTeal,
+    backgroundColor: colors.softBlue,
     borderWidth: 1,
-    borderColor: '#d4e8df',
+    borderColor: '#c7d7ff',
   },
   launchActionText: {
-    color: colors.tealDark,
+    color: colors.brandDeep,
     fontSize: 12,
     fontWeight: '700',
   },
   statGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: 10,
   },
   statCard: {
     minWidth: 106,
     flex: 1,
-    borderRadius: 14,
+    borderRadius: 8,
     padding: 9,
     gap: 4,
     backgroundColor: '#ffffff',
@@ -218,10 +218,10 @@ const styles = StyleSheet.create({
   statIcon: {
     width: 30,
     height: 30,
-    borderRadius: 11,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.softTeal,
+    backgroundColor: colors.softBlue,
   },
   statValue: {
     color: colors.ink,
@@ -238,15 +238,16 @@ const styles = StyleSheet.create({
   classGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 9,
+    gap: 11,
   },
   classCard: {
-    minWidth: 230,
+    minWidth: 250,
     flex: 1,
-    borderRadius: 16,
-    padding: 10,
-    gap: 9,
+    borderRadius: 8,
+    padding: 14,
+    gap: 11,
     borderWidth: 1,
+    borderBottomWidth: 4,
   },
   classHeader: {
     minHeight: 42,
@@ -255,9 +256,9 @@ const styles = StyleSheet.create({
     gap: 9,
   },
   classMark: {
-    width: 38,
-    height: 38,
-    borderRadius: 13,
+    width: 42,
+    height: 42,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -268,9 +269,9 @@ const styles = StyleSheet.create({
   },
   classTitle: {
     color: colors.ink,
-    fontSize: 15,
-    lineHeight: 19,
-    fontWeight: '700',
+    fontSize: 17,
+    lineHeight: 22,
+    fontWeight: '900',
   },
   classMeta: {
     color: colors.muted,
@@ -280,7 +281,7 @@ const styles = StyleSheet.create({
   },
   classBadge: {
     minHeight: 28,
-    borderRadius: 13,
+    borderRadius: 8,
     paddingHorizontal: 8,
     flexDirection: 'row',
     alignItems: 'center',
@@ -299,23 +300,23 @@ const styles = StyleSheet.create({
   },
   miniStat: {
     overflow: 'hidden',
-    borderRadius: 11,
+    borderRadius: 8,
     paddingHorizontal: 7,
     paddingVertical: 4,
-    color: colors.tealDark,
+    color: colors.brandDeep,
     backgroundColor: 'rgba(255,255,255,0.72)',
     fontSize: 10,
     fontWeight: '700',
   },
   openButton: {
-    minHeight: 38,
-    borderRadius: 13,
+    minHeight: 40,
+    borderRadius: 8,
     paddingHorizontal: 11,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 7,
-    backgroundColor: colors.tealDark,
+    backgroundColor: colors.brand,
   },
   openButtonText: {
     color: '#ffffff',
@@ -324,12 +325,12 @@ const styles = StyleSheet.create({
   },
   emptyPanel: {
     flex: 1,
-    borderRadius: 15,
-    padding: 12,
+    borderRadius: 8,
+    padding: 14,
     gap: 5,
     backgroundColor: '#ffffff',
     borderWidth: 1,
-    borderColor: colors.line,
+    borderColor: '#dfe6f0',
   },
   emptyTitle: {
     color: colors.ink,

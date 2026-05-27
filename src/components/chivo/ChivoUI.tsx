@@ -63,9 +63,9 @@ export function ChivoSectionHeader({
     <View style={[styles.sectionHeader, compact && styles.sectionHeaderCompact]}>
       {icon ? <View style={styles.headerIcon}>{icon}</View> : null}
       <View style={styles.flexText}>
-        {eyebrow ? <Text style={styles.eyebrow}>{eyebrow}</Text> : null}
-        <Text style={styles.sectionTitle}>{title}</Text>
-        {body ? <Text style={styles.sectionBody}>{body}</Text> : null}
+        {eyebrow ? <Text style={styles.eyebrow} numberOfLines={1}>{eyebrow}</Text> : null}
+        <Text style={styles.sectionTitle} numberOfLines={2}>{title}</Text>
+        {body ? <Text style={styles.sectionBody} numberOfLines={3}>{body}</Text> : null}
       </View>
       {action}
     </View>
@@ -89,6 +89,8 @@ export function ChivoAction({
   compact?: boolean;
   style?: StyleProp<ViewStyle>;
 }) {
+  const darkText = variant === 'secondary' || variant === 'ghost';
+
   return (
     <Pressable
       disabled={disabled}
@@ -102,8 +104,8 @@ export function ChivoAction({
         style,
       ]}
     >
-      {icon}
-      <Text style={[styles.actionText, variant === 'secondary' || variant === 'ghost' ? styles.actionTextDark : null]}>
+      {icon ? <View style={[styles.actionIcon, darkText && styles.actionIconSoft]}>{icon}</View> : null}
+      <Text style={[styles.actionText, darkText ? styles.actionTextDark : null]} numberOfLines={1}>
         {label}
       </Text>
     </Pressable>
@@ -121,11 +123,18 @@ export function ChivoMetric({
   icon?: ReactNode;
   tone?: Tone;
 }) {
+  const darkTone = tone === 'night';
+
   return (
     <View style={[styles.metric, metricTones[tone]]}>
-      {icon ? <View style={styles.metricIcon}>{icon}</View> : null}
-      <Text style={styles.metricValue}>{value}</Text>
-      <Text style={styles.metricLabel}>{label}</Text>
+      <View style={styles.metricTop}>
+        {icon ? <View style={styles.metricIcon}>{icon}</View> : <View style={styles.metricDot} />}
+        <Text style={[styles.metricLabel, darkTone && styles.metricLabelDark]} numberOfLines={1}>{label}</Text>
+      </View>
+      <Text style={[styles.metricValue, darkTone && styles.metricValueDark]} numberOfLines={1}>{value}</Text>
+      <View style={styles.metricTrack}>
+        <View style={styles.metricFill} />
+      </View>
     </View>
   );
 }
@@ -150,8 +159,10 @@ export function ChivoSegmented<T extends string>({
             onPress={() => onChange(item.id)}
             style={[styles.segment, active && styles.segmentActive]}
           >
-            {item.icon}
-            <Text style={[styles.segmentText, active && styles.segmentTextActive]}>{item.label}</Text>
+            {item.icon ? (
+              <View style={[styles.segmentIcon, active && styles.segmentIconActive]}>{item.icon}</View>
+            ) : null}
+            <Text style={[styles.segmentText, active && styles.segmentTextActive]} numberOfLines={1}>{item.label}</Text>
           </Pressable>
         );
       })}
@@ -174,8 +185,8 @@ export function ChivoEmptyState({
     <ChivoCard tone="soft" compact style={styles.emptyState}>
       {icon ? <View style={styles.emptyIcon}>{icon}</View> : null}
       <View style={styles.flexText}>
-        <Text style={styles.emptyTitle}>{title}</Text>
-        {body ? <Text style={styles.emptyBody}>{body}</Text> : null}
+        <Text style={styles.emptyTitle} numberOfLines={2}>{title}</Text>
+        {body ? <Text style={styles.emptyBody} numberOfLines={3}>{body}</Text> : null}
       </View>
       {action}
     </ChivoCard>
@@ -188,32 +199,32 @@ const toneStyles = StyleSheet.create({
     borderColor: chivoTheme.hairline,
   },
   soft: {
-    backgroundColor: colors.surfaceSoft,
-    borderColor: chivoTheme.hairline,
+    backgroundColor: '#f8fafc',
+    borderColor: '#dfe6f0',
   },
   night: {
-    backgroundColor: colors.night,
-    borderColor: '#1e3a31',
+    backgroundColor: colors.brandDeep,
+    borderColor: '#2b3448',
   },
   brand: {
-    backgroundColor: colors.brandDeep,
-    borderColor: '#1d6f5f',
+    backgroundColor: '#12224a',
+    borderColor: '#315dff',
   },
   gold: {
     backgroundColor: colors.softGold,
-    borderColor: '#efd178',
+    borderColor: '#f3d055',
   },
   blue: {
     backgroundColor: colors.softBlue,
-    borderColor: '#bcd8ea',
+    borderColor: '#aac6ff',
   },
   violet: {
-    backgroundColor: '#f0e9ff',
-    borderColor: '#d4c5ff',
+    backgroundColor: '#f3efff',
+    borderColor: '#c9bbff',
   },
   success: {
-    backgroundColor: '#e8f8ee',
-    borderColor: '#b7e0ca',
+    backgroundColor: '#e8f9f0',
+    borderColor: '#aee6c8',
   },
 });
 
@@ -223,47 +234,47 @@ const metricTones = StyleSheet.create({
     borderColor: chivoTheme.hairline,
   },
   soft: {
-    backgroundColor: colors.surfaceSoft,
-    borderColor: chivoTheme.hairline,
+    backgroundColor: '#f8fafc',
+    borderColor: '#dfe6f0',
   },
   night: {
-    backgroundColor: colors.nightSoft,
-    borderColor: '#1e3a31',
+    backgroundColor: '#0f172a',
+    borderColor: '#2b3448',
   },
   brand: {
-    backgroundColor: colors.softTeal,
-    borderColor: '#cfe6dd',
+    backgroundColor: colors.softBlue,
+    borderColor: '#aac6ff',
   },
   gold: {
     backgroundColor: colors.softGold,
-    borderColor: '#efd178',
+    borderColor: '#f3d055',
   },
   blue: {
     backgroundColor: colors.softBlue,
-    borderColor: '#bcd8ea',
+    borderColor: '#aac6ff',
   },
   violet: {
-    backgroundColor: '#f0e9ff',
-    borderColor: '#d4c5ff',
+    backgroundColor: '#f3efff',
+    borderColor: '#c9bbff',
   },
   success: {
-    backgroundColor: '#e8f8ee',
-    borderColor: '#b7e0ca',
+    backgroundColor: '#e8f9f0',
+    borderColor: '#aee6c8',
   },
 });
 
 const actionStyles = StyleSheet.create({
   primary: {
-    backgroundColor: colors.brandDeep,
-    borderColor: colors.brandDeep,
+    backgroundColor: colors.brand,
+    borderColor: colors.brand,
   },
   secondary: {
     backgroundColor: colors.surface,
-    borderColor: chivoTheme.hairline,
+    borderColor: '#cfd8e5',
   },
   ghost: {
-    backgroundColor: colors.softTeal,
-    borderColor: '#d4e8df',
+    backgroundColor: colors.softBlue,
+    borderColor: '#c7d7ff',
   },
   danger: {
     backgroundColor: colors.danger,
@@ -276,78 +287,102 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   card: {
-    borderRadius: radii.lg,
-    padding: spacing.lg,
+    borderRadius: radii.md,
+    padding: spacing.xl,
     borderWidth: 1,
-    gap: spacing.md,
+    borderTopWidth: 4,
+    gap: spacing.lg,
+    ...chivoTheme.shadow,
   },
   cardCompact: {
     borderRadius: radii.md,
-    padding: spacing.md,
-    gap: spacing.sm,
-  },
-  pressed: {
-    opacity: 0.88,
-    transform: [{ scale: 0.995 }],
-  },
-  sectionHeader: {
-    minHeight: 48,
-    flexDirection: 'row',
-    alignItems: 'center',
+    padding: spacing.lg,
     gap: spacing.md,
   },
+  pressed: {
+    opacity: 0.9,
+    transform: [{ translateY: 1 }],
+  },
+  sectionHeader: {
+    minHeight: 52,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.lg,
+  },
   sectionHeaderCompact: {
-    minHeight: 38,
+    minHeight: 42,
   },
   headerIcon: {
-    width: 38,
-    height: 38,
+    width: 46,
+    height: 46,
     borderRadius: radii.md,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.softTeal,
+    backgroundColor: colors.softBlue,
+    borderWidth: 1,
+    borderColor: '#c7d7ff',
+    shadowColor: colors.brand,
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 7 },
   },
   flexText: {
     flex: 1,
     minWidth: 0,
   },
   eyebrow: {
-    color: colors.brandDeep,
+    color: colors.brand,
     fontSize: typeScale.eyebrow,
-    lineHeight: 13,
+    lineHeight: 14,
     fontWeight: '800',
     textTransform: 'uppercase',
   },
   sectionTitle: {
     color: colors.ink,
     fontSize: typeScale.title,
-    lineHeight: 20,
+    lineHeight: 22,
     fontWeight: '800',
   },
   sectionBody: {
     color: colors.muted,
     fontSize: typeScale.body,
-    lineHeight: 16,
+    lineHeight: 18,
     fontWeight: '600',
   },
   action: {
-    minHeight: 36,
+    minHeight: 42,
+    minWidth: 0,
     borderRadius: radii.md,
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: spacing.xs,
+    gap: spacing.sm,
     borderWidth: 1,
   },
   actionCompact: {
-    minHeight: 32,
-    paddingHorizontal: spacing.md,
+    minHeight: 36,
+    paddingHorizontal: spacing.sm,
     borderRadius: radii.sm,
+  },
+  actionIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: radii.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.14)',
+  },
+  actionIconSoft: {
+    backgroundColor: '#eef3fb',
+    borderWidth: 1,
+    borderColor: '#d7e1ef',
   },
   actionText: {
     color: '#ffffff',
     fontSize: typeScale.label,
+    lineHeight: 15,
     fontWeight: '800',
   },
   actionTextDark: {
@@ -357,56 +392,107 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   metric: {
-    minWidth: 96,
+    minWidth: 126,
     flex: 1,
     borderRadius: radii.md,
     padding: spacing.md,
     borderWidth: 1,
-    gap: spacing.xs,
+    borderBottomWidth: 4,
+    gap: spacing.md,
+  },
+  metricTop: {
+    minHeight: 32,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
   },
   metricIcon: {
-    width: 28,
-    height: 28,
-    borderRadius: radii.sm,
+    width: 32,
+    height: 32,
+    borderRadius: radii.xs,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.surface,
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#e5ebf5',
+  },
+  metricDot: {
+    width: 32,
+    height: 32,
+    borderRadius: radii.xs,
+    backgroundColor: colors.brandDeep,
+    borderWidth: 6,
+    borderColor: colors.mint,
   },
   metricValue: {
     color: colors.ink,
-    fontSize: typeScale.titleLg,
-    lineHeight: 22,
-    fontWeight: '800',
+    fontSize: 24,
+    lineHeight: 29,
+    fontWeight: '900',
+  },
+  metricValueDark: {
+    color: '#ffffff',
   },
   metricLabel: {
+    flex: 1,
     color: colors.muted,
     fontSize: typeScale.caption,
-    lineHeight: 14,
-    fontWeight: '700',
+    lineHeight: 15,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+  },
+  metricLabelDark: {
+    color: '#b8c4d8',
+  },
+  metricTrack: {
+    height: 4,
+    borderRadius: 999,
+    overflow: 'hidden',
+    backgroundColor: 'rgba(17, 19, 24, 0.08)',
+  },
+  metricFill: {
+    width: '58%',
+    height: '100%',
+    borderRadius: 999,
+    backgroundColor: colors.brandDeep,
   },
   segmented: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: spacing.xs,
-    padding: spacing.xs,
-    borderRadius: radii.lg,
-    backgroundColor: colors.surfaceSoft,
+    gap: spacing.sm,
+    padding: spacing.sm,
+    borderRadius: radii.md,
+    backgroundColor: '#eef3fb',
     borderWidth: 1,
-    borderColor: chivoTheme.hairline,
+    borderColor: '#d9e1ee',
   },
   segment: {
-    minHeight: 32,
+    minHeight: 36,
     flex: 1,
     minWidth: 96,
-    borderRadius: radii.md,
+    borderRadius: radii.sm,
     paddingHorizontal: spacing.md,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: spacing.xs,
+    gap: spacing.sm,
   },
   segmentActive: {
     backgroundColor: colors.brandDeep,
+  },
+  segmentIcon: {
+    width: 26,
+    height: 26,
+    borderRadius: radii.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#dce5f2',
+  },
+  segmentIconActive: {
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    borderColor: 'rgba(255, 255, 255, 0.2)',
   },
   segmentText: {
     color: colors.muted,
@@ -421,23 +507,25 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   emptyIcon: {
-    width: 38,
-    height: 38,
+    width: 48,
+    height: 48,
     borderRadius: radii.md,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: '#e5ebf5',
   },
   emptyTitle: {
     color: colors.ink,
     fontSize: typeScale.title,
-    lineHeight: 20,
+    lineHeight: 22,
     fontWeight: '800',
   },
   emptyBody: {
     color: colors.muted,
     fontSize: typeScale.body,
-    lineHeight: 16,
+    lineHeight: 18,
     fontWeight: '600',
   },
 });
