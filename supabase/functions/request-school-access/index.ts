@@ -1,10 +1,19 @@
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.4';
+import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.45.4';
 
 type RequestSchoolAccessBody = {
   schoolCode: string;
   requestedRole?: 'student' | 'teacher' | 'guardian';
   message?: string;
+};
+
+type AccessPolicyResult = {
+  allowed?: boolean;
+  reason?: string;
+  paymentRequired?: boolean;
+  amount?: number | string | null;
+  currency?: string | null;
+  billingPeriod?: string | null;
 };
 
 const corsHeaders = {
@@ -84,6 +93,11 @@ serve(async (request) => {
       audio_enabled: user.user_metadata?.audio_enabled ?? true,
     });
 
+    const accessPolicy = await evaluateAccessPolicy(supabase, school.id, user.id);
+    if (accessPolicy && accessPolicy.allowed === false) {
+      return json(accessPolicyError(accessPolicy, school.name), accessPolicy.paymentRequired ? 402 : 403);
+    }
+
     const { data: membership, error: membershipError } = await supabase
       .from('school_memberships')
       .select('id, role, status')
@@ -145,6 +159,69 @@ serve(async (request) => {
     return json({ error: error instanceof Error ? error.message : 'Unknown error' }, 500);
   }
 });
+
+async function evaluateAccessPolicy(
+  supabase: SupabaseClient,
+  schoolId: string,
+  profileId: string
+): Promise<AccessPolicyResult | null> {
+  const { data, error } = await supabase.rpc('evaluate_access_policy', {
+    target_entity_type: 'school',
+    target_entity_id: schoolId,
+    target_profile_id: profileId,
+  });
+
+  if (error) {
+    if (error.code === '42883' || error.code === 'PGRST202' || error.code === '42P01') {
+      return null;
+    }
+
+    throw error;
+  }
+
+  return data as AccessPolicyResult;
+}
+
+function accessPolicyError(policy: AccessPolicyResult, targetName: string) {
+  if (policy.paymentRequired) {
+    const amount = policy.amount ? `${policy.amount}${policy.currency ? ` ${policy.currency}` : ''}` : 'payment';
+    return {
+      error: `Payment is required to enter ${targetName}.`,
+      paymentRequired: true,
+      amount,
+      billingPeriod: policy.billingPeriod ?? null,
+    };
+  }
+
+  return {
+    error: accessPolicyMessage(policy.reason, targetName),
+    paymentRequired: false,
+  };
+}
+
+function accessPolicyMessage(reason: string | undefined, targetName: string) {
+  if (reason === 'ban') {
+    return `Access to ${targetName} is not available for this account.`;
+  }
+
+  if (reason === 'suspension') {
+    return `Access to ${targetName} is paused for this account.`;
+  }
+
+  if (reason === 'payment_freeze' || reason === 'payout_freeze') {
+    return `Access to ${targetName} is under review.`;
+  }
+
+  if (reason === 'override_denied') {
+    return `Access to ${targetName} has been restricted.`;
+  }
+
+  if (reason === 'access_disabled') {
+    return `${targetName} is not accepting access right now.`;
+  }
+
+  return `Access to ${targetName} is not available right now.`;
+}
 
 function normalizeSchoolCode(value: string) {
   return value

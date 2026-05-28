@@ -1,12 +1,14 @@
 import { Redirect, Slot, router, usePathname } from 'expo-router';
-import { Bell, Building2, Home, QrCode, UserCircle, UserPlus, Users } from 'lucide-react-native';
+import { useEffect, useState } from 'react';
+import { Bell, Building2, Home, QrCode, ShieldCheck, UserCircle, UserPlus, Users } from 'lucide-react-native';
 
 import { AppNavigation, AppNavItem } from '../../src/components/AppNavigation';
 import { BootScreen } from '../../src/features/app/BootScreen';
 import { useAppSession } from '../../src/features/app/AppSessionProvider';
+import { CompanyAdminSession, fetchCurrentCompanyAdminSession } from '../../src/services/companyAdmin';
 import { colors } from '../../src/theme/tokens';
 
-type AccessRoute = 'home' | 'notifications' | 'account' | 'create' | 'join' | 'request' | 'crews';
+type AccessRoute = 'home' | 'notifications' | 'account' | 'create' | 'join' | 'request' | 'crews' | 'company';
 
 const routeById: Record<AccessRoute, string> = {
   home: '/home',
@@ -16,15 +18,42 @@ const routeById: Record<AccessRoute, string> = {
   join: '/join',
   request: '/request',
   crews: '/crews',
+  company: '/company',
 };
 
-const accessRoutes: AccessRoute[] = ['home', 'notifications', 'account', 'create', 'join', 'request', 'crews'];
+const accessRoutes: AccessRoute[] = ['home', 'notifications', 'account', 'create', 'join', 'request', 'crews', 'company'];
 
 export default function TabsLayout() {
   const pathname = usePathname();
   const { loading, user } = useAppSession();
+  const [companySession, setCompanySession] = useState<CompanyAdminSession | null>(null);
   const activeId = activeRouteFromPath(pathname);
-  const items = accessNavItems(activeId);
+  const items = accessNavItems(activeId, Boolean(companySession?.isActive));
+
+  useEffect(() => {
+    let isMounted = true;
+
+    if (!user) {
+      setCompanySession(null);
+      return;
+    }
+
+    fetchCurrentCompanyAdminSession()
+      .then((session) => {
+        if (isMounted) {
+          setCompanySession(session);
+        }
+      })
+      .catch(() => {
+        if (isMounted) {
+          setCompanySession(null);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [user]);
 
   if (loading) {
     return <BootScreen />;
@@ -52,7 +81,7 @@ function activeRouteFromPath(pathname: string): AccessRoute {
   return firstSegment && accessRoutes.includes(firstSegment) ? firstSegment : 'home';
 }
 
-function accessNavItems(activeId: AccessRoute): AppNavItem[] {
+function accessNavItems(activeId: AccessRoute, showCompanyControls: boolean): AppNavItem[] {
   const iconColor = (id: AccessRoute) => (activeId === id ? colors.brandDeep : '#d8e0ef');
 
   return [
@@ -104,6 +133,14 @@ function accessNavItems(activeId: AccessRoute): AppNavItem[] {
       description: 'Study groups',
       group: 'Study',
       icon: <Users size={19} color={iconColor('crews')} />,
+    },
+    {
+      id: 'company',
+      label: 'Control',
+      description: 'Company authority',
+      group: 'Company',
+      visible: showCompanyControls,
+      icon: <ShieldCheck size={19} color={iconColor('company')} />,
     },
   ];
 }

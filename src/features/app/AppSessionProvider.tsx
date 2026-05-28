@@ -4,6 +4,7 @@ import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, 
 
 import { useAuthSession } from '../../hooks/useAuthSession';
 import { supabase } from '../../lib/supabase';
+import { evaluateAccessPolicy } from '../../services/accessControl';
 import { ActiveSchoolMembership } from '../../types';
 import { mapMembershipRow, MembershipRow } from '../onboarding/accessTypes';
 
@@ -140,6 +141,11 @@ async function fetchActiveMembershipById(membershipId: string) {
     return null;
   }
 
+  const policy = await evaluateAccessPolicy('school', data.school_id);
+  if (!policy.allowed) {
+    return null;
+  }
+
   return mapMembershipRow(data as MembershipRow);
 }
 
@@ -162,6 +168,11 @@ async function fetchActiveMembershipBySchoolId(schoolId: string) {
     .maybeSingle();
 
   if (error || !data) {
+    return null;
+  }
+
+  const policy = await evaluateAccessPolicy('school', data.school_id, user.id);
+  if (!policy.allowed) {
     return null;
   }
 

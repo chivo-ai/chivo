@@ -168,15 +168,18 @@ Use upgrade files for existing databases:
 - `supabase/group9-activity-upgrade.sql`: notification payloads for activity badges and deep links
 - `supabase/group10-crew-study-upgrade.sql`: crew audio storage, voice notes, and live study resource updates
 - `supabase/group11-classroom-study-upgrade.sql`: class chat, resources, audio storage, voice notes, and live class study
+- `supabase/group12-ai-chat-memory-upgrade.sql`: AI chat memory, classroom AI thread persistence, and updated timestamps
+- `supabase/group13-monetization-controls-upgrade.sql`: 2.0 billing controls, company roles, access policy, overrides, embedded wallets, and onchain payment records
 
 Do not run `supabase/dev-reset.sql` on a database that contains live data.
 
 Edge Functions:
 
 - `create-school`: creates a school, owner membership, trial subscription, and audit log.
-- `accept-invite`: redeems a school/class code and creates school/class membership.
-- `request-school-access`: sends a request to join a school by school code.
+- `accept-invite`: redeems a school/class code after checking company access policy.
+- `request-school-access`: sends a request to join a school by school code after checking company access policy.
 - `review-join-request`: lets a school owner/admin approve or decline a request.
+- `company-control`: manages company billing, roles, restrictions, and overrides with service-role protection.
 - `process-lesson`: Gemini lesson processing foundation.
 - `personalize-lesson`: creates a student-specific lesson version by language and learning mode.
 - `submit-quiz-attempt`: scores student quiz attempts and updates progress signals.

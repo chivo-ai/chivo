@@ -28,6 +28,15 @@ type InviteRow = {
   } | null;
 };
 
+type AccessPolicyResult = {
+  allowed?: boolean;
+  reason?: string;
+  paymentRequired?: boolean;
+  amount?: number | string | null;
+  currency?: string | null;
+  billingPeriod?: string | null;
+};
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -96,6 +105,18 @@ serve(async (request) => {
       learning_level: user.user_metadata?.learning_level ?? 'balanced',
       audio_enabled: user.user_metadata?.audio_enabled ?? true,
     });
+
+    const schoolPolicy = await evaluateAccessPolicy(supabase, 'school', invite.school_id, user.id);
+    if (schoolPolicy && schoolPolicy.allowed === false) {
+      return json(accessPolicyError(schoolPolicy, invite.schools?.name ?? 'this school'), schoolPolicy.paymentRequired ? 402 : 403);
+    }
+
+    if (invite.class_id) {
+      const classPolicy = await evaluateAccessPolicy(supabase, 'class', invite.class_id, user.id);
+      if (classPolicy && classPolicy.allowed === false) {
+        return json(accessPolicyError(classPolicy, 'this class'), classPolicy.paymentRequired ? 402 : 403);
+      }
+    }
 
     const { data: existingMembership, error: existingError } = await supabase
       .from('school_memberships')
@@ -191,6 +212,70 @@ async function activateMembership(
   }
 
   return data;
+}
+
+async function evaluateAccessPolicy(
+  supabase: SupabaseClient,
+  entityType: 'school' | 'class',
+  entityId: string,
+  profileId: string
+): Promise<AccessPolicyResult | null> {
+  const { data, error } = await supabase.rpc('evaluate_access_policy', {
+    target_entity_type: entityType,
+    target_entity_id: entityId,
+    target_profile_id: profileId,
+  });
+
+  if (error) {
+    if (error.code === '42883' || error.code === 'PGRST202' || error.code === '42P01') {
+      return null;
+    }
+
+    throw error;
+  }
+
+  return data as AccessPolicyResult;
+}
+
+function accessPolicyError(policy: AccessPolicyResult, targetName: string) {
+  if (policy.paymentRequired) {
+    const amount = policy.amount ? `${policy.amount}${policy.currency ? ` ${policy.currency}` : ''}` : 'payment';
+    return {
+      error: `Payment is required to enter ${targetName}.`,
+      paymentRequired: true,
+      amount,
+      billingPeriod: policy.billingPeriod ?? null,
+    };
+  }
+
+  return {
+    error: accessPolicyMessage(policy.reason, targetName),
+    paymentRequired: false,
+  };
+}
+
+function accessPolicyMessage(reason: string | undefined, targetName: string) {
+  if (reason === 'ban') {
+    return `Access to ${targetName} is not available for this account.`;
+  }
+
+  if (reason === 'suspension') {
+    return `Access to ${targetName} is paused for this account.`;
+  }
+
+  if (reason === 'payment_freeze' || reason === 'payout_freeze') {
+    return `Access to ${targetName} is under review.`;
+  }
+
+  if (reason === 'override_denied') {
+    return `Access to ${targetName} has been restricted.`;
+  }
+
+  if (reason === 'access_disabled') {
+    return `${targetName} is not accepting access right now.`;
+  }
+
+  return `Access to ${targetName} is not available right now.`;
 }
 
 function json(body: unknown, status = 200) {

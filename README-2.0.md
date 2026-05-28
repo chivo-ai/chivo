@@ -493,6 +493,7 @@ Rules:
 - traditional finance should be a first-class option
 - company review tools are separate from school admin tools
 - verification is optional, not required for normal learning
+- company admin access is role-based, with `super_admin` as the only role that can control every company-side system
 
 ## Build Order
 
@@ -514,6 +515,19 @@ Recommended order now that the UI foundation is in place:
 14. Add AI review queue and approved/open feed split.
 15. Add verification requests, verification plans, and manual badge controls.
 16. Add donations and monthly creator rewards.
+
+## Implementation Started
+
+The first 2.0 bridge is the monetization control plane:
+
+- `supabase/group13-monetization-controls-upgrade.sql` adds global billing controls, company admins, restrictions, overrides, access products, access passes, payment rails, embedded wallet identities, onchain payment intents/events, and contract/program registry records.
+- `src/services/accessControl.ts` gives both native and web one typed path for reading billing controls, enabled payment rails, and database access decisions.
+- `src/services/companyAdmin.ts` reads the current company admin role and permissions, with `super_admin` treated as the root company role.
+- `supabase/functions/company-control/index.ts` handles protected company actions through the service role after checking the signed-in company admin.
+- `src/features/company/CompanyControlScreen.tsx` adds the first company control surface for billing, payment rails, roles, restrictions, and access overrides.
+- invite acceptance, school access requests, class requests, class entry, active school restore, and crew-code joins now consult the access policy layer before granting or opening access.
+
+This layer does not replace the existing school, class, crew, lesson, or classroom flows. It prepares those flows to ask the database for access policy before paid gates are added.
 
 ## Current Decision
 

@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase';
+import { evaluateAccessPolicy } from './accessControl';
 import { MembershipStatus, SchoolMembershipRole } from '../types';
 
 export type AcademicYearRow = {
@@ -508,6 +509,11 @@ export async function requestClassAccess(input: RequestClassAccessInput) {
     return { alreadyMember: true };
   }
 
+  const accessPolicy = await evaluateAccessPolicy('class', input.classId, profileId);
+  if (!accessPolicy.allowed) {
+    throw new Error(accessPolicyMessage(accessPolicy, 'this class'));
+  }
+
   const { data: existingRequest, error: requestLookupError } = await db
     .from('school_join_requests')
     .select('id, status')
@@ -654,6 +660,33 @@ function cleanUrl(value?: string) {
   }
 
   return /^https?:\/\//i.test(trimmed) ? trimmed : null;
+}
+
+function accessPolicyMessage(
+  policy: { reason?: string; paymentRequired?: boolean; amount?: number | string | null; currency?: string | null },
+  targetName: string
+) {
+  if (policy.paymentRequired) {
+    return `Payment is required to enter ${targetName}.`;
+  }
+
+  if (policy.reason === 'ban') {
+    return `Access to ${targetName} is not available for this account.`;
+  }
+
+  if (policy.reason === 'suspension') {
+    return `Access to ${targetName} is paused for this account.`;
+  }
+
+  if (policy.reason === 'override_denied') {
+    return `Access to ${targetName} has been restricted.`;
+  }
+
+  if (policy.reason === 'access_disabled') {
+    return `${targetName} is not accepting access right now.`;
+  }
+
+  return `Access to ${targetName} is not available right now.`;
 }
 
 export function cleanUsername(value: string) {

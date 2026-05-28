@@ -7,6 +7,7 @@ import { BootScreen } from '../../../src/features/app/BootScreen';
 import { RouteScreen } from '../../../src/features/app/RouteScreen';
 import { useAppSession } from '../../../src/features/app/AppSessionProvider';
 import { SchoolSetupState, fetchSchoolSetupState } from '../../../src/services/school';
+import { evaluateAccessPolicy } from '../../../src/services/accessControl';
 import { colors } from '../../../src/theme/tokens';
 
 const emptySetup: SchoolSetupState = {
@@ -34,6 +35,7 @@ export default function ClassRoute() {
   const [setup, setSetup] = useState<SchoolSetupState>(emptySetup);
   const [loadingSetup, setLoadingSetup] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [accessDenied, setAccessDenied] = useState<string | null>(null);
 
   const isStaff = activeMembership
     ? ['owner', 'admin', 'teacher'].includes(activeMembership.role)
@@ -46,9 +48,19 @@ export default function ClassRoute() {
     }
 
     setError(null);
+    setAccessDenied(null);
     const nextSetup = await fetchSchoolSetupState(activeMembership.schoolId, isAdmin);
+    const nextClass = nextSetup.classes.find((item) => item.username === classUsername);
+
+    if (nextClass) {
+      const policy = await evaluateAccessPolicy('class', nextClass.id);
+      if (!policy.allowed && (policy.reason !== 'payment_required' || !isStaff)) {
+        setAccessDenied(accessPolicyMessage(policy.reason, 'this class', policy.paymentRequired));
+      }
+    }
+
     setSetup(nextSetup);
-  }, [activeMembership, isAdmin]);
+  }, [activeMembership, classUsername, isAdmin, isStaff]);
 
   useEffect(() => {
     if (!activeMembership) {
@@ -76,6 +88,14 @@ export default function ClassRoute() {
     return <Redirect href="/school/class" />;
   }
 
+  if (accessDenied) {
+    return (
+      <RouteScreen>
+        <Text style={{ color: colors.coral, fontWeight: '800' }}>{accessDenied}</Text>
+      </RouteScreen>
+    );
+  }
+
   return (
     <RouteScreen>
       {error ? <Text style={{ color: colors.coral, fontWeight: '700' }}>{error}</Text> : null}
@@ -90,4 +110,28 @@ export default function ClassRoute() {
       />
     </RouteScreen>
   );
+}
+
+function accessPolicyMessage(reason: string | undefined, targetName: string, paymentRequired?: boolean) {
+  if (paymentRequired) {
+    return `Payment is required to enter ${targetName}.`;
+  }
+
+  if (reason === 'ban') {
+    return `Access to ${targetName} is not available for this account.`;
+  }
+
+  if (reason === 'suspension') {
+    return `Access to ${targetName} is paused for this account.`;
+  }
+
+  if (reason === 'override_denied') {
+    return `Access to ${targetName} has been restricted.`;
+  }
+
+  if (reason === 'access_disabled') {
+    return `${targetName} is not accepting access right now.`;
+  }
+
+  return `Access to ${targetName} is not available right now.`;
 }
