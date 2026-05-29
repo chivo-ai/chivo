@@ -36,7 +36,7 @@ The contracts do not decide current app access by themselves. They prove and esc
 - recipient allowlist available for high-risk rails
 - blocklists for risky accounts/tokens
 - stuck-fund recovery cannot withdraw active escrow
-- testnet deployment before mainnet funds
+- deployment checklist before mainnet funds move
 - external review before production value moves
 
 ## Current Contract Workspaces

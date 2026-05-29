@@ -66,9 +66,8 @@ Required deployment environment:
 ## Deploy
 
 ```bash
-npm run deploy:sepolia
-npm run deploy:base-sepolia
-npm run deploy:bnb-testnet
+npm run deploy:polygon
+npm run deploy:bnb
 ```
 
 After deploy, store the router address in:

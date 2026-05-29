@@ -2,14 +2,14 @@
 seeds = false
 skip-lint = false
 
-[programs.localnet]
+[programs.mainnet]
 chivo_payments = "HDDMMduXVwFKbrkNL6gEuqwmSsKUGVDoV126oBQKGX79"
 
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "localnet"
+cluster = "https://api.mainnet-beta.solana.com"
 wallet = "~/.config/solana/id.json"
 
 [scripts]

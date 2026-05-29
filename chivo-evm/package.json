@@ -6,11 +6,14 @@
     "compile": "hardhat compile",
     "test": "hardhat test",
     "deploy": "hardhat run scripts/deploy.ts --network configured",
-    "deploy:sepolia": "hardhat run scripts/deploy.ts --network sepolia",
-    "deploy:base-sepolia": "hardhat run scripts/deploy.ts --network baseSepolia",
-    "deploy:bnb-testnet": "hardhat run scripts/deploy.ts --network bnbTestnet",
+    "deploy:polygon": "hardhat run scripts/deploy.ts --network polygon",
+    "deploy:bnb": "hardhat run scripts/deploy.ts --network bnb",
     "admin": "hardhat run scripts/admin.ts --network configured",
-    "sign-intent": "hardhat run scripts/sign-intent.ts --network configured"
+    "admin:polygon": "hardhat run scripts/admin.ts --network polygon",
+    "admin:bnb": "hardhat run scripts/admin.ts --network bnb",
+    "sign-intent": "hardhat run scripts/sign-intent.ts --network configured",
+    "sign-intent:polygon": "hardhat run scripts/sign-intent.ts --network polygon",
+    "sign-intent:bnb": "hardhat run scripts/sign-intent.ts --network bnb"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^6.1.0",

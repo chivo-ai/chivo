@@ -26,12 +26,15 @@ yarn install
 anchor build
 ```
 
-Recommended Alchemy-style environment:
+Recommended Alchemy mainnet environment:
 
 ```bash
-ANCHOR_PROVIDER_URL=https://solana-devnet.g.alchemy.com/v2/YOUR_ALCHEMY_KEY
-SOLANA_WS_URL=wss://solana-devnet.g.alchemy.com/v2/YOUR_ALCHEMY_KEY
-ANCHOR_WALLET=~/.config/solana/id.json
+ANCHOR_PROVIDER_URL=https://solana-mainnet.g.alchemy.com/v2/YOUR_ALCHEMY_KEY
+SOLANA_RPC_URL=https://solana-mainnet.g.alchemy.com/v2/YOUR_ALCHEMY_KEY
+SOLANA_WS_URL=wss://solana-mainnet.g.alchemy.com/v2/YOUR_ALCHEMY_KEY
+ANCHOR_WALLET=C:\Users\YOUR_USER\.config\solana\chivo-mainnet-authority.json
+CHIVO_SOL_PROGRAM_KEYPAIR=C:\Users\YOUR_USER\.config\solana\chivo-payments-program.json
+CHIVO_SOL_PROGRAM_ID=...
 CHIVO_SOL_FEE_COLLECTOR=...
 CHIVO_SOL_PAYOUT_OPERATOR=...
 CHIVO_SOL_NATIVE_FEE_BPS=50
@@ -40,6 +43,18 @@ CHIVO_SOL_AUTO_RELEASE_DELAY_SECONDS=900
 ```
 
 The first settlement path handles SOL payments. SPL-token rail config accounts are included now so per-token settings are part of the first architecture; SPL-token escrow settlement should follow the same deposit, release, refund, and freeze lifecycle.
+
+## Mainnet Deploy
+
+```bash
+npm run deploy
+```
+
+The deploy script uses:
+
+- `ANCHOR_PROVIDER_URL`
+- `ANCHOR_WALLET`
+- `CHIVO_SOL_PROGRAM_KEYPAIR`
 
 ## Operator Commands
 

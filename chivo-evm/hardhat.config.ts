@@ -31,40 +31,27 @@ const config: HardhatUserConfig = {
       url: configuredRpcUrl || 'http://127.0.0.1:8545',
       accounts: accounts(),
     },
-    sepolia: {
-      url: process.env.SEPOLIA_RPC_URL || alchemyUrl('eth-sepolia'),
+    polygon: {
+      url: process.env.POLYGON_RPC_URL || alchemyUrl('polygon-mainnet'),
       accounts: accounts(),
     },
-    baseSepolia: {
-      url: process.env.BASE_SEPOLIA_RPC_URL || alchemyUrl('base-sepolia'),
-      accounts: accounts(),
-    },
-    bnbTestnet: {
-      url: process.env.BNB_TESTNET_RPC_URL || 'https://data-seed-prebsc-1-s1.bnbchain.org:8545',
+    bnb: {
+      url: process.env.BNB_RPC_URL || alchemyUrl('bnb-mainnet'),
       accounts: accounts(),
     },
   },
   etherscan: {
     apiKey: {
-      sepolia: process.env.ETHERSCAN_API_KEY || '',
-      baseSepolia: process.env.BASESCAN_API_KEY || '',
-      bscTestnet: process.env.BSCSCAN_API_KEY || '',
+      polygon: process.env.POLYGONSCAN_API_KEY || '',
+      bnb: process.env.BSCSCAN_API_KEY || '',
     },
     customChains: [
       {
-        network: 'baseSepolia',
-        chainId: 84532,
+        network: 'bnb',
+        chainId: 56,
         urls: {
-          apiURL: 'https://api-sepolia.basescan.org/api',
-          browserURL: 'https://sepolia.basescan.org',
-        },
-      },
-      {
-        network: 'bscTestnet',
-        chainId: 97,
-        urls: {
-          apiURL: 'https://api-testnet.bscscan.com/api',
-          browserURL: 'https://testnet.bscscan.com',
+          apiURL: 'https://api.bscscan.com/api',
+          browserURL: 'https://bscscan.com',
         },
       },
     ],

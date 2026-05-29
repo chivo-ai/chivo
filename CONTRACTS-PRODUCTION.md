@@ -20,10 +20,8 @@ Deploy one `ChivoPaymentRouter` per chain.
 
 Initial target networks:
 
-- Ethereum Sepolia for testing
-- Base Sepolia for testing
-- BNB Chain testnet for testing
-- production chains only after review and testnet proving
+- BNB Smart Chain mainnet
+- Polygon mainnet
 
 The router supports:
 
@@ -137,7 +135,7 @@ Solana:
 These cannot be completed only by editing this repo:
 
 - independent smart-contract audit
-- testnet deployment proof
+- mainnet dry-run checklist and deployment record
 - mainnet multisig setup
 - private key custody policy
 - incident response policy
