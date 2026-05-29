@@ -173,6 +173,15 @@ Use upgrade files for existing databases:
 
 Do not run `supabase/dev-reset.sql` on a database that contains live data.
 
+Contract workspaces:
+
+- `CONTRACTS.md`: contract architecture and app/backend/chain boundaries
+- `CONTRACTS-PRODUCTION.md`: production authority, release, refund, verification, and emergency runbook
+- `chivo-evm/`: EVM escrow payment router workspace
+- `chivo-sol/`: Solana escrow payment program workspace
+
+These workspaces escrow payment and prove payment through onchain events. Supabase remains responsible for current access, bans, overrides, verification badges, and access passes.
+
 Edge Functions:
 
 - `create-school`: creates a school, owner membership, trial subscription, and audit log.
@@ -180,6 +189,7 @@ Edge Functions:
 - `request-school-access`: sends a request to join a school by school code after checking company access policy.
 - `review-join-request`: lets a school owner/admin approve or decline a request.
 - `company-control`: manages company billing, roles, restrictions, and overrides with service-role protection.
+- `onchain-payout-operator`: releases verified EVM escrow payments after Supabase policy checks.
 - `process-lesson`: Gemini lesson processing foundation.
 - `personalize-lesson`: creates a student-specific lesson version by language and learning mode.
 - `submit-quiz-attempt`: scores student quiz attempts and updates progress signals.
@@ -202,6 +212,10 @@ Only `EXPO_PUBLIC_` values should be in the Expo app `.env`. Server-side secrets
 ```bash
 GEMINI_API_KEY=your-gemini-api-key
 SERVICE_ROLE_KEY=your-service-role-key
+PAYOUT_OPERATOR_SECRET=your-operator-trigger-secret
+EVM_PAYOUT_OPERATOR_PRIVATE_KEY=your-evm-payout-operator-key
+EVM_PAYMENT_ROUTER_ADDRESS=your-evm-router-address
+EVM_RPC_URL=your-alchemy-evm-rpc-url
 ```
 
 Supabase reserves the `SUPABASE_` prefix for platform-provided variables. Edge Functions read `SERVICE_ROLE_KEY` first, with `SUPABASE_SERVICE_ROLE_KEY` kept only as a fallback for local/default environments.

@@ -1,0 +1,19 @@
+[package]
+name = "chivo_payments"
+version = "1.0.0"
+description = "Chivo AI Solana payment program"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "chivo_payments"
+
+[features]
+no-entrypoint = []
+no-idl = []
+no-log-ix-name = []
+cpi = ["no-entrypoint"]
+default = []
+
+[dependencies]
+anchor-lang = "0.31.1"

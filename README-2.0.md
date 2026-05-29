@@ -505,16 +505,17 @@ Recommended order now that the UI foundation is in place:
 4. Add server-side access policy evaluation.
 5. Add school/class/crew pricing settings in admin.
 6. Add embedded wallet identity model for email-based crypto use.
-7. Design EVM smart contracts and Solana programs for payments, fees, events, and anti-fraud.
-8. Add onchain event listeners and transaction verification.
-9. Add payment checkout and access-pass granting.
-10. Add school revenue and Chivo platform-fee ledger.
-11. Add public profile primitives for people and schools.
-12. Add public publishing editor and public reader.
-13. Add follow system and public discovery feeds.
-14. Add AI review queue and approved/open feed split.
-15. Add verification requests, verification plans, and manual badge controls.
-16. Add donations and monthly creator rewards.
+7. Create separate EVM and Solana contract workspaces beside the app.
+8. Design EVM smart contracts and Solana programs for payments, fees, events, and anti-fraud.
+9. Add onchain event listeners and transaction verification.
+10. Add payment checkout and access-pass granting.
+11. Add school revenue and Chivo platform-fee ledger.
+12. Add public profile primitives for people and schools.
+13. Add public publishing editor and public reader.
+14. Add follow system and public discovery feeds.
+15. Add AI review queue and approved/open feed split.
+16. Add verification requests, verification plans, and manual badge controls.
+17. Add donations and monthly creator rewards.
 
 ## Implementation Started
 
@@ -526,8 +527,33 @@ The first 2.0 bridge is the monetization control plane:
 - `supabase/functions/company-control/index.ts` handles protected company actions through the service role after checking the signed-in company admin.
 - `src/features/company/CompanyControlScreen.tsx` adds the first company control surface for billing, payment rails, roles, restrictions, and access overrides.
 - invite acceptance, school access requests, class requests, class entry, active school restore, and crew-code joins now consult the access policy layer before granting or opening access.
+- `CONTRACTS.md` documents the payment architecture between the app, Supabase, EVM contracts, Solana programs, and future chain listeners.
+- `CONTRACTS-PRODUCTION.md` documents the production authority model, automatic payout worker, refund path, verification payment flow, and emergency controls.
+- `chivo-evm/` contains the EVM escrow router for native-token and ERC-20 access payments, with EIP-712 authorization, per-token rail settings, automated payout operators, risk operators, refunds, freezes, account blocking, and stuck-fund recovery.
+- `chivo-sol/` contains the Solana escrow program for SOL access payments, company-controlled config, payout operator release, freeze/refund/cancel controls, and SPL mint rail config accounts.
+- `supabase/functions/onchain-payout-operator/index.ts` is the first automatic payout worker. It releases confirmed EVM escrow only after Supabase policy checks pass.
+- `public_verification_requests`, `public_verification_badges`, and `public_verification_review_events` define the public profile/school verification layer. Verification payments use the same escrow payment path, while badges remain company-approved and revocable.
 
 This layer does not replace the existing school, class, crew, lesson, or classroom flows. It prepares those flows to ask the database for access policy before paid gates are added.
+
+## Contract Workspaces Started
+
+The contract layer is now separated from the current app foundation:
+
+- current app and Supabase backend stay in the root app workspace
+- EVM contracts live in `chivo-evm/`
+- Solana programs live in `chivo-sol/`
+
+This keeps native and web app logic close enough to work in one coding session while preventing contract dependencies from entering the Expo app package.
+
+The current contract goal is payment proof, not permanent access authority:
+
+- contracts/programs receive payment and emit trusted payment events
+- backend listeners verify the events against `onchain_payment_intents`
+- backend payout operators release escrow automatically after finality and policy checks
+- Supabase creates or rejects `access_passes`
+- `evaluate_access_policy` remains the final current-access decision
+- company bans, restrictions, overrides, and global billing controls remain stronger than historical payment
 
 ## Current Decision
 

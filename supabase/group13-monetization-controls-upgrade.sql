@@ -1077,3 +1077,153 @@ grant execute on function public.company_admin_dashboard_state() to authenticate
 grant execute on function public.platform_billing_enabled() to authenticated;
 grant execute on function public.evaluate_access_policy(text, uuid, uuid) to authenticated;
 grant execute on function public.join_crew_by_code(text, uuid) to authenticated;
+
+create table if not exists public.public_verification_requests (
+  id uuid primary key default gen_random_uuid(),
+  entity_type text not null,
+  profile_id uuid references public.profiles(id) on delete cascade,
+  school_id uuid references public.schools(id) on delete cascade,
+  requested_by uuid references public.profiles(id) on delete set null,
+  product_id uuid references public.access_products(id) on delete set null,
+  payment_intent_id uuid references public.onchain_payment_intents(id) on delete set null,
+  status text not null default 'draft',
+  verification_period text not null default 'yearly',
+  fee_waived boolean not null default false,
+  review_notes text,
+  documents_metadata jsonb not null default '{}'::jsonb,
+  ai_review_metadata jsonb not null default '{}'::jsonb,
+  reviewed_by uuid references public.profiles(id) on delete set null,
+  reviewed_at timestamptz,
+  expires_at timestamptz,
+  metadata jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  constraint public_verification_requests_entity_type_check check (entity_type in ('profile', 'school')),
+  constraint public_verification_requests_target_check check (
+    (entity_type = 'profile' and profile_id is not null and school_id is null)
+    or (entity_type = 'school' and school_id is not null)
+  ),
+  constraint public_verification_requests_status_check check (
+    status in ('draft', 'payment_required', 'paid', 'under_review', 'approved', 'rejected', 'revoked', 'expired')
+  ),
+  constraint public_verification_requests_period_check check (
+    verification_period in ('one_time', 'monthly', 'yearly')
+  )
+);
+
+create table if not exists public.public_verification_badges (
+  id uuid primary key default gen_random_uuid(),
+  request_id uuid references public.public_verification_requests(id) on delete set null,
+  entity_type text not null,
+  profile_id uuid references public.profiles(id) on delete cascade,
+  school_id uuid references public.schools(id) on delete cascade,
+  status text not null default 'active',
+  source text not null default 'company_review',
+  starts_at timestamptz not null default now(),
+  expires_at timestamptz,
+  granted_by uuid references public.profiles(id) on delete set null,
+  revoked_by uuid references public.profiles(id) on delete set null,
+  revoked_at timestamptz,
+  revoke_reason text,
+  metadata jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  constraint public_verification_badges_entity_type_check check (entity_type in ('profile', 'school')),
+  constraint public_verification_badges_target_check check (
+    (entity_type = 'profile' and profile_id is not null and school_id is null)
+    or (entity_type = 'school' and school_id is not null)
+  ),
+  constraint public_verification_badges_status_check check (status in ('active', 'expired', 'revoked')),
+  constraint public_verification_badges_source_check check (
+    source in ('company_review', 'fee_waived', 'paid_review', 'admin_grant', 'migration')
+  )
+);
+
+create table if not exists public.public_verification_review_events (
+  id uuid primary key default gen_random_uuid(),
+  request_id uuid not null references public.public_verification_requests(id) on delete cascade,
+  actor_profile_id uuid references public.profiles(id) on delete set null,
+  action text not null,
+  from_status text,
+  to_status text,
+  metadata jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists public_verification_requests_profile_idx
+on public.public_verification_requests(profile_id, status, created_at desc);
+
+create index if not exists public_verification_requests_school_idx
+on public.public_verification_requests(school_id, status, created_at desc);
+
+create index if not exists public_verification_badges_profile_idx
+on public.public_verification_badges(profile_id, status, starts_at, expires_at);
+
+create index if not exists public_verification_badges_school_idx
+on public.public_verification_badges(school_id, status, starts_at, expires_at);
+
+do $$ begin
+  create trigger public_verification_requests_set_updated_at
+  before update on public.public_verification_requests
+  for each row execute function public.set_updated_at();
+exception when duplicate_object then null;
+end $$;
+
+do $$ begin
+  create trigger public_verification_badges_set_updated_at
+  before update on public.public_verification_badges
+  for each row execute function public.set_updated_at();
+exception when duplicate_object then null;
+end $$;
+
+alter table public.public_verification_requests enable row level security;
+alter table public.public_verification_badges enable row level security;
+alter table public.public_verification_review_events enable row level security;
+
+drop policy if exists "users read own verification requests" on public.public_verification_requests;
+drop policy if exists "school admins read school verification requests" on public.public_verification_requests;
+drop policy if exists "company admins read verification requests" on public.public_verification_requests;
+drop policy if exists "authenticated users read active verification badges" on public.public_verification_badges;
+drop policy if exists "company admins read verification badges" on public.public_verification_badges;
+drop policy if exists "company admins read verification review events" on public.public_verification_review_events;
+
+create policy "users read own verification requests"
+on public.public_verification_requests for select
+using (profile_id = auth.uid() or requested_by = auth.uid());
+
+create policy "school admins read school verification requests"
+on public.public_verification_requests for select
+using (
+  school_id is not null
+  and public.has_school_role(school_id, array['owner', 'admin']::public.school_role[])
+);
+
+create policy "company admins read verification requests"
+on public.public_verification_requests for select
+using (
+  public.company_admin_has_permission('verification.review')
+  or public.company_admin_has_permission('verification.manage')
+);
+
+create policy "authenticated users read active verification badges"
+on public.public_verification_badges for select
+using (
+  auth.role() = 'authenticated'
+  and status = 'active'
+  and starts_at <= now()
+  and (expires_at is null or expires_at > now())
+);
+
+create policy "company admins read verification badges"
+on public.public_verification_badges for select
+using (
+  public.company_admin_has_permission('verification.review')
+  or public.company_admin_has_permission('verification.manage')
+);
+
+create policy "company admins read verification review events"
+on public.public_verification_review_events for select
+using (
+  public.company_admin_has_permission('verification.review')
+  or public.company_admin_has_permission('verification.manage')
+);

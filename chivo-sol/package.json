@@ -1,0 +1,15 @@
+{
+  "name": "chivo-sol",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "anchor build",
+    "test": "anchor test",
+    "operator": "node scripts/operator.js"
+  },
+  "devDependencies": {
+    "@coral-xyz/anchor": "^0.31.1",
+    "ts-mocha": "^10.0.0",
+    "typescript": "^5.9.2"
+  }
+}
