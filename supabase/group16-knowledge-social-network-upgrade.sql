@@ -1,6 +1,14 @@
+
 -- Chivo AI Group 16 upgrade for the knowledge social network shell.
 -- This keeps social graph, public profiles, comments, and reactions off-chain.
 -- Blockchain stays focused on payment, ownership, royalties, funding, and receipts.
+
+do $$
+begin
+  if to_regclass('public.knowledge_assets') is null then
+    raise exception 'Missing public.knowledge_assets. Run supabase/group15-knowledge-ownership-monetization.sql before group16.';
+  end if;
+end $$;
 
 alter table public.knowledge_assets
 drop constraint if exists knowledge_assets_asset_type_check;
