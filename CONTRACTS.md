@@ -11,12 +11,44 @@ The current app remains at the repository root for now. A later move into a `chi
 
 The contracts do not decide current app access by themselves. They prove and escrow payment. Supabase records still decide whether access is currently allowed, revoked, suspended, waived, or overridden.
 
+## Current Active Rail
+
+Polygon mainnet is the only enabled checkout rail while the app payment flow is being built.
+
+- chain key: `polygon-mainnet`
+- chain id: `137`
+- router: `0x37C7a3C21DEAc9c6f9Cf0Ac1A357E38B23320b2a`
+- status source: `payment_rail_settings` and `contract_program_registry`
+
+BNB testnet, Solana devnet, and Sui testnet are staged as disabled future rails in the database. Enabling them later should be a registry/config change plus the matching listener adapter, not a rewrite of checkout screens.
+
+## Product Metadata For Checkout
+
+For Polygon checkout, a paid `access_products` row should either use `currency = 'POL'` or include a chain-specific amount in base units:
+
+```json
+{
+  "payment_amounts": {
+    "polygon-mainnet": {
+      "amount_wei": "100000000000000000"
+    }
+  },
+  "payout_recipients": {
+    "polygon-mainnet": {
+      "recipient_address": "0xSchoolOrCreatorWallet"
+    }
+  }
+}
+```
+
+This keeps USD pricing, token conversion, and future Solana/Sui amounts out of hardcoded checkout code.
+
 ## Payment Flow
 
 1. Chivo creates an `onchain_payment_intents` row.
-2. Backend signs or creates the matching onchain payment intent.
+2. `create-access-checkout` reads the enabled payment rail and signs or creates the matching onchain payment intent.
 3. User pays onchain into escrow.
-4. Onchain deposit event is observed by a listener.
+4. `evm-payment-listener` observes the onchain deposit event.
 5. Listener verifies chain, receiver, payer, amount, token, finality, and intent status.
 6. Supabase evaluates policy, restrictions, overrides, and access product status.
 7. If valid, Supabase creates or activates the access pass.
@@ -72,6 +104,10 @@ Current coverage:
 Testnet target now available:
 
 - BNB Smart Chain testnet (`chainId = 97`, native token `tBNB`)
+
+Current production rail:
+
+- Polygon mainnet (`chainId = 137`, native token `POL`)
 
 ### Solana
 

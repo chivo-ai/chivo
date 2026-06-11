@@ -55,7 +55,7 @@ serve(async (request) => {
       return json({ error: 'Payout operator is not configured.' }, 500);
     }
 
-    const chain = String(body.chain ?? 'sepolia');
+    const chain = String(body.chain ?? Deno.env.get('DEFAULT_EVM_PAYOUT_CHAIN') ?? 'polygon-mainnet');
     const limit = Math.min(Math.max(Number(body.limit ?? 20), 1), 80);
     const rpcUrl = getEvmRpcUrl(chain);
 
@@ -88,7 +88,7 @@ serve(async (request) => {
         continue;
       }
 
-      const routerAddress = String(metadata.routerAddress ?? Deno.env.get('EVM_PAYMENT_ROUTER_ADDRESS') ?? '');
+      const routerAddress = await resolveRouterAddress(supabase, intent, metadata);
       const contractIntentId = String(metadata.contractIntentId ?? '');
 
       if (!routerAddress || !contractIntentId) {
@@ -190,6 +190,44 @@ async function markPayoutWaiting(supabase: SupabaseClient, intent: PaymentIntent
 function getEvmRpcUrl(chain: string) {
   const normalized = chain.toUpperCase().replace(/[^A-Z0-9]/g, '_');
   return Deno.env.get(`EVM_${normalized}_RPC_URL`) ?? Deno.env.get('EVM_RPC_URL') ?? '';
+}
+
+async function resolveRouterAddress(
+  supabase: SupabaseClient,
+  intent: PaymentIntent,
+  metadata: Record<string, unknown>,
+) {
+  const metadataAddress = String(metadata.routerAddress ?? metadata.router_address ?? '').trim();
+
+  if (metadataAddress) {
+    return metadataAddress;
+  }
+
+  const chainOverride = intent.chain.toUpperCase().replace(/[^A-Z0-9]/g, '_');
+  const envAddress =
+    Deno.env.get(`EVM_${chainOverride}_PAYMENT_ROUTER_ADDRESS`) ??
+    Deno.env.get('EVM_PAYMENT_ROUTER_ADDRESS') ??
+    '';
+
+  if (envAddress.trim()) {
+    return envAddress.trim();
+  }
+
+  const { data, error } = await supabase
+    .from('contract_program_registry')
+    .select('address')
+    .eq('chain', intent.chain)
+    .eq('kind', 'evm_contract')
+    .eq('status', 'active')
+    .order('updated_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+
+  return String(data?.address ?? '').trim();
 }
 
 function getServiceRoleKey() {

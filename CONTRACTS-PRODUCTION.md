@@ -18,10 +18,13 @@ Do not use one hot wallet for all roles.
 
 Deploy one `ChivoPaymentRouter` per chain.
 
-Initial target networks:
+Current active production network:
+
+- Polygon mainnet
+
+Staged target networks:
 
 - BNB Smart Chain mainnet
-- Polygon mainnet
 
 Testnet target:
 
@@ -103,6 +106,16 @@ The backend payout worker should:
 8. Update Supabase with release transaction/signature.
 
 Manual release should be reserved for support correction only.
+
+Current EVM worker default:
+
+- `DEFAULT_EVM_PAYOUT_CHAIN=polygon-mainnet`
+- `PAYMENT_LISTENER_SECRET` triggers the EVM event listener.
+- `EVM_AUTHORIZER_PRIVATE_KEY` signs checkout authorizations and must match the router authorizer.
+- `EVM_POLYGON_MAINNET_RPC_URL` should point to the Alchemy Polygon mainnet RPC URL.
+- `EVM_POLYGON_MAINNET_MIN_CONFIRMATIONS` controls how many confirmations are required before granting access.
+- `EVM_POLYGON_MAINNET_LISTENER_LOOKBACK_BLOCKS` controls how far the listener searches for pending intent deposits.
+- `EVM_POLYGON_MAINNET_PAYMENT_ROUTER_ADDRESS` can be set as an env override, but the worker can also resolve the active router from `contract_program_registry`.
 
 ## Refunds
 

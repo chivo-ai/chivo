@@ -170,6 +170,7 @@ Use upgrade files for existing databases:
 - `supabase/group11-classroom-study-upgrade.sql`: class chat, resources, audio storage, voice notes, and live class study
 - `supabase/group12-ai-chat-memory-upgrade.sql`: AI chat memory, classroom AI thread persistence, and updated timestamps
 - `supabase/group13-monetization-controls-upgrade.sql`: 2.0 billing controls, company roles, access policy, overrides, embedded wallets, and onchain payment records
+- `supabase/group14-chain-rail-registry-upgrade.sql`: chain-neutral payment rail registry with Polygon mainnet enabled and Solana, Sui, and BNB test rails staged as disabled future rails
 
 Do not run `supabase/dev-reset.sql` on a database that contains live data.
 
@@ -179,6 +180,7 @@ Contract workspaces:
 - `CONTRACTS-PRODUCTION.md`: production authority, release, refund, verification, and emergency runbook
 - `chivo-evm/`: EVM escrow payment router workspace
 - `chivo-sol/`: Solana escrow payment program workspace
+- `chivo-sui/`: Sui Move escrow payment package workspace
 
 These workspaces escrow payment and prove payment through onchain events. Supabase remains responsible for current access, bans, overrides, verification badges, and access passes.
 
@@ -189,6 +191,8 @@ Edge Functions:
 - `request-school-access`: sends a request to join a school by school code after checking company access policy.
 - `review-join-request`: lets a school owner/admin approve or decline a request.
 - `company-control`: manages company billing, roles, restrictions, and overrides with service-role protection.
+- `create-access-checkout`: creates a database-backed checkout intent and returns chain-specific payment instructions for enabled payment rails.
+- `evm-payment-listener`: verifies EVM escrow deposit events and grants paid access passes after enough confirmations.
 - `onchain-payout-operator`: releases verified EVM escrow payments after Supabase policy checks.
 - `process-lesson`: Gemini lesson processing foundation.
 - `personalize-lesson`: creates a student-specific lesson version by language and learning mode.
@@ -213,9 +217,15 @@ Only `EXPO_PUBLIC_` values should be in the Expo app `.env`. Server-side secrets
 GEMINI_API_KEY=your-gemini-api-key
 SERVICE_ROLE_KEY=your-service-role-key
 PAYOUT_OPERATOR_SECRET=your-operator-trigger-secret
+PAYMENT_LISTENER_SECRET=your-listener-trigger-secret
+EVM_AUTHORIZER_PRIVATE_KEY=your-evm-payment-authorizer-key
 EVM_PAYOUT_OPERATOR_PRIVATE_KEY=your-evm-payout-operator-key
-EVM_PAYMENT_ROUTER_ADDRESS=your-evm-router-address
-EVM_RPC_URL=your-alchemy-evm-rpc-url
+DEFAULT_EVM_PAYOUT_CHAIN=polygon-mainnet
+EVM_POLYGON_MAINNET_PAYMENT_ROUTER_ADDRESS=0x37C7a3C21DEAc9c6f9Cf0Ac1A357E38B23320b2a
+EVM_POLYGON_MAINNET_RPC_URL=your-alchemy-polygon-mainnet-rpc-url
+EVM_POLYGON_MAINNET_MIN_CONFIRMATIONS=64
+EVM_POLYGON_MAINNET_LISTENER_LOOKBACK_BLOCKS=50000
+CHIVO_DEFAULT_EVM_RECIPIENT_ADDRESS=optional-fallback-school-or-treasury-recipient
 ```
 
 Supabase reserves the `SUPABASE_` prefix for platform-provided variables. Edge Functions read `SERVICE_ROLE_KEY` first, with `SUPABASE_SERVICE_ROLE_KEY` kept only as a fallback for local/default environments.

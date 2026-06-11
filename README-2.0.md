@@ -531,7 +531,13 @@ The first 2.0 bridge is the monetization control plane:
 - `CONTRACTS-PRODUCTION.md` documents the production authority model, automatic payout worker, refund path, verification payment flow, and emergency controls.
 - `chivo-evm/` contains the EVM escrow router for native-token and ERC-20 access payments, with EIP-712 authorization, per-token rail settings, automated payout operators, risk operators, refunds, freezes, account blocking, and stuck-fund recovery.
 - `chivo-sol/` contains the Solana escrow program for SOL access payments, company-controlled config, payout operator release, freeze/refund/cancel controls, and SPL mint rail config accounts.
-- `supabase/functions/onchain-payout-operator/index.ts` is the first automatic payout worker. It releases confirmed EVM escrow only after Supabase policy checks pass.
+- `chivo-sui/` contains the Sui Move escrow package for SUI access payments, company-controlled config, payout operator release, freeze/refund/cancel controls, and payment/config events.
+- `supabase/group14-chain-rail-registry-upgrade.sql` keeps checkout chain-neutral: Polygon mainnet is the only enabled production rail today, while BNB testnet, Solana devnet, and Sui testnet are present as disabled future rails.
+- `src/services/paymentRails.ts` normalizes payment rails into one app-facing catalog so UI and checkout code do not hardcode EVM, Solana, or Sui branches.
+- `src/services/accessCheckout.ts` gives app screens one typed checkout call, independent of whether the selected rail is EVM today or Solana/Sui later.
+- `supabase/functions/create-access-checkout/index.ts` creates payment intents through the rail registry and returns Polygon EVM deposit instructions today, with the same envelope ready for Solana/Sui adapters later.
+- `supabase/functions/evm-payment-listener/index.ts` verifies Polygon EVM `PaymentDeposited` events, records `onchain_payment_events`, and creates paid access passes after confirmation and policy checks.
+- `supabase/functions/onchain-payout-operator/index.ts` is the first automatic payout worker. It releases confirmed EVM escrow only after Supabase policy checks pass and resolves the active router from intent metadata, env secrets, or `contract_program_registry`.
 - `public_verification_requests`, `public_verification_badges`, and `public_verification_review_events` define the public profile/school verification layer. Verification payments use the same escrow payment path, while badges remain company-approved and revocable.
 
 This layer does not replace the existing school, class, crew, lesson, or classroom flows. It prepares those flows to ask the database for access policy before paid gates are added.
@@ -543,6 +549,7 @@ The contract layer is now separated from the current app foundation:
 - current app and Supabase backend stay in the root app workspace
 - EVM contracts live in `chivo-evm/`
 - Solana programs live in `chivo-sol/`
+- Sui packages live in `chivo-sui/`
 
 This keeps native and web app logic close enough to work in one coding session while preventing contract dependencies from entering the Expo app package.
 
@@ -562,9 +569,11 @@ Group 4 is the next product direction.
 Current priority remains:
 
 - keep the existing student/teacher/school foundation working
+- use Polygon mainnet as the only active checkout rail while the app payment flow is built
 - begin database-driven company control and billing/payment design as the first 2.0 bridge into gated schools/classes
 - add free/paid access models without breaking free school/class flows
-- support embedded email-based wallet onboarding for EVM chains and Solana
+- support embedded email-based wallet onboarding for EVM chains, Solana, and Sui without hardcoding those chains into each screen
+- store chain-specific checkout amounts and payout recipients on `access_products.metadata` until a pricing/oracle layer is added
 - verify crypto payments through real onchain contract/program events
 - make company/admin policy controls stronger than payment history
 - test native and web behavior as each 2.0 layer touches access, joining, admin, or public profiles
