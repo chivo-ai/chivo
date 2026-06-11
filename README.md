@@ -196,6 +196,7 @@ Edge Functions:
 - `company-control`: manages company billing, roles, restrictions, and overrides with service-role protection.
 - `create-access-checkout`: creates a database-backed checkout intent and returns chain-specific payment instructions for enabled payment rails.
 - `create-monetization-checkout`: creates donation and research-funding checkout intents through enabled crypto rails.
+- `knowledge-publishing`: saves drafts, publishes articles/research/studies/reports/lessons/publications, queues Chivo review, and records company review decisions.
 - `evm-payment-listener`: verifies EVM escrow deposit events, grants paid access passes, confirms funding contributions, and records donation confirmations after enough confirmations.
 - `onchain-payout-operator`: releases verified EVM escrow payments after Supabase policy checks.
 - `process-lesson`: Gemini lesson processing foundation.

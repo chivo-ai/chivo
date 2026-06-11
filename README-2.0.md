@@ -584,8 +584,10 @@ The first 2.0 bridge is the monetization control plane:
 - `supabase/functions/onchain-payout-operator/index.ts` is the first automatic payout worker. It releases confirmed EVM escrow only after Supabase policy checks pass and resolves the active router from intent metadata, env secrets, or `contract_program_registry`.
 - `supabase/group15-knowledge-ownership-monetization.sql` adds the provider-agnostic knowledge marketplace, ownership, royalty, funding, donation, and fee-policy database layer without creator coins or custom platform tokens.
 - `src/services/knowledgeMarketplace.ts` gives the app one typed catalog for ownership providers, marketplace providers, public knowledge assets, fee policies, and funding campaigns.
+- `supabase/functions/knowledge-publishing/index.ts` adds the protected publishing workflow for articles, research papers, studies, reports, lessons, and publications, with school publishing checks and company review.
+- `src/services/knowledgePublishing.ts` gives the app one publishing API for drafts, publishing, review submission, and archive actions.
 - `src/services/monetizationCheckout.ts` gives app screens one typed donation/funding checkout path, with Polygon EVM live today and Solana/Sui adapters fitting the same response shape later.
-- `src/features/knowledge/KnowledgeMarketplaceScreen.tsx` adds the first real marketplace surface that reads database state instead of mocked content.
+- `src/features/knowledge/KnowledgeMarketplaceScreen.tsx` adds the first real publishing and marketplace surface that reads database state instead of mocked content.
 - `supabase/functions/create-monetization-checkout/index.ts` creates crypto checkout intents for donation and research funding targets through the same chain-neutral rail registry.
 - `supabase/functions/evm-payment-listener/index.ts` also confirms funding contributions atomically and records confirmed donation metadata when Polygon escrow events finalize.
 - `public_verification_requests`, `public_verification_badges`, and `public_verification_review_events` define the public profile/school verification layer. Verification payments use the same escrow payment path, while badges remain company-approved and revocable.

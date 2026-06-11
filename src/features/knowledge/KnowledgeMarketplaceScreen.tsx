@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
-import { Banknote, BookOpen, Layers, RefreshCw, ShieldCheck, Trophy, Wallet } from 'lucide-react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Banknote, BookOpen, FileText, Layers, RefreshCw, Send, ShieldCheck, Trophy, Wallet } from 'lucide-react-native';
 
 import { RouteScreen } from '../app/RouteScreen';
 import { fetchKnowledgeMarketplaceCatalog } from '../../services/knowledgeMarketplace';
@@ -11,6 +11,19 @@ import type {
   KnowledgeMarketplaceCatalog,
   OwnershipProviderSetting,
 } from '../../services/knowledgeMarketplace';
+import {
+  fetchMyKnowledgeAssets,
+  publishKnowledgeAsset,
+  saveKnowledgeDraft,
+  submitKnowledgeAssetForReview,
+} from '../../services/knowledgePublishing';
+import type {
+  PublishedKnowledgeAsset,
+  PublishAccessMode,
+  PublishAssetType,
+  PublishOwnershipMode,
+  PublishVisibility,
+} from '../../services/knowledgePublishing';
 import { colors } from '../../theme/tokens';
 
 const emptyCatalog: KnowledgeMarketplaceCatalog = {
@@ -29,9 +42,38 @@ const tones = [
   { background: '#fff4c2', accent: colors.amber },
 ];
 
+type PublishForm = {
+  assetId?: string;
+  assetType: PublishAssetType;
+  title: string;
+  summary: string;
+  body: string;
+  visibility: Exclude<PublishVisibility, 'chivo_approved'>;
+  accessMode: PublishAccessMode;
+  ownershipMode: PublishOwnershipMode;
+};
+
+const assetTypeOptions: PublishAssetType[] = ['article', 'research_paper', 'study', 'report', 'lesson', 'publication'];
+const visibilityOptions: PublishForm['visibility'][] = ['private', 'unlisted', 'public'];
+const accessModeOptions: PublishAccessMode[] = ['free', 'paid', 'holders_only', 'sponsors_only', 'disabled'];
+const ownershipModeOptions: PublishOwnershipMode[] = ['none', 'membership_pass', 'limited_editions', 'open_editions', 'certificate'];
+
+const emptyPublishForm: PublishForm = {
+  assetType: 'article',
+  title: '',
+  summary: '',
+  body: '',
+  visibility: 'public',
+  accessMode: 'free',
+  ownershipMode: 'none',
+};
+
 export function KnowledgeMarketplaceScreen() {
   const [catalog, setCatalog] = useState<KnowledgeMarketplaceCatalog>(emptyCatalog);
+  const [myAssets, setMyAssets] = useState<PublishedKnowledgeAsset[]>([]);
+  const [publishForm, setPublishForm] = useState<PublishForm>(emptyPublishForm);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
   const providers = useMemo(
@@ -56,7 +98,12 @@ export function KnowledgeMarketplaceScreen() {
     setMessage(null);
 
     try {
-      setCatalog(await fetchKnowledgeMarketplaceCatalog());
+      const [nextCatalog, nextMyAssets] = await Promise.all([
+        fetchKnowledgeMarketplaceCatalog(),
+        fetchMyKnowledgeAssets(),
+      ]);
+      setCatalog(nextCatalog);
+      setMyAssets(nextMyAssets);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Unable to load knowledge marketplace.');
     } finally {
@@ -67,6 +114,54 @@ export function KnowledgeMarketplaceScreen() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  async function saveDraft() {
+    await runPublishAction('draft', async () => {
+      const asset = await saveKnowledgeDraft(publishForm);
+      setPublishForm(formFromAsset(asset));
+      setMessage('Knowledge draft saved.');
+    });
+  }
+
+  async function publishAsset() {
+    await runPublishAction('publish', async () => {
+      const asset = await publishKnowledgeAsset(publishForm);
+      setPublishForm(formFromAsset(asset));
+      setMessage('Knowledge asset published.');
+    });
+  }
+
+  async function submitForReview() {
+    if (!publishForm.assetId) {
+      setMessage('Save the asset before submitting for review.');
+      return;
+    }
+
+    await runPublishAction('review', async () => {
+      const asset = await submitKnowledgeAssetForReview(publishForm.assetId as string);
+      setPublishForm(formFromAsset(asset));
+      setMessage('Submitted for Chivo review.');
+    });
+  }
+
+  async function runPublishAction(action: string, task: () => Promise<void>) {
+    setSaving(action);
+    setMessage(null);
+
+    try {
+      await task();
+      const [nextCatalog, nextMyAssets] = await Promise.all([
+        fetchKnowledgeMarketplaceCatalog(),
+        fetchMyKnowledgeAssets(),
+      ]);
+      setCatalog(nextCatalog);
+      setMyAssets(nextMyAssets);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Knowledge publishing action failed.');
+    } finally {
+      setSaving(null);
+    }
+  }
 
   return (
     <RouteScreen>
@@ -100,6 +195,107 @@ export function KnowledgeMarketplaceScreen() {
         </View>
 
         {message ? <Text style={styles.errorText}>{message}</Text> : null}
+
+        <View style={styles.publishPanel}>
+          <View style={styles.publishHeader}>
+            <View style={styles.publishIcon}>
+              <FileText size={19} color={colors.ink} />
+            </View>
+            <View style={styles.flexText}>
+              <Text style={styles.sectionTitle} numberOfLines={1}>Publish knowledge</Text>
+              <Text style={styles.sectionMeta} numberOfLines={1}>Articles, research papers, studies, reports, lessons, and publications.</Text>
+            </View>
+          </View>
+
+          <ChoiceRow
+            values={assetTypeOptions}
+            selected={publishForm.assetType}
+            onSelect={(assetType) => setPublishForm((current) => ({ ...current, assetType }))}
+          />
+
+          <View style={styles.formGrid}>
+            <TextInput
+              value={publishForm.title}
+              onChangeText={(title) => setPublishForm((current) => ({ ...current, title }))}
+              placeholder="Title"
+              placeholderTextColor={colors.muted}
+              style={styles.input}
+            />
+            <TextInput
+              value={publishForm.summary}
+              onChangeText={(summary) => setPublishForm((current) => ({ ...current, summary }))}
+              placeholder="Short summary"
+              placeholderTextColor={colors.muted}
+              style={styles.input}
+            />
+          </View>
+
+          <TextInput
+            value={publishForm.body}
+            onChangeText={(body) => setPublishForm((current) => ({ ...current, body }))}
+            placeholder="Write the article, research note, report, or study body..."
+            placeholderTextColor={colors.muted}
+            multiline
+            style={[styles.input, styles.bodyInput]}
+          />
+
+          <ChoiceRow
+            values={visibilityOptions}
+            selected={publishForm.visibility}
+            onSelect={(visibility) => setPublishForm((current) => ({ ...current, visibility }))}
+          />
+          <ChoiceRow
+            values={accessModeOptions}
+            selected={publishForm.accessMode}
+            onSelect={(accessMode) => setPublishForm((current) => ({ ...current, accessMode }))}
+          />
+          <ChoiceRow
+            values={ownershipModeOptions}
+            selected={publishForm.ownershipMode}
+            onSelect={(ownershipMode) => setPublishForm((current) => ({ ...current, ownershipMode }))}
+          />
+
+          <View style={styles.publishActions}>
+            <ActionButton
+              label={saving === 'draft' ? 'Saving' : 'Save draft'}
+              icon={saving === 'draft' ? <ActivityIndicator color={colors.ink} /> : <BookOpen size={15} color={colors.ink} />}
+              disabled={saving !== null || !publishForm.title.trim()}
+              onPress={saveDraft}
+            />
+            <ActionButton
+              label={saving === 'publish' ? 'Publishing' : 'Publish'}
+              icon={saving === 'publish' ? <ActivityIndicator color="#ffffff" /> : <Send size={15} color="#ffffff" />}
+              disabled={saving !== null || !publishForm.title.trim() || !publishForm.body.trim()}
+              onPress={publishAsset}
+              primary
+            />
+            <ActionButton
+              label={saving === 'review' ? 'Submitting' : 'Submit review'}
+              icon={saving === 'review' ? <ActivityIndicator color={colors.ink} /> : <ShieldCheck size={15} color={colors.ink} />}
+              disabled={saving !== null || !publishForm.assetId}
+              onPress={submitForReview}
+            />
+          </View>
+
+          <View style={styles.mineList}>
+            {myAssets.length ? myAssets.slice(0, 4).map((asset) => (
+              <Pressable key={asset.id} onPress={() => setPublishForm(formFromAsset(asset))} style={styles.mineRow}>
+                <View style={styles.rowIcon}>
+                  <FileText size={17} color={colors.ink} />
+                </View>
+                <View style={styles.flexText}>
+                  <Text style={styles.rowTitle} numberOfLines={1}>{asset.title}</Text>
+                  <Text style={styles.rowMeta} numberOfLines={1}>{asset.assetType} - {asset.status} - {asset.aiReviewStatus}</Text>
+                </View>
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText} numberOfLines={1}>Edit</Text>
+                </View>
+              </Pressable>
+            )) : (
+              <EmptyPanel icon={<FileText size={19} color={colors.ink} />} text="Your drafts and published knowledge will appear here." />
+            )}
+          </View>
+        </View>
 
         <View style={styles.providerGrid}>
           {loading ? (
@@ -142,6 +338,50 @@ export function KnowledgeMarketplaceScreen() {
         </View>
       </View>
     </RouteScreen>
+  );
+}
+
+function ChoiceRow<T extends string>({
+  values,
+  selected,
+  onSelect,
+}: {
+  values: T[];
+  selected: T;
+  onSelect: (value: T) => void;
+}) {
+  return (
+    <View style={styles.choiceRow}>
+      {values.map((value) => {
+        const active = selected === value;
+        return (
+          <Pressable key={value} onPress={() => onSelect(value)} style={[styles.choiceChip, active && styles.choiceChipActive]}>
+            <Text style={[styles.choiceText, active && styles.choiceTextActive]} numberOfLines={1}>{cleanLabel(value)}</Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
+function ActionButton({
+  icon,
+  label,
+  disabled,
+  onPress,
+  primary,
+}: {
+  icon: ReactNode;
+  label: string;
+  disabled?: boolean;
+  onPress: () => void;
+  primary?: boolean;
+}) {
+  return (
+    <Pressable onPress={onPress} disabled={disabled} style={[styles.actionButton, primary && styles.actionButtonPrimary, disabled && styles.actionButtonDisabled]}>
+      {icon}
+      <Text style={[styles.actionButtonText, primary && styles.actionButtonTextPrimary]} numberOfLines={1}>{label}</Text>
+    </Pressable>
   );
 }
 
@@ -232,6 +472,26 @@ function EmptyPanel({ icon, text }: { icon: ReactNode; text: string }) {
       <Text style={styles.emptyText} numberOfLines={2}>{text}</Text>
     </View>
   );
+}
+
+function cleanLabel(value: string) {
+  return value
+    .split('_')
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+}
+
+function formFromAsset(asset: PublishedKnowledgeAsset): PublishForm {
+  return {
+    assetId: asset.id,
+    assetType: asset.assetType,
+    title: asset.title,
+    summary: asset.summary ?? '',
+    body: asset.body,
+    visibility: asset.visibility === 'chivo_approved' ? 'public' : asset.visibility,
+    accessMode: asset.accessMode,
+    ownershipMode: asset.ownershipMode,
+  };
 }
 
 const styles = StyleSheet.create({
@@ -350,6 +610,124 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 18,
     fontWeight: '700',
+  },
+  publishPanel: {
+    borderRadius: 8,
+    padding: 14,
+    gap: 12,
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#dfe6f0',
+  },
+  publishHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  publishIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.softGold,
+  },
+  choiceRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 7,
+  },
+  choiceChip: {
+    minHeight: 32,
+    borderRadius: 8,
+    paddingHorizontal: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#f8fafc',
+    borderWidth: 1,
+    borderColor: '#e5ebf5',
+  },
+  choiceChipActive: {
+    backgroundColor: colors.brandDeep,
+    borderColor: colors.brandGlow,
+  },
+  choiceText: {
+    color: colors.muted,
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  choiceTextActive: {
+    color: '#ffffff',
+  },
+  formGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 9,
+  },
+  input: {
+    flex: 1,
+    minWidth: 240,
+    minHeight: 44,
+    borderRadius: 8,
+    paddingHorizontal: 11,
+    paddingVertical: 9,
+    color: colors.ink,
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '700',
+    backgroundColor: '#f8fafc',
+    borderWidth: 1,
+    borderColor: '#dfe6f0',
+  },
+  bodyInput: {
+    minHeight: 132,
+    textAlignVertical: 'top',
+  },
+  publishActions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  actionButton: {
+    minHeight: 38,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: colors.softBlue,
+    borderWidth: 1,
+    borderColor: '#c7d7ff',
+  },
+  actionButtonPrimary: {
+    backgroundColor: colors.brand,
+    borderColor: colors.brand,
+  },
+  actionButtonDisabled: {
+    opacity: 0.5,
+  },
+  actionButtonText: {
+    color: colors.ink,
+    fontSize: 12,
+    fontWeight: '900',
+  },
+  actionButtonTextPrimary: {
+    color: '#ffffff',
+  },
+  mineList: {
+    gap: 8,
+  },
+  mineRow: {
+    minHeight: 64,
+    borderRadius: 8,
+    padding: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 9,
+    backgroundColor: '#f8fafc',
+    borderWidth: 1,
+    borderColor: '#e5ebf5',
   },
   providerGrid: {
     flexDirection: 'row',
