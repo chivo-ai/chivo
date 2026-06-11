@@ -43,7 +43,7 @@ export default function MySchoolRoute() {
   }
 
   if (notFound || !activeMembership) {
-    return <Redirect href="/home" />;
+    return <Redirect href="/discover" />;
   }
 
   return (
@@ -51,7 +51,7 @@ export default function MySchoolRoute() {
       membership={activeMembership}
       onSwitchSchool={async () => {
         await setActiveMembership(null);
-        router.replace('/home');
+        router.replace('/discover');
       }}
     />
   );

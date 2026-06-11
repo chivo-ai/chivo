@@ -14,5 +14,5 @@ export default function IndexRoute() {
     return <Redirect href="/(auth)/login" />;
   }
 
-  return <Redirect href="/home" />;
+  return <Redirect href="/discover" />;
 }

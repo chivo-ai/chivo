@@ -291,7 +291,7 @@ export function AdminConsoleRoute({ section }: { section: AdminSection }) {
   }
 
   if (!activeMembership) {
-    return <Redirect href="/home" />;
+    return <Redirect href="/discover" />;
   }
 
   if (!canAdmin) {

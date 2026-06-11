@@ -5,12 +5,15 @@ import {
   Bell,
   BookOpen,
   Building2,
+  Compass,
   GraduationCap,
-  Home,
   Layers,
   Menu,
+  PenLine,
   QrCode,
   ShieldCheck,
+  Store,
+  Trophy,
   UserCircle,
   UserPlus,
   Users,
@@ -54,7 +57,10 @@ export function UniversalTopBar() {
   const canAdmin = activeMembership ? ['owner', 'admin'].includes(activeMembership.role) : false;
 
   const routes = useMemo<TopRoute[]>(() => [
-    { label: 'Home', route: '/home', icon: <Home size={18} color={colors.brandDeep} /> },
+    { label: 'Discover', route: '/discover', icon: <Compass size={18} color={colors.brandDeep} /> },
+    { label: 'Publish', route: '/publish', icon: <PenLine size={18} color={colors.teal} /> },
+    { label: 'Research', route: '/research', icon: <Trophy size={18} color={colors.gold} /> },
+    { label: 'Market', route: '/marketplace', icon: <Store size={18} color={colors.blue} /> },
     { label: 'Activity', route: '/notifications', icon: <Bell size={18} color={colors.coral} /> },
     { label: 'Learn', route: '/learn', icon: <BookOpen size={18} color={colors.blue} />, visible: Boolean(activeMembership) },
     { label: 'Teach', route: '/teach', icon: <GraduationCap size={18} color={colors.gold} />, visible: canTeach },
@@ -127,7 +133,7 @@ export function UniversalTopBar() {
         <Menu size={22} color="#ffffff" />
       </Pressable>
 
-      <Pressable onPress={() => go('/home')} style={styles.brand}>
+      <Pressable onPress={() => go('/discover')} style={styles.brand}>
         <View style={styles.logoMark}>
           <Image
             source={branding.logoUrl ? { uri: branding.logoUrl } : fallbackCompanyLogo}

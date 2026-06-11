@@ -80,7 +80,7 @@ export default function CreateSchoolRoute() {
         await setActiveMembership(membership);
         router.replace(`/school/my-school/${membership.school.slug}` as never);
       } else {
-        router.replace('/home');
+        router.replace('/discover');
       }
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : 'Could not create school.');

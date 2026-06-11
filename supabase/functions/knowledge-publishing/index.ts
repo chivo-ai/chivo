@@ -2,15 +2,25 @@ import { serve } from 'https://deno.land/std@0.224.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.4';
 import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.45.4';
 
-type PublishAction = 'listMine' | 'saveDraft' | 'publish' | 'submitReview' | 'archive' | 'reviewAsset';
-type AssetType = 'article' | 'lesson' | 'research_paper' | 'study' | 'report' | 'publication';
+type PublishAction =
+  | 'listMine'
+  | 'saveDraft'
+  | 'publish'
+  | 'submitReview'
+  | 'archive'
+  | 'reviewAsset'
+  | 'listMyFundingCampaigns'
+  | 'saveFundingCampaign';
+type AssetType = 'article' | 'story' | 'lesson' | 'research_paper' | 'study' | 'report' | 'publication';
 type Visibility = 'private' | 'unlisted' | 'public' | 'chivo_approved';
 type AccessMode = 'free' | 'paid' | 'holders_only' | 'sponsors_only' | 'disabled';
 type OwnershipMode = 'none' | 'membership_pass' | 'limited_editions' | 'open_editions' | 'certificate';
+type FundingStatus = 'draft' | 'active' | 'funded' | 'closed' | 'cancelled' | 'failed' | 'under_review';
 
 type PublishRequest = {
   action?: PublishAction;
   assetId?: string;
+  campaignId?: string;
   assetType?: AssetType;
   title?: string;
   slug?: string;
@@ -24,6 +34,13 @@ type PublishRequest = {
   ownershipMode?: OwnershipMode;
   reviewStatus?: 'approved' | 'rejected' | 'needs_changes';
   reviewNotes?: string;
+  goalAmount?: string | number;
+  currency?: string;
+  preferredChain?: string;
+  fundingStatus?: FundingStatus;
+  startsAt?: string | null;
+  endsAt?: string | null;
+  recognitionTiers?: string[];
 };
 
 type KnowledgeAssetRow = {
@@ -44,16 +61,38 @@ type KnowledgeAssetRow = {
   updated_at: string;
 };
 
+type FundingCampaignRow = {
+  id: string;
+  asset_id: string | null;
+  creator_profile_id: string | null;
+  school_id: string | null;
+  title: string;
+  slug: string | null;
+  summary: string | null;
+  goal_amount: string | number;
+  raised_amount: string | number;
+  currency: string;
+  preferred_chain: string | null;
+  fee_bps: number;
+  status: string;
+  starts_at: string | null;
+  ends_at: string | null;
+  metadata: Record<string, unknown> | null;
+  created_at: string;
+  updated_at: string;
+};
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const assetTypes = new Set(['article', 'lesson', 'research_paper', 'study', 'report', 'publication']);
+const assetTypes = new Set(['article', 'story', 'lesson', 'research_paper', 'study', 'report', 'publication']);
 const userVisibilities = new Set(['private', 'unlisted', 'public']);
 const accessModes = new Set(['free', 'paid', 'holders_only', 'sponsors_only', 'disabled']);
 const ownershipModes = new Set(['none', 'membership_pass', 'limited_editions', 'open_editions', 'certificate']);
 const reviewStatuses = new Set(['approved', 'rejected', 'needs_changes']);
+const fundingStatuses = new Set(['draft', 'active', 'funded', 'closed', 'cancelled', 'failed', 'under_review']);
 
 serve(async (request) => {
   if (request.method === 'OPTIONS') {
@@ -100,6 +139,10 @@ serve(async (request) => {
         return json(await archiveAsset(supabase, user.id, body));
       case 'reviewAsset':
         return json(await reviewAsset(supabase, user.id, body));
+      case 'listMyFundingCampaigns':
+        return json(await listMyFundingCampaigns(supabase, user.id));
+      case 'saveFundingCampaign':
+        return json(await saveFundingCampaign(supabase, user.id, body));
       default:
         return json({ error: 'Unsupported publishing action.' }, 400);
     }
@@ -300,6 +343,109 @@ async function reviewAsset(supabase: SupabaseClient, profileId: string, body: Pu
   return { asset: cleanAsset(data as KnowledgeAssetRow) };
 }
 
+async function listMyFundingCampaigns(supabase: SupabaseClient, profileId: string) {
+  const { data, error } = await supabase
+    .from('funding_campaigns')
+    .select('id, asset_id, creator_profile_id, school_id, title, slug, summary, goal_amount, raised_amount, currency, preferred_chain, fee_bps, status, starts_at, ends_at, metadata, created_at, updated_at')
+    .eq('creator_profile_id', profileId)
+    .order('updated_at', { ascending: false })
+    .limit(60);
+
+  if (error) {
+    throw error;
+  }
+
+  return { campaigns: (data ?? []).map(cleanFundingCampaign) };
+}
+
+async function saveFundingCampaign(supabase: SupabaseClient, profileId: string, body: PublishRequest) {
+  const existing = body.campaignId ? await fetchEditableCampaign(supabase, profileId, body.campaignId) : null;
+  const linkedAsset = body.assetId ? await fetchEditableAsset(supabase, profileId, body.assetId) : null;
+  const schoolId = await resolveSchoolId(supabase, profileId, body.schoolId ?? existing?.school_id ?? linkedAsset?.school_id ?? null);
+  const title = cleanRequiredString(body.title ?? existing?.title ?? linkedAsset?.title, 'Funding title');
+  const summary = cleanString(body.summary ?? existing?.summary ?? linkedAsset?.summary);
+  const goalAmount = cleanPositiveAmount(body.goalAmount ?? existing?.goal_amount, 'Funding goal');
+  const currency = cleanString(body.currency ?? existing?.currency) ?? 'POL';
+  const preferredChain = cleanString(body.preferredChain ?? existing?.preferred_chain) ?? 'polygon';
+  const status = normalizeFundingStatus(body.fundingStatus ?? existing?.status ?? 'draft');
+  const slug = await createUniqueCampaignSlug(supabase, body.slug ?? existing?.slug ?? title, existing?.id ?? null);
+  const feeBps = existing?.fee_bps ?? await resolveFeeBps(supabase, 'funding_success', preferredChain, currency);
+  const metadata = {
+    ...readObject(existing?.metadata),
+    recognitionTiers: cleanTags(body.recognitionTiers ?? readArray(readObject(existing?.metadata).recognitionTiers)),
+    campaignKind: linkedAsset?.asset_type ?? readString(readObject(existing?.metadata).campaignKind) ?? 'research',
+    savedAt: new Date().toISOString(),
+  };
+
+  const payload = {
+    asset_id: linkedAsset?.id ?? existing?.asset_id ?? null,
+    creator_profile_id: profileId,
+    school_id: schoolId,
+    title,
+    slug,
+    summary,
+    goal_amount: goalAmount,
+    currency,
+    preferred_chain: preferredChain,
+    fee_bps: feeBps,
+    status,
+    starts_at: cleanTimestamp(body.startsAt) ?? existing?.starts_at ?? null,
+    ends_at: cleanTimestamp(body.endsAt) ?? existing?.ends_at ?? null,
+    metadata,
+    updated_at: new Date().toISOString(),
+  };
+
+  const query = existing
+    ? supabase.from('funding_campaigns').update(payload).eq('id', existing.id)
+    : supabase.from('funding_campaigns').insert(payload);
+
+  const { data, error } = await query
+    .select('id, asset_id, creator_profile_id, school_id, title, slug, summary, goal_amount, raised_amount, currency, preferred_chain, fee_bps, status, starts_at, ends_at, metadata, created_at, updated_at')
+    .single();
+
+  if (error) {
+    throw error;
+  }
+
+  await audit(
+    supabase,
+    profileId,
+    existing ? 'funding.campaign.updated' : 'funding.campaign.created',
+    data.id,
+    {
+      status,
+      preferredChain,
+      currency,
+    },
+    'funding_campaign',
+  );
+
+  return { campaign: cleanFundingCampaign(data as FundingCampaignRow) };
+}
+
+async function fetchEditableCampaign(supabase: SupabaseClient, profileId: string, campaignId: string): Promise<FundingCampaignRow> {
+  const { data, error } = await supabase
+    .from('funding_campaigns')
+    .select('id, asset_id, creator_profile_id, school_id, title, slug, summary, goal_amount, raised_amount, currency, preferred_chain, fee_bps, status, starts_at, ends_at, metadata, created_at, updated_at')
+    .eq('id', campaignId)
+    .maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+
+  if (!data) {
+    throw new Error('Funding campaign was not found.');
+  }
+
+  const campaign = data as FundingCampaignRow;
+  if (campaign.creator_profile_id === profileId || (campaign.school_id && await canPublishForSchool(supabase, profileId, campaign.school_id))) {
+    return campaign;
+  }
+
+  throw new Error('You cannot edit this funding campaign.');
+}
+
 async function fetchEditableAsset(supabase: SupabaseClient, profileId: string, assetId: string): Promise<KnowledgeAssetRow> {
   const { data, error } = await supabase
     .from('knowledge_assets')
@@ -423,17 +569,75 @@ async function createUniqueSlug(
   return `${base}-${crypto.randomUUID().slice(0, 8)}`;
 }
 
+async function createUniqueCampaignSlug(
+  supabase: SupabaseClient,
+  value: string,
+  currentCampaignId: string | null,
+) {
+  const base = slugify(value) || 'research-funding';
+
+  for (let attempt = 0; attempt < 30; attempt += 1) {
+    const slug = attempt === 0 ? base : `${base}-${attempt + 1}`;
+    let query = supabase
+      .from('funding_campaigns')
+      .select('id')
+      .eq('slug', slug);
+
+    if (currentCampaignId) {
+      query = query.neq('id', currentCampaignId);
+    }
+
+    const { data, error } = await query.limit(1).maybeSingle();
+
+    if (error) {
+      throw error;
+    }
+
+    if (!data) {
+      return slug;
+    }
+  }
+
+  return `${base}-${crypto.randomUUID().slice(0, 8)}`;
+}
+
+async function resolveFeeBps(
+  supabase: SupabaseClient,
+  feeType: string,
+  chain: string | null,
+  currency: string | null,
+) {
+  const { data, error } = await supabase
+    .from('platform_fee_policies')
+    .select('basis_points')
+    .eq('fee_type', feeType)
+    .eq('status', 'active')
+    .or(`chain.is.null,chain.eq.${chain ?? ''}`)
+    .or(`currency.is.null,currency.eq.${currency ?? ''}`)
+    .order('chain', { ascending: true, nullsFirst: false })
+    .order('currency', { ascending: true, nullsFirst: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+
+  return typeof data?.basis_points === 'number' ? data.basis_points : 50;
+}
+
 async function audit(
   supabase: SupabaseClient,
   actorProfileId: string,
   action: string,
   entityId: string,
   metadata: Record<string, unknown>,
+  entityType = 'knowledge_asset',
 ) {
   const { error } = await supabase.from('platform_policy_audit_logs').insert({
     actor_profile_id: actorProfileId,
     action,
-    entity_type: 'knowledge_asset',
+    entity_type: entityType,
     entity_id: entityId,
     metadata,
   });
@@ -462,6 +666,32 @@ function cleanAsset(row: KnowledgeAssetRow) {
     ownershipMode: row.ownership_mode,
     aiReviewStatus: row.ai_review_status,
     status: row.status,
+    metadata,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+function cleanFundingCampaign(row: FundingCampaignRow) {
+  const metadata = readObject(row.metadata);
+
+  return {
+    id: row.id,
+    assetId: row.asset_id,
+    creatorProfileId: row.creator_profile_id,
+    schoolId: row.school_id,
+    title: row.title,
+    slug: row.slug,
+    summary: row.summary,
+    goalAmount: row.goal_amount,
+    raisedAmount: row.raised_amount,
+    currency: row.currency,
+    preferredChain: row.preferred_chain,
+    feeBps: row.fee_bps,
+    status: row.status,
+    startsAt: row.starts_at,
+    endsAt: row.ends_at,
+    recognitionTiers: cleanTags(readArray(metadata.recognitionTiers)),
     metadata,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -522,6 +752,40 @@ function normalizeReviewStatus(value: unknown) {
   }
 
   throw new Error('Review status is invalid.');
+}
+
+function normalizeFundingStatus(value: unknown): FundingStatus {
+  if (typeof value === 'string' && fundingStatuses.has(value)) {
+    return value as FundingStatus;
+  }
+
+  return 'draft';
+}
+
+function cleanPositiveAmount(value: unknown, label: string) {
+  const raw = typeof value === 'number' ? String(value) : cleanRequiredString(value, label);
+  const parsed = Number(raw);
+
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    throw new Error(`${label} must be greater than zero.`);
+  }
+
+  return raw;
+}
+
+function cleanTimestamp(value: unknown) {
+  const cleaned = cleanString(value);
+
+  if (!cleaned) {
+    return null;
+  }
+
+  const date = new Date(cleaned);
+  if (Number.isNaN(date.getTime())) {
+    throw new Error('Date value is invalid.');
+  }
+
+  return date.toISOString();
 }
 
 function cleanTags(value: unknown[]) {

@@ -1,5 +1,5 @@
-import { KnowledgeMarketplaceScreen } from '../../src/features/knowledge/KnowledgeMarketplaceScreen';
+import { Redirect } from 'expo-router';
 
 export default function KnowledgeRoute() {
-  return <KnowledgeMarketplaceScreen />;
+  return <Redirect href="/discover" />;
 }

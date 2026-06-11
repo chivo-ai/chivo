@@ -11,7 +11,7 @@ export default function AuthLayout() {
   }
 
   if (user) {
-    return <Redirect href="/home" />;
+    return <Redirect href="/discover" />;
   }
 
   return <Stack screenOptions={{ headerShown: false }} />;

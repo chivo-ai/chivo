@@ -58,7 +58,7 @@ export default function LessonDetailRoute() {
   }
 
   if (!activeMembership || !lessonId) {
-    return <Redirect href="/home" />;
+    return <Redirect href="/discover" />;
   }
 
   return (

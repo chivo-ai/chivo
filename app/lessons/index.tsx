@@ -59,7 +59,7 @@ export default function LessonsRoute() {
   }
 
   if (!activeMembership) {
-    return <Redirect href="/home" />;
+    return <Redirect href="/discover" />;
   }
 
   return (

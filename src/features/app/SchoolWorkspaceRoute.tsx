@@ -16,7 +16,7 @@ export function SchoolWorkspaceRoute({ surface }: SchoolWorkspaceRouteProps) {
   }
 
   if (!activeMembership) {
-    return <Redirect href="/home" />;
+    return <Redirect href="/discover" />;
   }
 
   return (
@@ -25,7 +25,7 @@ export function SchoolWorkspaceRoute({ surface }: SchoolWorkspaceRouteProps) {
       initialSurface={surface}
       onSwitchSchool={async () => {
         await setActiveMembership(null);
-        router.replace('/home');
+        router.replace('/discover');
       }}
     />
   );

@@ -79,7 +79,7 @@ export default function ClassRoute() {
   }
 
   if (!activeMembership || !classUsername) {
-    return <Redirect href="/home" />;
+    return <Redirect href="/discover" />;
   }
 
   const schoolClass = setup.classes.find((item) => item.username === classUsername);

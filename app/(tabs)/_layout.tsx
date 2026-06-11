@@ -1,6 +1,6 @@
 import { Redirect, Slot, router, usePathname } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Bell, BookOpen, Building2, Home, QrCode, ShieldCheck, UserCircle, UserPlus, Users } from 'lucide-react-native';
+import { Bell, Building2, Compass, PenLine, QrCode, ShieldCheck, Store, Trophy, UserCircle, UserPlus, Users } from 'lucide-react-native';
 
 import { AppNavigation, AppNavItem } from '../../src/components/AppNavigation';
 import { BootScreen } from '../../src/features/app/BootScreen';
@@ -8,21 +8,46 @@ import { useAppSession } from '../../src/features/app/AppSessionProvider';
 import { CompanyAdminSession, fetchCurrentCompanyAdminSession } from '../../src/services/companyAdmin';
 import { colors } from '../../src/theme/tokens';
 
-type AccessRoute = 'home' | 'notifications' | 'account' | 'knowledge' | 'create' | 'join' | 'request' | 'crews' | 'company';
+type AccessRoute =
+  | 'discover'
+  | 'publish'
+  | 'research'
+  | 'marketplace'
+  | 'create'
+  | 'join'
+  | 'request'
+  | 'crews'
+  | 'notifications'
+  | 'account'
+  | 'company';
 
 const routeById: Record<AccessRoute, string> = {
-  home: '/home',
-  notifications: '/notifications',
-  account: '/account',
-  knowledge: '/knowledge',
+  discover: '/discover',
+  publish: '/publish',
+  research: '/research',
+  marketplace: '/marketplace',
   create: '/create',
   join: '/join',
   request: '/request',
   crews: '/crews',
+  notifications: '/notifications',
+  account: '/account',
   company: '/company',
 };
 
-const accessRoutes: AccessRoute[] = ['home', 'notifications', 'account', 'knowledge', 'create', 'join', 'request', 'crews', 'company'];
+const accessRoutes: AccessRoute[] = [
+  'discover',
+  'publish',
+  'research',
+  'marketplace',
+  'create',
+  'join',
+  'request',
+  'crews',
+  'notifications',
+  'account',
+  'company',
+];
 
 export default function TabsLayout() {
   const pathname = usePathname();
@@ -67,7 +92,7 @@ export default function TabsLayout() {
   return (
     <AppNavigation
       title="Chivo AI"
-      subtitle="Schools, crews, account"
+      subtitle="Knowledge network"
       items={items}
       activeId={activeId}
       onSelect={(id) => router.push(routeById[id as AccessRoute] as any)}
@@ -79,7 +104,7 @@ export default function TabsLayout() {
 
 function activeRouteFromPath(pathname: string): AccessRoute {
   const firstSegment = pathname.split('/').filter(Boolean)[0] as AccessRoute | undefined;
-  return firstSegment && accessRoutes.includes(firstSegment) ? firstSegment : 'home';
+  return firstSegment && accessRoutes.includes(firstSegment) ? firstSegment : 'discover';
 }
 
 function accessNavItems(activeId: AccessRoute, showCompanyControls: boolean): AppNavItem[] {
@@ -87,60 +112,74 @@ function accessNavItems(activeId: AccessRoute, showCompanyControls: boolean): Ap
 
   return [
     {
-      id: 'home',
-      label: 'Home',
-      description: 'Schools and access',
-      group: 'Access',
-      icon: <Home size={19} color={iconColor('home')} />,
+      id: 'discover',
+      label: 'Discover',
+      description: 'Knowledge feed',
+      group: 'Network',
+      icon: <Compass size={19} color={iconColor('discover')} />,
     },
     {
-      id: 'notifications',
-      label: 'Activity',
-      description: 'Alerts and updates',
-      group: 'Access',
-      icon: <Bell size={19} color={iconColor('notifications')} />,
+      id: 'publish',
+      label: 'Publish',
+      description: 'Creator studio',
+      group: 'Network',
+      icon: <PenLine size={19} color={iconColor('publish')} />,
     },
     {
-      id: 'account',
-      label: 'Account',
-      description: 'Personal profile',
-      group: 'Access',
-      icon: <UserCircle size={19} color={iconColor('account')} />,
+      id: 'research',
+      label: 'Research',
+      description: 'Funding campaigns',
+      group: 'Network',
+      icon: <Trophy size={19} color={iconColor('research')} />,
     },
     {
-      id: 'knowledge',
-      label: 'Knowledge',
-      description: 'Assets and funding',
-      group: 'Market',
-      icon: <BookOpen size={19} color={iconColor('knowledge')} />,
+      id: 'marketplace',
+      label: 'Market',
+      description: 'Ownership and fees',
+      group: 'Network',
+      icon: <Store size={19} color={iconColor('marketplace')} />,
     },
     {
       id: 'create',
-      label: 'Create',
-      description: 'Start a school',
-      group: 'School',
+      label: 'Schools',
+      description: 'Create a school',
+      group: 'Schools',
       icon: <Building2 size={19} color={iconColor('create')} />,
     },
     {
       id: 'join',
       label: 'Join',
       description: 'Use invite code',
-      group: 'School',
+      group: 'Schools',
       icon: <QrCode size={19} color={iconColor('join')} />,
     },
     {
       id: 'request',
       label: 'Request',
       description: 'Ask a school admin',
-      group: 'School',
+      group: 'Schools',
       icon: <UserPlus size={19} color={iconColor('request')} />,
     },
     {
       id: 'crews',
       label: 'Crews',
       description: 'Study groups',
-      group: 'Study',
+      group: 'Schools',
       icon: <Users size={19} color={iconColor('crews')} />,
+    },
+    {
+      id: 'notifications',
+      label: 'Activity',
+      description: 'Alerts and updates',
+      group: 'Profile',
+      icon: <Bell size={19} color={iconColor('notifications')} />,
+    },
+    {
+      id: 'account',
+      label: 'Profile',
+      description: 'Public identity',
+      group: 'Profile',
+      icon: <UserCircle size={19} color={iconColor('account')} />,
     },
     {
       id: 'company',

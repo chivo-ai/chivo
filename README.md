@@ -1,8 +1,8 @@
 # Chivo AI
 
-Chivo AI is a school-first learning platform that turns real lessons into transcript, summary, audio study, quizzes, flashcards, progress insight, and study crews.
+Chivo AI is an AI-native education and research social network with crypto-powered ownership, memberships, funding, donations, and monetization.
 
-The expanded vision is a real onchain education ecosystem, but the current build stays focused on getting the core school, lesson, crew, classroom, and admin foundation working first.
+The student and teacher AI assistants are important tools inside the ecosystem, but the product is broader: people, schools, researchers, teachers, and creators can publish, discover, fund, follow, learn, monetize, and build public knowledge profiles.
 
 ## Roadmap Documents
 
@@ -11,17 +11,20 @@ The expanded vision is a real onchain education ecosystem, but the current build
 
 ## Current Product
 
-Chivo AI is built around five product surfaces:
+Chivo AI is built around seven product surfaces:
 
-- **Access**: sign in, register, account profile, invite codes, QR scanning, school requests, and route entry.
-- **School**: school identity, classes, subjects, members, academic terms, invites, requests, and permissions.
-- **Learn**: student class entry, lesson cards, audio, transcript, summaries, quizzes, flashcards, personalization, and progress.
-- **Teach**: teacher rooms, live lesson recording, upload, AI processing, review, publishing, class roster, and class insight.
-- **Admin**: school command center, people, academic setup, class setup, requests, permissions, and audit visibility. Billing/payment controls belong to the 2.0 ecosystem layer.
+- **Discover**: education-based social feed for articles, stories, research, studies, reports, lessons, creators, schools, and campaigns.
+- **Publish**: creator studio for articles, stories, studies, research papers, reports, lessons, access settings, review submission, and ownership modes.
+- **Research**: funding campaigns, contributor recognition, campaign status, and crypto checkout readiness.
+- **Marketplace**: paid access, ownership editions, membership passes, royalty/provider settings, and platform fee policies.
+- **Schools**: school identity, classes, subjects, members, academic terms, invites, requests, crews, and permissions.
+- **AI Studio**: student tutor, teaching assistant, research assistant, lesson processing, summaries, quizzes, translation, and voice learning.
+- **Profile/Admin**: public profile direction, account settings, activity, company control, verification, restrictions, overrides, and audit visibility.
 
 Core routes:
 
-- `/home`, `/notifications`, `/account`, `/create`, `/join`, `/request`, `/crews`, `/crews/[username]`
+- `/discover`, `/publish`, `/research`, `/marketplace`, `/notifications`, `/account`
+- `/create`, `/join`, `/request`, `/crews`, `/crews/[username]`
 - `/school/my-school`, `/school/my-school/[username]`
 - `/school/class`, `/school/class/[username]`
 - `/learn`, `/teach`
@@ -174,6 +177,7 @@ Use upgrade files for existing databases:
 - `supabase/group13-monetization-controls-upgrade.sql`: 2.0 billing controls, company roles, access policy, overrides, embedded wallets, and onchain payment records
 - `supabase/group14-chain-rail-registry-upgrade.sql`: chain-neutral payment rail registry with Polygon mainnet enabled and Solana, Sui, and BNB test rails staged as disabled future rails
 - `supabase/group15-knowledge-ownership-monetization.sql`: provider-agnostic knowledge ownership, marketplace, fee, royalty, funding, and donation database layer
+- `supabase/group16-knowledge-social-network-upgrade.sql`: public profile settings, social follows, reactions, comments, and story content support
 
 Do not run `supabase/dev-reset.sql` on a database that contains live data.
 
@@ -196,7 +200,7 @@ Edge Functions:
 - `company-control`: manages company billing, roles, restrictions, and overrides with service-role protection.
 - `create-access-checkout`: creates a database-backed checkout intent and returns chain-specific payment instructions for enabled payment rails.
 - `create-monetization-checkout`: creates donation and research-funding checkout intents through enabled crypto rails.
-- `knowledge-publishing`: saves drafts, publishes articles/research/studies/reports/lessons/publications, queues Chivo review, and records company review decisions.
+- `knowledge-publishing`: saves drafts, publishes articles/stories/research/studies/reports/lessons/publications, manages research funding campaigns, queues Chivo review, and records company review decisions.
 - `evm-payment-listener`: verifies EVM escrow deposit events, grants paid access passes, confirms funding contributions, and records donation confirmations after enough confirmations.
 - `onchain-payout-operator`: releases verified EVM escrow payments after Supabase policy checks.
 - `process-lesson`: Gemini lesson processing foundation.
