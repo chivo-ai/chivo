@@ -1,6 +1,6 @@
 import { Redirect, Slot, router, usePathname } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Bell, Building2, Home, QrCode, ShieldCheck, UserCircle, UserPlus, Users } from 'lucide-react-native';
+import { Bell, BookOpen, Building2, Home, QrCode, ShieldCheck, UserCircle, UserPlus, Users } from 'lucide-react-native';
 
 import { AppNavigation, AppNavItem } from '../../src/components/AppNavigation';
 import { BootScreen } from '../../src/features/app/BootScreen';
@@ -8,12 +8,13 @@ import { useAppSession } from '../../src/features/app/AppSessionProvider';
 import { CompanyAdminSession, fetchCurrentCompanyAdminSession } from '../../src/services/companyAdmin';
 import { colors } from '../../src/theme/tokens';
 
-type AccessRoute = 'home' | 'notifications' | 'account' | 'create' | 'join' | 'request' | 'crews' | 'company';
+type AccessRoute = 'home' | 'notifications' | 'account' | 'knowledge' | 'create' | 'join' | 'request' | 'crews' | 'company';
 
 const routeById: Record<AccessRoute, string> = {
   home: '/home',
   notifications: '/notifications',
   account: '/account',
+  knowledge: '/knowledge',
   create: '/create',
   join: '/join',
   request: '/request',
@@ -21,7 +22,7 @@ const routeById: Record<AccessRoute, string> = {
   company: '/company',
 };
 
-const accessRoutes: AccessRoute[] = ['home', 'notifications', 'account', 'create', 'join', 'request', 'crews', 'company'];
+const accessRoutes: AccessRoute[] = ['home', 'notifications', 'account', 'knowledge', 'create', 'join', 'request', 'crews', 'company'];
 
 export default function TabsLayout() {
   const pathname = usePathname();
@@ -105,6 +106,13 @@ function accessNavItems(activeId: AccessRoute, showCompanyControls: boolean): Ap
       description: 'Personal profile',
       group: 'Access',
       icon: <UserCircle size={19} color={iconColor('account')} />,
+    },
+    {
+      id: 'knowledge',
+      label: 'Knowledge',
+      description: 'Assets and funding',
+      group: 'Market',
+      icon: <BookOpen size={19} color={iconColor('knowledge')} />,
     },
     {
       id: 'create',

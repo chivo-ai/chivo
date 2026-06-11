@@ -2,6 +2,8 @@
 
 This runbook covers the contract-side controls needed before Chivo accepts real value on EVM, Solana, or Sui.
 
+Initial production scope is crypto payments, escrow, ownership-provider records, funding, donations, and paid access. It does not include creator coins or custom Chivo platform tokens.
+
 ## Authority Setup
 
 Use separate keys/accounts:
@@ -98,12 +100,14 @@ The backend payout worker should:
 
 1. Read confirmed `onchain_payment_events`.
 2. Check `onchain_payment_intents.status`.
-3. Check `evaluate_access_policy`.
-4. Check no active `platform_entity_restrictions`.
-5. Check no active payout freeze override.
-6. Confirm chain finality.
-7. Call EVM `releasePayment` or `releasePayments`, Solana `release_sol`, or Sui `release_sui`.
-8. Update Supabase with release transaction/signature.
+3. Confirm chain finality.
+4. For access intents, check `evaluate_access_policy`.
+5. For funding intents, confirm the linked `funding_contributions` row before release.
+6. For donation intents, confirm donation metadata before release.
+7. Check no active `platform_entity_restrictions`.
+8. Check no active payout freeze override.
+9. Call EVM `releasePayment` or `releasePayments`, Solana `release_sol`, or Sui `release_sui`.
+10. Update Supabase with release transaction/signature.
 
 Manual release should be reserved for support correction only.
 

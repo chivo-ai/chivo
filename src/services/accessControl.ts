@@ -1,6 +1,6 @@
 import { supabase } from '../lib/supabase';
 
-export type AccessEntityType = 'school' | 'class' | 'crew' | 'subject' | 'publication';
+export type AccessEntityType = 'school' | 'class' | 'crew' | 'subject' | 'publication' | 'knowledge_asset' | 'membership_pass';
 
 export type AccessPolicyResult = {
   allowed: boolean;

@@ -11,6 +11,8 @@ The current app remains at the repository root for now. A later move into a `chi
 
 The contracts do not decide current app access by themselves. They prove and escrow payment. Supabase records still decide whether access is currently allowed, revoked, suspended, waived, or overridden.
 
+Chivo AI does not ship creator coins or custom platform tokens in the initial versions. Ownership, memberships, marketplace listings, and research funding are integrated through database-backed service layers and provider adapters.
+
 ## Current Active Rail
 
 Polygon mainnet is the only enabled checkout rail while the app payment flow is being built.
@@ -46,14 +48,28 @@ This keeps USD pricing, token conversion, and future Solana/Sui amounts out of h
 ## Payment Flow
 
 1. Chivo creates an `onchain_payment_intents` row.
-2. `create-access-checkout` reads the enabled payment rail and signs or creates the matching onchain payment intent.
+2. `create-access-checkout` or `create-monetization-checkout` reads the enabled payment rail and signs or creates the matching onchain payment intent.
 3. User pays onchain into escrow.
 4. `evm-payment-listener` observes the onchain deposit event.
 5. Listener verifies chain, receiver, payer, amount, token, finality, and intent status.
-6. Supabase evaluates policy, restrictions, overrides, and access product status.
-7. If valid, Supabase creates or activates the access pass.
-8. Automated payout operator releases escrow to fee collector and school/creator receiver.
-9. Risk operator freezes/refunds only when policy, fraud, or review requires it.
+6. Supabase routes the confirmed intent by entity type.
+7. Access payments evaluate policy, restrictions, overrides, and product status before creating or activating an access pass.
+8. Funding payments atomically confirm the contribution and increment campaign totals.
+9. Donation payments record confirmed monetization metadata for the donation target.
+10. Automated payout operator releases escrow to fee collector and school/creator/researcher receiver.
+11. Risk operator freezes/refunds only when policy, fraud, or review requires it.
+
+## Ownership Provider Layer
+
+Database tables in `supabase/group15-knowledge-ownership-monetization.sql` keep the ownership layer replaceable:
+
+- `ownership_provider_settings` stores Crossmint, Thirdweb, Metaplex, Sui Kiosk, or future adapters without hardcoding them into app screens.
+- `knowledge_assets` represents published research, studies, lessons, reports, and membership-style assets.
+- `knowledge_asset_collections` and `knowledge_asset_mints` map Chivo assets to external provider collections, contracts, packages, objects, and holder records.
+- `royalty_policies` and `marketplace_trade_events` track primary/secondary market economics without making the database depend on one NFT standard.
+- `funding_campaigns`, `funding_contributions`, and `donation_targets` support research funding and direct support through the same crypto payment rails.
+
+Provider APIs can change, but app code should keep calling the Chivo service layer first.
 
 ## Security Rules
 

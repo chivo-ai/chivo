@@ -2,7 +2,16 @@
 
 This document captures the second product layer for Chivo AI. It should sit beside the main `README.md`, not replace it.
 
-The main `README.md` remains the foundation roadmap for the student, teacher, school, class, lesson, crew, classroom, and admin product. Billing and monetization belong to this 2.0 roadmap because they affect school access, class access, revenue, verification, donations, and public publishing.
+The main `README.md` remains the foundation roadmap for the student, teacher, school, class, lesson, crew, classroom, and admin product. Chivo 2.0 positions the product as an AI-native education and research platform with crypto-powered ownership, memberships, funding, and monetization.
+
+Chivo AI is not a creator-coin or custom-token project. Creator coins and custom platform tokens are intentionally out of scope for the initial versions because they add regulatory, tokenomics, custody, liquidity, and smart-contract maintenance risk without being required for the product vision.
+
+The architecture is hybrid:
+
+- the database remains the source of truth for users, schools, classes, lessons, articles, research, AI content, moderation, verification, discovery, analytics, and access policy
+- onchain/provider systems prove payments, membership ownership, royalties, donations, funding records, certificates, and tradable access assets
+- provider integrations must stay replaceable through service layers and registry tables
+- initial launch is crypto-native; traditional payment rails are not part of the first production scope
 
 ## Roadmap Split
 
@@ -33,17 +42,18 @@ Focus:
 - school-controlled pricing and payment rails
 - public profiles and public publishing
 - Chivo-approved content review
-- creator donations, verification, and monthly rewards
+- crypto-native donations, verification, funding, ownership, and monthly rewards
+- membership pass ownership and knowledge ownership assets through replaceable providers
 
 This work can begin after the UI foundation because it is the next product layer. It must still protect the 1.0 learning foundation: students and teachers should continue to use free/private school and class flows without being forced into monetization.
 
-## Group 4: Monetized Schools, Public Profiles, Publishing, Verification, and Rewards
+## Product Layer: Monetized Knowledge Ecosystem
 
-Group 4 is a future expansion group. It must be designed as an added layer on top of the existing school/class foundation, not as a replacement for the current private classroom flow.
+This product layer must be designed as an added layer on top of the existing school/class foundation, not as a replacement for the current private classroom flow.
 
-Billing is part of Group 4. The 1.0 foundation may contain admin placeholders or early payment records, but real billing, subscriptions, payment rails, access passes, revenue sharing, payouts, and platform fees should be designed here.
+Billing is part of this layer. The 1.0 foundation may contain admin placeholders or early payment records, but real billing, subscriptions, payment rails, access passes, revenue sharing, payouts, ownership records, funding, royalties, and platform fees should be designed here.
 
-Group 4 must be database-driven for access control, but crypto payments must still happen for real onchain. Onchain contracts/programs and verified chain events prove that payment happened. Chivo database records then decide whether that verified payment grants, keeps, pauses, revokes, or overrides access.
+This layer must be database-driven for access control, but crypto payments and ownership proofs must still happen for real onchain or through trusted ownership providers. Onchain contracts/programs and verified chain/provider events prove that payment, ownership, sale, royalty, or contribution happened. Chivo database records then decide whether that verified event grants, keeps, pauses, revokes, or overrides access and visibility.
 
 ### 4.1 Paid and Free Access Models
 
@@ -140,7 +150,7 @@ Important distinction:
 - School access revenue: what students pay the school to enter a school, class, subject, or learning program.
 - Platform fee: Chivo's percentage from school access revenue.
 
-### 4.4 School Billing and Payment Rails
+### 4.4 Crypto-Native Billing and Payment Rails
 
 Billing models:
 
@@ -154,22 +164,17 @@ Billing models:
 
 These billing models can affect 1.0 access flows, so they must wrap the existing school/class membership logic carefully instead of replacing it.
 
-The system should support both crypto and traditional finance rails.
+The initial production scope is crypto-only. Traditional finance providers can be added later through the same rail/provider registry pattern, but they are not part of the first launch.
 
 Crypto rails:
 
+- Polygon
 - BNB
 - Solana
+- Sui
 - Base
 - future EVM chains
 - future multi-chain support
-
-Traditional rails:
-
-- card payments
-- bank transfer
-- mobile money where available
-- region-specific providers in the future
 
 Payment rail preference:
 
@@ -196,7 +201,56 @@ Company override rule:
 - company/admin override can revoke, pause, refund-review, ban, suspend, or waive access even if the payment was valid
 - override actions do not erase payment history; they change current platform access state
 
-### 4.5 Embedded Web Wallet
+### 4.5 Ownership, Membership Passes, and Provider Abstraction
+
+Chivo does not build creator coins or custom platform tokens in the initial versions.
+
+Ownership features:
+
+- membership passes for schools, classes, research access, and premium communities
+- knowledge ownership editions for research, reports, studies, publications, and premium lessons
+- funding certificates and contributor recognition for research campaigns
+- marketplace trade event records for primary sales, secondary sales, transfers, and royalty events
+
+Provider direction:
+
+- EVM ownership and marketplace can start with external providers such as Crossmint, thirdweb, or Reservoir-style infrastructure.
+- Solana ownership can use Metaplex provider adapters when that rail is ready.
+- Sui ownership can use Sui Kiosk or provider adapters when that rail is ready.
+- Chivo app code should call `knowledgeMarketplace` and ownership APIs, not provider SDKs directly from screens.
+
+Fee model:
+
+- access payments use `access_products`, payment rails, and onchain payment intents
+- membership pass issuance can charge a platform fee
+- membership and knowledge asset secondary sales can charge marketplace fees where the provider/contract supports it
+- royalty expectations are stored in `royalty_policies`
+- actual royalty and fee events are recorded from provider or chain events
+
+Important rule:
+
+- provider ownership does not replace Chivo database policy
+- a user can own an asset but still lose platform access if policy requires it
+- ownership records should support portability between providers
+
+### 4.6 Research Funding, Donations, and Tipping
+
+Researchers, teachers, creators, and schools can receive crypto-native support.
+
+Funding campaigns:
+
+- researcher creates a campaign with a goal amount and preferred chain
+- supporters contribute through the same payment rail model
+- successful campaigns can issue contributor recognition, early access, badges, or certificates
+- ownership-based funding rewards are a later phase and must be reviewed carefully
+
+Donations and tips:
+
+- every public profile, school, publication, research item, study, report, or lesson can have a `donation_targets` row
+- donation fees are configurable through platform settings and fee policies
+- donation payment verification uses the same onchain event rules as access payments
+
+### 4.7 Embedded Web Wallet
 
 Crypto access should not require every user to understand external wallet connection.
 
@@ -208,6 +262,7 @@ Preferred wallet model:
 - wallet UX should feel like Coinbase-style web wallet onboarding
 - support EVM chains that Chivo integrates
 - support Solana
+- support Sui
 - avoid forcing traditional `connect wallet` as the only entry path
 
 Wallet requirements:
@@ -216,7 +271,7 @@ Wallet requirements:
 - works inside native app flows
 - email-based onboarding
 - supports custodial or semi-custodial/embedded wallet models, depending on provider choice
-- supports EVM addresses and Solana addresses
+- supports EVM, Solana, and Sui addresses
 - can be extended to external wallet connect later
 - server-side payment confirmation still updates Chivo database access records
 - embedded wallet payments still go through the same onchain contracts/programs and event verification
@@ -227,7 +282,7 @@ Important rule:
 - Chivo database records decide whether a person can enter a school, class, crew, publication, or paid feature
 - onchain event verification proves payment, while Chivo access policy grants or denies current access
 
-### 4.6 Public School Profiles
+### 4.8 Public School Profiles
 
 Schools should be able to make their profile public.
 
@@ -243,7 +298,7 @@ Public school profile behavior:
 
 Private classroom lessons stay separate from public school publishing.
 
-### 4.7 Public Personal Profiles
+### 4.9 Public Personal Profiles
 
 Personal accounts should be able to have public profile pages.
 
@@ -257,7 +312,7 @@ Public personal profile behavior:
 
 This should not expose private classroom activity unless the user intentionally publishes something.
 
-### 4.8 Public Publishing System
+### 4.10 Public Publishing System
 
 The platform should support public educational publishing outside private classrooms.
 
@@ -285,7 +340,7 @@ Each public post should support:
 
 Public publishing must remain separate from class lesson publishing. A classroom lesson is for enrolled members; a public article is for global discovery.
 
-### 4.9 Approved and Open Public Feeds
+### 4.11 Approved and Open Public Feeds
 
 There should be two public content sections.
 
@@ -310,7 +365,7 @@ Approval flow:
 - approved posts move into the Chivo-approved public feed
 - rejected posts remain unpublished or return to draft with feedback
 
-### 4.10 Verification
+### 4.12 Verification
 
 Profiles and schools should be able to become verified.
 
@@ -341,7 +396,7 @@ Company verification overrides:
 - Chivo can pause verification payments globally.
 - Verification state must be database-backed and audit-logged.
 
-### 4.11 Donations and Creator Rewards
+### 4.13 Donations and AI Rewards
 
 Public content should allow direct support for creators.
 
@@ -349,8 +404,8 @@ Donation behavior:
 
 - each public article, research post, study, or lesson can include a donate button
 - donations go to the creator or school that published the content
-- Chivo  take a 0.5% platform fee from donations
-- payment rails can include crypto and traditional finance (later)
+- Chivo takes a configurable platform fee from donations
+- payment rails are crypto-native at launch
 
 Monthly reward system:
 
@@ -490,7 +545,7 @@ Rules:
 - contracts/programs must be audited or reviewed before production funds are accepted
 - teachers and students should still be able to use the app without public publishing
 - crypto rails should be modular, not hardcoded into every payment flow
-- traditional finance should be a first-class option
+- traditional finance stays out of the initial launch path
 - company review tools are separate from school admin tools
 - verification is optional, not required for normal learning
 - company admin access is role-based, with `super_admin` as the only role that can control every company-side system
@@ -499,23 +554,12 @@ Rules:
 
 Recommended order now that the UI foundation is in place:
 
-1. Add platform settings for global billing toggle, platform fee, payment rails, and policy controls.
-2. Add company/admin control tables for bans, suspensions, overrides, audit logs, and verification waivers.
-3. Add access product model for free/paid schools, classes, subjects, and crews.
-4. Add server-side access policy evaluation.
-5. Add school/class/crew pricing settings in admin.
-6. Add embedded wallet identity model for email-based crypto use.
-7. Create separate EVM and Solana contract workspaces beside the app.
-8. Design EVM smart contracts and Solana programs for payments, fees, events, and anti-fraud.
-9. Add onchain event listeners and transaction verification.
-10. Add payment checkout and access-pass granting.
-11. Add school revenue and Chivo platform-fee ledger.
-12. Add public profile primitives for people and schools.
-13. Add public publishing editor and public reader.
-14. Add follow system and public discovery feeds.
-15. Add AI review queue and approved/open feed split.
-16. Add verification requests, verification plans, and manual badge controls.
-17. Add donations and monthly creator rewards.
+1. Core learning foundation: keep schools, classes, crews, lessons, AI study packs, joins, requests, and private learning stable.
+2. Crypto access and revenue rails: database policy, access products, Polygon checkout, onchain event verification, escrow release, refunds, and company controls.
+3. Public knowledge network and AI trust: public profiles, publishing, AI summaries, AI review queues, verification, discovery, and moderation.
+4. Ownership, marketplace, funding, and rewards: provider-agnostic membership passes, knowledge ownership assets, research funding, donations, royalties, marketplace events, and AI reward records.
+
+Initial versions do not include creator coins, custom platform tokens, or hardcoded ownership providers.
 
 ## Implementation Started
 
@@ -538,6 +582,12 @@ The first 2.0 bridge is the monetization control plane:
 - `supabase/functions/create-access-checkout/index.ts` creates payment intents through the rail registry and returns Polygon EVM deposit instructions today, with the same envelope ready for Solana/Sui adapters later.
 - `supabase/functions/evm-payment-listener/index.ts` verifies Polygon EVM `PaymentDeposited` events, records `onchain_payment_events`, and creates paid access passes after confirmation and policy checks.
 - `supabase/functions/onchain-payout-operator/index.ts` is the first automatic payout worker. It releases confirmed EVM escrow only after Supabase policy checks pass and resolves the active router from intent metadata, env secrets, or `contract_program_registry`.
+- `supabase/group15-knowledge-ownership-monetization.sql` adds the provider-agnostic knowledge marketplace, ownership, royalty, funding, donation, and fee-policy database layer without creator coins or custom platform tokens.
+- `src/services/knowledgeMarketplace.ts` gives the app one typed catalog for ownership providers, marketplace providers, public knowledge assets, fee policies, and funding campaigns.
+- `src/services/monetizationCheckout.ts` gives app screens one typed donation/funding checkout path, with Polygon EVM live today and Solana/Sui adapters fitting the same response shape later.
+- `src/features/knowledge/KnowledgeMarketplaceScreen.tsx` adds the first real marketplace surface that reads database state instead of mocked content.
+- `supabase/functions/create-monetization-checkout/index.ts` creates crypto checkout intents for donation and research funding targets through the same chain-neutral rail registry.
+- `supabase/functions/evm-payment-listener/index.ts` also confirms funding contributions atomically and records confirmed donation metadata when Polygon escrow events finalize.
 - `public_verification_requests`, `public_verification_badges`, and `public_verification_review_events` define the public profile/school verification layer. Verification payments use the same escrow payment path, while badges remain company-approved and revocable.
 
 This layer does not replace the existing school, class, crew, lesson, or classroom flows. It prepares those flows to ask the database for access policy before paid gates are added.
@@ -576,5 +626,6 @@ Current priority remains:
 - store chain-specific checkout amounts and payout recipients on `access_products.metadata` until a pricing/oracle layer is added
 - verify crypto payments through real onchain contract/program events
 - make company/admin policy controls stronger than payment history
+- build marketplace, funding, and ownership through service abstractions rather than provider-specific app code
 - test native and web behavior as each 2.0 layer touches access, joining, admin, or public profiles
-- postpone the public marketplace and rewards layer until paid access is stable
+- keep creator coins and custom platform tokens out of the initial versions

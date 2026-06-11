@@ -7,7 +7,7 @@ The expanded vision is a real onchain education ecosystem, but the current build
 ## Roadmap Documents
 
 - **Foundation roadmap**: this `README.md` covers the active product foundation and Groups 1-3.
-- **2.0 expansion roadmap**: `README-2.0.md` covers Group 4: billing, gated schools/classes, payment rails, public profiles, publishing, verification, donations, and creator rewards.
+- **2.0 expansion roadmap**: `README-2.0.md` covers Chivo as an AI-native education and research platform with crypto-powered ownership, memberships, funding, and monetization.
 
 ## Current Product
 
@@ -102,7 +102,7 @@ Group 3 is done when the product feels connected, memorable, and ready for broad
 
 These are future ecosystem groups. They build on top of the current product after the school, lesson, crew, classroom, and admin foundation is stable.
 
-### Future Group 4: Chivo AI 2.0 Ecosystem
+### Future Chivo AI 2.0 Ecosystem
 
 Detailed plan: see `README-2.0.md`.
 
@@ -113,15 +113,17 @@ Scope:
 - database-driven access, billing, bans, suspensions, overrides, and verification badges
 - company/admin global billing toggle that can make the whole app free temporarily
 - company/admin authority to revoke paid access when policy is broken
-- embedded email-based web wallet direction for EVM chains and Solana
-- real onchain payment verification through EVM smart contracts, Solana programs, and backend event listeners
+- embedded email-based web wallet direction for EVM chains, Solana, and Sui
+- real onchain payment verification through EVM smart contracts, Solana programs, Sui packages, and backend event listeners
 - school-set pricing for school entry, class access, weekly/monthly/yearly plans, and one-time access
-- crypto rails including BNB, Solana, Base, and future EVM chains
-- traditional finance rails such as cards, bank transfer, mobile payments, and regional providers
+- crypto-native initial launch with no custom creator coin or platform token
+- crypto rails including Polygon, BNB, Solana, Sui, Base, and future EVM chains
 - Chivo platform share on school/class access revenue, starting with a planned `0.5%` fee
 - public school profiles and public personal profiles
 - follow system for schools and personal profiles
 - public studies, lessons, research, articles, and learning posts
+- provider-agnostic membership passes and knowledge ownership assets
+- research funding campaigns with contributor recognition
 - AI summaries, audio playback, language selection, and translation for public content
 - approved-by-Chivo feed and open public feed
 - AI-assisted company review queue
@@ -171,6 +173,7 @@ Use upgrade files for existing databases:
 - `supabase/group12-ai-chat-memory-upgrade.sql`: AI chat memory, classroom AI thread persistence, and updated timestamps
 - `supabase/group13-monetization-controls-upgrade.sql`: 2.0 billing controls, company roles, access policy, overrides, embedded wallets, and onchain payment records
 - `supabase/group14-chain-rail-registry-upgrade.sql`: chain-neutral payment rail registry with Polygon mainnet enabled and Solana, Sui, and BNB test rails staged as disabled future rails
+- `supabase/group15-knowledge-ownership-monetization.sql`: provider-agnostic knowledge ownership, marketplace, fee, royalty, funding, and donation database layer
 
 Do not run `supabase/dev-reset.sql` on a database that contains live data.
 
@@ -192,7 +195,8 @@ Edge Functions:
 - `review-join-request`: lets a school owner/admin approve or decline a request.
 - `company-control`: manages company billing, roles, restrictions, and overrides with service-role protection.
 - `create-access-checkout`: creates a database-backed checkout intent and returns chain-specific payment instructions for enabled payment rails.
-- `evm-payment-listener`: verifies EVM escrow deposit events and grants paid access passes after enough confirmations.
+- `create-monetization-checkout`: creates donation and research-funding checkout intents through enabled crypto rails.
+- `evm-payment-listener`: verifies EVM escrow deposit events, grants paid access passes, confirms funding contributions, and records donation confirmations after enough confirmations.
 - `onchain-payout-operator`: releases verified EVM escrow payments after Supabase policy checks.
 - `process-lesson`: Gemini lesson processing foundation.
 - `personalize-lesson`: creates a student-specific lesson version by language and learning mode.

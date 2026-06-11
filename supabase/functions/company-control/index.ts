@@ -30,11 +30,49 @@ const corsHeaders = {
 
 const adminRoles = new Set(['super_admin', 'owner', 'admin', 'operator', 'reviewer', 'finance']);
 const adminStatuses = new Set(['active', 'suspended', 'removed']);
-const entityTypes = new Set(['profile', 'school', 'class', 'crew', 'publication', 'payment_rail', 'wallet']);
+const feePolicyStatuses = new Set(['active', 'paused', 'archived']);
+const entityTypes = new Set([
+  'profile',
+  'school',
+  'class',
+  'crew',
+  'publication',
+  'payment_rail',
+  'wallet',
+  'knowledge_asset',
+  'membership_pass',
+  'funding_campaign',
+  'donation_target',
+]);
 const restrictionTypes = new Set(['ban', 'suspension', 'hide', 'payout_freeze', 'payment_freeze', 'review_hold']);
-const overrideScopes = new Set(['platform', 'school', 'class', 'crew', 'subject', 'verification', 'payment_rail', 'publication']);
+const overrideScopes = new Set([
+  'platform',
+  'school',
+  'class',
+  'crew',
+  'subject',
+  'verification',
+  'payment_rail',
+  'publication',
+  'knowledge_asset',
+  'membership_pass',
+  'funding_campaign',
+  'donation',
+]);
 const overrideEffects = new Set(['grant', 'deny', 'force_free', 'force_paid', 'waive_fee', 'verified', 'remove_verified']);
-const overrideTargetTypes = new Set(['school', 'class', 'crew', 'subject', 'profile', 'publication', 'payment_rail']);
+const overrideTargetTypes = new Set([
+  'school',
+  'class',
+  'crew',
+  'subject',
+  'profile',
+  'publication',
+  'payment_rail',
+  'knowledge_asset',
+  'membership_pass',
+  'funding_campaign',
+  'donation_target',
+]);
 const dashboardSessionHours = 8;
 
 serve(async (request) => {
@@ -83,6 +121,9 @@ serve(async (request) => {
       case 'upsertCompanyAdmin':
         await requireDashboardSession(supabase, admin, body);
         return json(await upsertCompanyAdmin(supabase, admin, body));
+      case 'updatePlatformFeePolicy':
+        await requireDashboardSession(supabase, admin, body);
+        return json(await updatePlatformFeePolicy(supabase, admin, body));
       case 'createRestriction':
         await requireDashboardSession(supabase, admin, body);
         return json(await createRestriction(supabase, admin, body));
@@ -346,6 +387,36 @@ async function upsertCompanyAdmin(supabase: SupabaseClient, admin: CompanyAdmin,
   await audit(supabase, admin.profile_id, 'company.admin.saved', 'profile', profileId, { role, status });
 
   return { admin: data };
+}
+
+async function updatePlatformFeePolicy(supabase: SupabaseClient, admin: CompanyAdmin, body: ControlRequest) {
+  await requirePermission(supabase, admin, ['marketplace.fees.manage', 'marketplace.manage', 'billing.manage']);
+
+  const policyId = requireUuid(body.policyId, 'Fee policy ID');
+  const basisPoints = clampNumber(body.basisPoints, 0, 2500, 50);
+  const status = body.status ? requireEnum(body.status, feePolicyStatuses, 'Fee policy status') : 'active';
+
+  const { data, error } = await supabase
+    .from('platform_fee_policies')
+    .update({
+      basis_points: basisPoints,
+      status,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', policyId)
+    .select('id, fee_type, entity_type, provider, chain, currency, basis_points, status')
+    .single();
+
+  if (error) {
+    throw error;
+  }
+
+  await audit(supabase, admin.profile_id, 'company.fee_policy.updated', 'fee_policy', policyId, {
+    basisPoints,
+    status,
+  });
+
+  return { feePolicy: data };
 }
 
 async function createRestriction(supabase: SupabaseClient, admin: CompanyAdmin, body: ControlRequest) {

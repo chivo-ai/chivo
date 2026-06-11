@@ -1,7 +1,16 @@
 import { supabase } from '../lib/supabase';
 import { ChivoPaymentRail } from './paymentRails';
 
-export type CheckoutEntityType = 'school' | 'class' | 'crew' | 'subject' | 'verification' | 'donation' | 'publication';
+export type CheckoutEntityType =
+  | 'school'
+  | 'class'
+  | 'crew'
+  | 'subject'
+  | 'verification'
+  | 'donation'
+  | 'publication'
+  | 'knowledge_asset'
+  | 'membership_pass';
 
 export type AccessCheckoutRequest = {
   productId?: string;

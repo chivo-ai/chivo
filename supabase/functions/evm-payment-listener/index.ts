@@ -276,6 +276,20 @@ async function grantAccessIfAllowed(
   metadata: Record<string, unknown>,
   txHash: string,
 ) {
+  if (intent.entity_type === 'funding_campaign') {
+    return confirmFundingContribution(supabase, intent, metadata, txHash);
+  }
+
+  if (intent.entity_type === 'donation') {
+    return {
+      metadata: {
+        monetizationStatus: 'confirmed_donation',
+        donationTargetId: intent.entity_id,
+        paymentTxHash: txHash,
+      },
+    };
+  }
+
   const policy = await evaluatePolicy(supabase, intent);
 
   if (policy.allowed && !policy.paymentRequired) {
@@ -296,7 +310,7 @@ async function grantAccessIfAllowed(
     };
   }
 
-  if (!['school', 'class', 'crew', 'subject', 'publication'].includes(intent.entity_type)) {
+  if (!['school', 'class', 'crew', 'subject', 'publication', 'knowledge_asset', 'membership_pass'].includes(intent.entity_type)) {
     return {
       metadata: {
         accessGrantStatus: 'not_applicable',
@@ -346,6 +360,39 @@ async function grantAccessIfAllowed(
     metadata: {
       accessGrantStatus: 'granted',
       accessPassId: data.id,
+    },
+  };
+}
+
+async function confirmFundingContribution(
+  supabase: SupabaseClient,
+  intent: PaymentIntent,
+  metadata: Record<string, unknown>,
+  txHash: string,
+) {
+  const { data, error } = await supabase.rpc('confirm_funding_contribution_for_intent', {
+    payment_intent_id_input: intent.id,
+    payment_tx_hash_input: txHash,
+    confirmed_metadata: {
+      chain: intent.chain,
+      contractIntentId: metadata.contractIntentId ?? metadata.contract_intent_id ?? null,
+    },
+  });
+
+  if (error) {
+    throw error;
+  }
+
+  const result = readObject(data);
+
+  return {
+    metadata: {
+      monetizationStatus: readString(result.status) ?? 'funding_confirmation_unknown',
+      fundingContributionId: readString(result.contributionId),
+      fundingCampaignId: readString(result.campaignId) ?? intent.entity_id,
+      fundingContributionAmount: result.amount ?? null,
+      fundingAlreadyConfirmed: result.alreadyConfirmed ?? false,
+      paymentTxHash: txHash,
     },
   };
 }

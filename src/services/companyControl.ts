@@ -46,10 +46,22 @@ export type CompanyOverrideRow = {
   createdAt: string;
 };
 
+export type PlatformFeePolicyRow = {
+  id: string;
+  feeType: string;
+  entityType: string | null;
+  provider: string | null;
+  chain: string | null;
+  currency: string | null;
+  basisPoints: number;
+  status: string;
+};
+
 export type CompanyControlDashboard = {
   session: CompanyAdminSession | null;
   billing: PlatformBillingControl;
   paymentRails: PaymentRailSetting[];
+  feePolicies: PlatformFeePolicyRow[];
   admins: CompanyAdminRow[];
   restrictions: CompanyRestrictionRow[];
   overrides: CompanyOverrideRow[];
@@ -69,8 +81,25 @@ export type UpsertCompanyAdminInput = {
   status: CompanyAdminStatus;
 };
 
+export type UpdatePlatformFeePolicyInput = {
+  policyId: string;
+  basisPoints: number;
+  status?: 'active' | 'paused' | 'archived';
+};
+
 export type CreateRestrictionInput = {
-  entityType: 'profile' | 'school' | 'class' | 'crew' | 'publication' | 'payment_rail' | 'wallet';
+  entityType:
+    | 'profile'
+    | 'school'
+    | 'class'
+    | 'crew'
+    | 'publication'
+    | 'payment_rail'
+    | 'wallet'
+    | 'knowledge_asset'
+    | 'membership_pass'
+    | 'funding_campaign'
+    | 'donation_target';
   entityId: string;
   restrictionType: 'ban' | 'suspension' | 'hide' | 'payout_freeze' | 'payment_freeze' | 'review_hold';
   reason?: string | null;
@@ -83,9 +112,33 @@ export type DashboardUnlockResult = {
 };
 
 export type CreateOverrideInput = {
-  scope: 'platform' | 'school' | 'class' | 'crew' | 'subject' | 'verification' | 'payment_rail' | 'publication';
+  scope:
+    | 'platform'
+    | 'school'
+    | 'class'
+    | 'crew'
+    | 'subject'
+    | 'verification'
+    | 'payment_rail'
+    | 'publication'
+    | 'knowledge_asset'
+    | 'membership_pass'
+    | 'funding_campaign'
+    | 'donation';
   effect: 'grant' | 'deny' | 'force_free' | 'force_paid' | 'waive_fee' | 'verified' | 'remove_verified';
-  targetEntityType?: 'school' | 'class' | 'crew' | 'subject' | 'profile' | 'publication' | 'payment_rail' | null;
+  targetEntityType?:
+    | 'school'
+    | 'class'
+    | 'crew'
+    | 'subject'
+    | 'profile'
+    | 'publication'
+    | 'payment_rail'
+    | 'knowledge_asset'
+    | 'membership_pass'
+    | 'funding_campaign'
+    | 'donation_target'
+    | null;
   targetEntityId?: string | null;
   profileId?: string | null;
   reason?: string | null;
@@ -102,6 +155,7 @@ const emptyDashboard: CompanyControlDashboard = {
     message: null,
   },
   paymentRails: [],
+  feePolicies: [],
   admins: [],
   restrictions: [],
   overrides: [],
@@ -168,6 +222,24 @@ function normalizeOverride(row: Record<string, unknown>): CompanyOverrideRow {
   };
 }
 
+function normalizeFeePolicy(row: Record<string, unknown>): PlatformFeePolicyRow {
+  return {
+    id: String(row.id),
+    feeType: String(row.fee_type ?? ''),
+    entityType: nullableString(row.entity_type),
+    provider: nullableString(row.provider),
+    chain: nullableString(row.chain),
+    currency: nullableString(row.currency),
+    basisPoints: readNumber(row.basis_points, 50),
+    status: String(row.status ?? 'active'),
+  };
+}
+
+function readNumber(value: unknown, fallback: number) {
+  const parsed = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
 function normalizeRole(value: unknown): CompanyAdminRole {
   if (
     value === 'super_admin' ||
@@ -218,9 +290,10 @@ export async function fetchCompanyControlDashboard(): Promise<CompanyControlDash
     };
   }
 
-  const [billing, paymentRails, admins, restrictions, overrides] = await Promise.all([
+  const [billing, paymentRails, feePolicies, admins, restrictions, overrides] = await Promise.all([
     fetchPlatformBillingControl(),
     safeList(fetchCompanyPaymentRails),
+    safeList(fetchPlatformFeePolicies),
     safeList(fetchCompanyAdmins),
     safeList(fetchActiveRestrictions),
     safeList(fetchActiveOverrides),
@@ -230,6 +303,7 @@ export async function fetchCompanyControlDashboard(): Promise<CompanyControlDash
     session,
     billing,
     paymentRails,
+    feePolicies,
     admins,
     restrictions,
     overrides,
@@ -269,6 +343,19 @@ export async function fetchCompanyPaymentRails(): Promise<PaymentRailSetting[]> 
     displayName: nullableString(row.display_name) ?? nullableString(row.provider) ?? 'Payment rail',
     config: readObject(row.config),
   }));
+}
+
+export async function fetchPlatformFeePolicies(): Promise<PlatformFeePolicyRow[]> {
+  const { data, error } = await (client() as any)
+    .from('platform_fee_policies')
+    .select('id, fee_type, entity_type, provider, chain, currency, basis_points, status')
+    .order('fee_type', { ascending: true });
+
+  if (error) {
+    throw error;
+  }
+
+  return ((data ?? []) as Record<string, unknown>[]).map(normalizeFeePolicy);
 }
 
 export async function fetchActiveRestrictions(): Promise<CompanyRestrictionRow[]> {
@@ -321,6 +408,10 @@ export async function updateCompanyBillingControl(input: UpdateBillingControlInp
 
 export async function upsertCompanyAdmin(input: UpsertCompanyAdminInput, dashboardSessionToken: string) {
   return invokeCompanyControl('upsertCompanyAdmin', { ...input, dashboardSessionToken });
+}
+
+export async function updatePlatformFeePolicy(input: UpdatePlatformFeePolicyInput, dashboardSessionToken: string) {
+  return invokeCompanyControl('updatePlatformFeePolicy', { ...input, dashboardSessionToken });
 }
 
 export async function createCompanyRestriction(input: CreateRestrictionInput, dashboardSessionToken: string) {

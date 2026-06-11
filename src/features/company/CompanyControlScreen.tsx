@@ -34,9 +34,12 @@ import {
   CreateOverrideInput,
   CreateRestrictionInput,
   fetchCompanyControlDashboard,
+  PlatformFeePolicyRow,
   setCompanyDashboardPassword,
   unlockCompanyDashboard,
+  UpdatePlatformFeePolicyInput,
   updateCompanyBillingControl,
+  updatePlatformFeePolicy,
   upsertCompanyAdmin,
 } from '../../services/companyControl';
 import {
@@ -60,9 +63,24 @@ type AdminForm = {
   status: CompanyAdminStatus;
 };
 
+type FeePolicyStatus = NonNullable<UpdatePlatformFeePolicyInput['status']>;
+
 const roleOptions: CompanyAdminRole[] = ['super_admin', 'owner', 'admin', 'finance', 'reviewer', 'operator'];
 const statusOptions: CompanyAdminStatus[] = ['active', 'suspended', 'removed'];
-const entityOptions: CreateRestrictionInput['entityType'][] = ['profile', 'school', 'class', 'crew', 'publication', 'wallet'];
+const feePolicyStatusOptions: FeePolicyStatus[] = ['active', 'paused', 'archived'];
+const entityOptions: CreateRestrictionInput['entityType'][] = [
+  'profile',
+  'school',
+  'class',
+  'crew',
+  'publication',
+  'knowledge_asset',
+  'membership_pass',
+  'funding_campaign',
+  'donation_target',
+  'payment_rail',
+  'wallet',
+];
 const restrictionOptions: CreateRestrictionInput['restrictionType'][] = [
   'ban',
   'suspension',
@@ -71,14 +89,37 @@ const restrictionOptions: CreateRestrictionInput['restrictionType'][] = [
   'review_hold',
   'hide',
 ];
-const scopeOptions: CreateOverrideInput['scope'][] = ['platform', 'school', 'class', 'crew', 'verification', 'publication'];
-const effectOptions: CreateOverrideInput['effect'][] = ['grant', 'deny', 'force_free', 'waive_fee', 'verified', 'remove_verified'];
+const scopeOptions: CreateOverrideInput['scope'][] = [
+  'platform',
+  'school',
+  'class',
+  'crew',
+  'verification',
+  'publication',
+  'knowledge_asset',
+  'membership_pass',
+  'funding_campaign',
+  'donation',
+];
+const effectOptions: CreateOverrideInput['effect'][] = [
+  'grant',
+  'deny',
+  'force_free',
+  'force_paid',
+  'waive_fee',
+  'verified',
+  'remove_verified',
+];
 const targetTypeOptions: NonNullable<CreateOverrideInput['targetEntityType']>[] = [
   'profile',
   'school',
   'class',
   'crew',
   'publication',
+  'knowledge_asset',
+  'membership_pass',
+  'funding_campaign',
+  'donation_target',
   'payment_rail',
 ];
 
@@ -119,6 +160,8 @@ export function CompanyControlScreen() {
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [billingForm, setBillingForm] = useState<BillingForm>(initialBillingForm);
+  const [feePolicyBps, setFeePolicyBps] = useState<Record<string, string>>({});
+  const [feePolicyStatus, setFeePolicyStatus] = useState<Record<string, FeePolicyStatus>>({});
   const [adminForm, setAdminForm] = useState<AdminForm>(initialAdminForm);
   const [restrictionForm, setRestrictionForm] = useState<CreateRestrictionInput>(initialRestrictionForm);
   const [overrideForm, setOverrideForm] = useState<CreateOverrideInput>(initialOverrideForm);
@@ -130,6 +173,10 @@ export function CompanyControlScreen() {
 
   const session = dashboard?.session ?? null;
   const canManageBilling = canUseCompanyPermission(session, 'billing.manage');
+  const canManageFees =
+    canUseCompanyPermission(session, 'marketplace.fees.manage') ||
+    canUseCompanyPermission(session, 'marketplace.manage') ||
+    canUseCompanyPermission(session, 'billing.manage');
   const canManagePolicy = canUseCompanyPermission(session, 'policy.manage');
   const canManageAccess = canUseCompanyPermission(session, 'access.manage') || canUseCompanyPermission(session, 'policy.manage');
   const canManageAdmins = Boolean(session?.isSuperAdmin);
@@ -145,6 +192,14 @@ export function CompanyControlScreen() {
       platformFeeBps: String(nextDashboard.billing.platformFeeBps),
       message: nextDashboard.billing.message ?? '',
     });
+    setFeePolicyBps(nextDashboard.feePolicies.reduce<Record<string, string>>((current, policy) => ({
+      ...current,
+      [policy.id]: String(policy.basisPoints),
+    }), {}));
+    setFeePolicyStatus(nextDashboard.feePolicies.reduce<Record<string, FeePolicyStatus>>((current, policy) => ({
+      ...current,
+      [policy.id]: normalizeFeePolicyStatus(policy.status),
+    }), {}));
   }, []);
 
   useEffect(() => {
@@ -223,6 +278,19 @@ export function CompanyControlScreen() {
           status: adminForm.status,
         }, dashboardSessionToken ?? ''),
       'Company role saved.',
+    );
+  }
+
+  function saveFeePolicy(policy: PlatformFeePolicyRow) {
+    runAction(
+      `fee-policy-${policy.id}`,
+      () =>
+        updatePlatformFeePolicy({
+          policyId: policy.id,
+          basisPoints: Number(feePolicyBps[policy.id] ?? policy.basisPoints),
+          status: feePolicyStatus[policy.id] ?? normalizeFeePolicyStatus(policy.status),
+        }, dashboardSessionToken ?? ''),
+      'Fee policy updated.',
     );
   }
 
@@ -415,6 +483,7 @@ export function CompanyControlScreen() {
         <View style={styles.metricGrid}>
           <Metric icon={<Banknote size={18} color={colors.brandDeep} />} label="Billing" value={billingForm.billingEnabled ? 'On' : 'Off'} />
           <Metric icon={<Wallet size={18} color={colors.brandDeep} />} label="Enabled rails" value={String(railCounts.enabled)} />
+          <Metric icon={<SlidersHorizontal size={18} color={colors.brandDeep} />} label="Fee policies" value={String(activeDashboard.feePolicies.length)} />
           <Metric icon={<Ban size={18} color={colors.brandDeep} />} label="Restrictions" value={String(activeDashboard.restrictions.length)} />
           <Metric icon={<KeyRound size={18} color={colors.brandDeep} />} label="Overrides" value={String(activeDashboard.overrides.length)} />
         </View>
@@ -449,7 +518,7 @@ export function CompanyControlScreen() {
               />
               <ToggleTile
                 icon={<CreditCard size={18} color={billingForm.traditionalRailsEnabled ? colors.brandDeep : colors.muted} />}
-                label="Card/bank"
+                label="Future rails"
                 active={billingForm.traditionalRailsEnabled}
                 disabled={!canManageBilling}
                 onPress={() =>
@@ -509,6 +578,48 @@ export function CompanyControlScreen() {
                 ))
               ) : (
                 <EmptyState text="No payment rails are active for this role." />
+              )}
+            </View>
+          </Panel>
+
+          <Panel icon={<Banknote size={18} color={colors.brandDeep} />} title="Marketplace fees">
+            <View style={styles.listStack}>
+              {activeDashboard.feePolicies.length ? (
+                activeDashboard.feePolicies.map((policy) => (
+                  <View key={policy.id} style={styles.feePolicyCard}>
+                    <View style={styles.feePolicyTop}>
+                      <View style={styles.rowCopy}>
+                        <Text style={styles.rowTitle} numberOfLines={1}>{cleanLabel(policy.feeType)}</Text>
+                        <Text style={styles.rowMeta} numberOfLines={1}>
+                          {[policy.entityType, policy.provider, policy.chain, policy.currency].filter(Boolean).join(' / ') || 'Global'}
+                        </Text>
+                      </View>
+                      <TextInput
+                        value={feePolicyBps[policy.id] ?? String(policy.basisPoints)}
+                        onChangeText={(basisPoints) => setFeePolicyBps((current) => ({ ...current, [policy.id]: basisPoints }))}
+                        editable={canManageFees}
+                        keyboardType="numeric"
+                        placeholder="50"
+                        placeholderTextColor={colors.muted}
+                        style={[styles.input, styles.feeInput]}
+                      />
+                      <IconButton
+                        icon={<Save size={17} color={canManageFees ? colors.brandDeep : colors.muted} />}
+                        label={saving === `fee-policy-${policy.id}` ? 'Saving' : 'Save'}
+                        disabled={!canManageFees || saving === `fee-policy-${policy.id}`}
+                        onPress={() => saveFeePolicy(policy)}
+                      />
+                    </View>
+                    <ChoiceGrid
+                      values={feePolicyStatusOptions}
+                      selected={feePolicyStatus[policy.id] ?? normalizeFeePolicyStatus(policy.status)}
+                      disabled={!canManageFees}
+                      onSelect={(status) => setFeePolicyStatus((current) => ({ ...current, [policy.id]: status }))}
+                    />
+                  </View>
+                ))
+              ) : (
+                <EmptyState text="Run Group 15 to seed marketplace fee policies." />
               )}
             </View>
           </Panel>
@@ -679,7 +790,7 @@ export function CompanyControlScreen() {
                   <PolicyRow
                     key={restriction.id}
                     icon={<Ban size={15} color={colors.danger} />}
-                    title={`${cleanLabel(restriction.restrictionType)} · ${cleanLabel(restriction.entityType)}`}
+                    title={`${cleanLabel(restriction.restrictionType)} - ${cleanLabel(restriction.entityType)}`}
                     meta={restriction.reason ?? restriction.entityId}
                   />
                 ))
@@ -694,7 +805,7 @@ export function CompanyControlScreen() {
                   <PolicyRow
                     key={override.id}
                     icon={<KeyRound size={15} color={colors.success} />}
-                    title={`${cleanLabel(override.effect)} · ${cleanLabel(override.scope)}`}
+                    title={`${cleanLabel(override.effect)} - ${cleanLabel(override.scope)}`}
                     meta={override.reason ?? override.targetEntityId ?? override.profileId ?? 'Platform'}
                   />
                 ))
@@ -854,6 +965,10 @@ function cleanLabel(value: string) {
     .split('_')
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(' ');
+}
+
+function normalizeFeePolicyStatus(value: string): FeePolicyStatus {
+  return value === 'paused' || value === 'archived' ? value : 'active';
 }
 
 const styles = StyleSheet.create({
@@ -1150,6 +1265,25 @@ const styles = StyleSheet.create({
     backgroundColor: '#f8fafc',
     borderWidth: 1,
     borderColor: '#dbe4ef',
+  },
+  feePolicyCard: {
+    borderRadius: 8,
+    padding: 10,
+    gap: 9,
+    backgroundColor: '#f8fafc',
+    borderWidth: 1,
+    borderColor: colors.line,
+  },
+  feePolicyTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  feeInput: {
+    width: 76,
+    minHeight: 38,
+    paddingHorizontal: 9,
+    textAlign: 'center',
   },
   choiceGrid: {
     flexDirection: 'row',
