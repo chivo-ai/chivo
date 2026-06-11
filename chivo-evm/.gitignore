@@ -6,3 +6,4 @@ typechain-types/
 .env
 .env.*
 !.env.example
+deploy-*.log

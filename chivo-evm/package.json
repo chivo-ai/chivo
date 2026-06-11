@@ -8,16 +8,19 @@
     "deploy": "hardhat run scripts/deploy.ts --network configured",
     "deploy:polygon": "hardhat run scripts/deploy.ts --network polygon",
     "deploy:bnb": "hardhat run scripts/deploy.ts --network bnb",
+    "deploy:bnb-testnet": "hardhat run scripts/deploy.ts --network bnbTestnet",
     "admin": "hardhat run scripts/admin.ts --network configured",
     "admin:polygon": "hardhat run scripts/admin.ts --network polygon",
     "admin:bnb": "hardhat run scripts/admin.ts --network bnb",
+    "admin:bnb-testnet": "hardhat run scripts/admin.ts --network bnbTestnet",
     "sign-intent": "hardhat run scripts/sign-intent.ts --network configured",
     "sign-intent:polygon": "hardhat run scripts/sign-intent.ts --network polygon",
-    "sign-intent:bnb": "hardhat run scripts/sign-intent.ts --network bnb"
+    "sign-intent:bnb": "hardhat run scripts/sign-intent.ts --network bnb",
+    "sign-intent:bnb-testnet": "hardhat run scripts/sign-intent.ts --network bnbTestnet"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^6.1.0",
-    "@openzeppelin/contracts": "^5.4.0",
+    "@openzeppelin/contracts": "^5.0.2",
     "dotenv": "^17.2.3",
     "hardhat": "^2.27.1",
     "ts-node": "^10.9.2",

@@ -5,6 +5,7 @@ Chivo AI keeps app code, EVM contracts, and Solana programs in separate workspac
 - `app/`, `src/`, `supabase/`: Chivo AI app and backend
 - `chivo-evm/`: EVM escrow contracts
 - `chivo-sol/`: Solana escrow program
+- `chivo-sui/`: Sui Move escrow package
 
 The current app remains at the repository root for now. A later move into a `chivo-ai/` app folder should only happen as a deliberate repo restructure after native and web routing are checked.
 
@@ -68,6 +69,10 @@ Current coverage:
 - stuck-fund recovery while protecting active escrow
 - deployment, admin, and intent-signing scripts
 
+Testnet target now available:
+
+- BNB Smart Chain testnet (`chainId = 97`, native token `tBNB`)
+
 ### Solana
 
 Workspace: `chivo-sol/`
@@ -90,6 +95,37 @@ Current coverage:
 - payment/config events for backend listeners
 
 SPL-token settlement should follow the same deposit, release, refund, and freeze lifecycle already used for SOL.
+
+Test clusters now available:
+
+- Solana devnet for easy test SOL airdrops
+- Solana testnet for validator-style testing
+
+### Sui
+
+Workspace: `chivo-sui/`
+
+First package:
+
+- `sources/payments.move`
+
+Current coverage:
+
+- shared company config object
+- native SUI escrow payments
+- platform fee bps
+- payout operator and fee collector controls
+- pause switch
+- native rail fee and delay updates
+- SUI payment intent object
+- SUI escrow deposit
+- automated SUI release
+- SUI refund, freeze, unfreeze, and cancellation
+- config/payment events for backend listeners
+
+Testnet target now available:
+
+- Sui testnet (`https://fullnode.testnet.sui.io:443`)
 
 ## Verification Payments
 

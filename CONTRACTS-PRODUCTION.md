@@ -1,6 +1,6 @@
 # Chivo Contract Production Runbook
 
-This runbook covers the contract-side controls needed before Chivo accepts real value on EVM or Solana.
+This runbook covers the contract-side controls needed before Chivo accepts real value on EVM, Solana, or Sui.
 
 ## Authority Setup
 
@@ -22,6 +22,10 @@ Initial target networks:
 
 - BNB Smart Chain mainnet
 - Polygon mainnet
+
+Testnet target:
+
+- BNB Smart Chain testnet
 
 The router supports:
 
@@ -59,6 +63,30 @@ The program supports:
 - final intent close for rent recovery
 - SPL mint rail config accounts
 
+Test clusters:
+
+- Solana devnet for test SOL and app integration checks
+- Solana testnet for cluster testing
+
+## Sui Deployment
+
+Deploy `chivo_payments` per Sui network/package id.
+
+The package supports:
+
+- company config object
+- native SUI escrow deposit
+- payout operator release
+- company authority freeze, unfreeze, cancel, refund
+- native SUI rail fee updates
+- fee collector updates
+- payout operator updates
+- payment/config events
+
+Test network:
+
+- Sui testnet
+
 ## Automatic Payout
 
 No manual daily payout loop is required.
@@ -71,7 +99,7 @@ The backend payout worker should:
 4. Check no active `platform_entity_restrictions`.
 5. Check no active payout freeze override.
 6. Confirm chain finality.
-7. Call EVM `releasePayment` or `releasePayments`, or Solana `release_sol`.
+7. Call EVM `releasePayment` or `releasePayments`, Solana `release_sol`, or Sui `release_sui`.
 8. Update Supabase with release transaction/signature.
 
 Manual release should be reserved for support correction only.

@@ -1,7 +1,7 @@
 import { ethers } from 'hardhat';
 
 export async function getRouter() {
-  const routerAddress = process.env.CHIVO_PAYMENT_ROUTER;
+  const routerAddress = process.env.CHIVO_PAYMENT_ROUTER?.trim();
 
   if (!routerAddress) {
     throw new Error('Set CHIVO_PAYMENT_ROUTER to the deployed ChivoPaymentRouter address.');
@@ -11,23 +11,27 @@ export async function getRouter() {
 }
 
 export function parseBool(value: string | undefined, fallback = false) {
-  if (value === undefined || value === '') {
+  const normalizedValue = value?.trim();
+
+  if (normalizedValue === undefined || normalizedValue === '') {
     return fallback;
   }
 
-  return ['1', 'true', 'yes', 'on'].includes(value.toLowerCase());
+  return ['1', 'true', 'yes', 'on'].includes(normalizedValue.toLowerCase());
 }
 
 export function parseTokenAddress(value: string | undefined) {
-  if (!value || value.toLowerCase() === 'native' || value === ethers.ZeroAddress) {
+  const normalizedValue = value?.trim();
+
+  if (!normalizedValue || normalizedValue.toLowerCase() === 'native' || normalizedValue === ethers.ZeroAddress) {
     return ethers.ZeroAddress;
   }
 
-  return ethers.getAddress(value);
+  return ethers.getAddress(normalizedValue);
 }
 
 export function requiredEnv(name: string) {
-  const value = process.env[name];
+  const value = process.env[name]?.trim();
   if (!value) {
     throw new Error(`Set ${name}.`);
   }

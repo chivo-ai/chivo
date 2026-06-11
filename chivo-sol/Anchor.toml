@@ -5,11 +5,17 @@ skip-lint = false
 [programs.mainnet]
 chivo_payments = "HDDMMduXVwFKbrkNL6gEuqwmSsKUGVDoV126oBQKGX79"
 
+[programs.devnet]
+chivo_payments = "HDDMMduXVwFKbrkNL6gEuqwmSsKUGVDoV126oBQKGX79"
+
+[programs.testnet]
+chivo_payments = "HDDMMduXVwFKbrkNL6gEuqwmSsKUGVDoV126oBQKGX79"
+
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "https://api.mainnet-beta.solana.com"
+cluster = "https://api.devnet.solana.com"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
